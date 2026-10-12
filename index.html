@@ -477,7 +477,7 @@ ul.plain li{margin:5px 0}
     <div class="card" id="learnCard"></div>
     <div class="card">
       <h2>Coach de datos</h2>
-      <p class="sub">Analiza tus últimos 28 días: lecturas, comidas, gym, Toujeo y gráficas. Detecta patrones y te prepara preguntas para tu endocrino. No cambia tus ajustes ni tu dosis por sí solo.</p>
+      <p class="sub">Analiza tus últimos 28 días con los criterios que te dio tu endocrino: objetivos, ratio de cada comida, sensibilidad, Toujeo y gym. Cuando haya datos suficientes hace la evaluación completa; mientras tanto te dice qué te falta anotar. No cambia tus ajustes ni tu dosis por sí solo.</p>
       <div class="actions"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button></div>
       <div id="coachStatus"></div>
     </div>
@@ -1396,22 +1396,63 @@ ul.plain li{margin:5px 0}
   function renderCoach(d) {
     const s = d.stats || {};
     const stat = (v, l) => `<div class="stat"><b>${v ?? '—'}</b><span>${l}</span></div>`;
-    let h = `<div class="card"><h2>Resumen de 28 días</h2>`;
+    const mark = e => e === 'ok' ? '✅' : e === 'revisar' ? '⚠️' : '⬜';
+    const pc = d.preparacion, ob = d.objetivos, rt = d.ratios, se = d.sensibilidad;
+    let h = '';
+
+    if (pc) {
+      const full = pc.nivel === 'completo';
+      h += `<div class="card"><h3>${full ? 'Hay datos suficientes para la evaluación completa' : 'Evaluación preliminar: aún faltan datos'}</h3>
+        <p class="sub" style="margin-bottom:8px">${full ? 'Esto es lo que has registrado en los últimos 28 días.' : 'El coach te dirá lo que los datos sostienen y qué te falta anotar para la evaluación completa.'}</p>
+        <div class="bar" role="progressbar" aria-valuenow="${pc.porcentaje}" aria-valuemin="0" aria-valuemax="100" aria-label="Datos disponibles"><i style="width:${pc.porcentaje}%"></i></div>
+        <ul class="plain">${pc.items.map(i => `<li>${i.ok ? '✅' : '⬜'} ${esc(i.texto)}: <b>${fmt(i.tengo)}</b> de ${fmt(i.necesito)}</li>`).join('')}</ul></div>`;
+    }
+
+    h += `<div class="card"><h2>Evaluación de 28 días</h2>`;
     if (d.alerta) h += `<div class="status err" style="margin-bottom:10px">${esc(d.alerta)}</div>`;
     if (d.resumen) h += `<p style="margin-top:10px">${esc(d.resumen)}</p>`;
     h += `<div class="stats">${stat(s.lecturas, 'lecturas')}${stat(s.comidas, 'comidas guardadas')}${stat(s.media_lecturas != null ? s.media_lecturas + ' mg/dL' : null, 'media de lecturas')}${stat(s.bajas_menos_70, 'lecturas bajo 70')}${stat(s.dias_gym, 'días de gym')}${stat(s.tras_comida && s.tras_comida.subida_media != null ? (s.tras_comida.subida_media > 0 ? '+' : '') + s.tras_comida.subida_media : null, 'cambio medio tras comer')}</div></div>`;
+
+    if (ob && ob.filas && ob.filas.length) {
+      h += `<div class="card"><h3>Tus objetivos (según tu endocrino)</h3><div style="overflow-x:auto"><table><thead><tr><th></th><th>Indicador</th><th>Tu dato</th><th>Objetivo</th></tr></thead><tbody>` +
+        ob.filas.map(f => `<tr><td>${mark(f.estado)}</td><td>${esc(f.indicador)}${f.nota ? `<small style="display:block;color:var(--muted)">${esc(f.nota)}</small>` : ''}</td><td>${esc(f.valor)}</td><td>${esc(f.objetivo)}</td></tr>`).join('') +
+        `</tbody></table></div></div>`;
+    }
+
+    if (rt && rt.franjas) {
+      const lab = { alta: '⚠️ Sube después', baja: '⚠️ Baja después', objetivo: '✅ En objetivo', pocos_datos: '⬜ Faltan datos' };
+      h += `<div class="card"><h3>Ratio por comida</h3>
+        <p class="sub" style="margin-bottom:8px">Solo cuentan comidas de 10 g de hidratos o más, con glucosa previa entre 70 y 180, una lectura "2 h después de comer" y sin otra insulina en medio. Mínimo 3 por comida.</p>
+        <div style="overflow-x:auto"><table><thead><tr><th>Comida</th><th>Válidas</th><th>Ratio que usas</th><th>Glucosa a las 2 h</th><th>Resultado</th></tr></thead><tbody>` +
+        rt.franjas.map(f => `<tr><td><b>${esc(f.franja)}</b><small style="display:block;color:var(--muted)">${esc(f.horas)}</small></td><td>${f.validas} de ${f.comidas}</td><td>${f.ui_r != null ? fmt(f.ui_r) + ' UI/r<small style="display:block;color:var(--muted)">' + fmt(f.g_ui) + ' g/UI</small>' : '—'}</td><td>${f.post_mediana != null ? fmt(f.post_mediana) + ' mg/dL<small style="display:block;color:var(--muted)">' + f.post_alta_pct + ' % >180 · ' + f.post_baja_pct + ' % <70</small>' : '—'}</td><td>${lab[f.estado] || ''}</td></tr>`).join('') +
+        `</tbody></table></div>` +
+        rt.franjas.filter(f => f.estado !== 'pocos_datos').map(f => `<div class="sug ${f.estado === 'objetivo' ? '' : f.estado === 'baja' ? 'alta' : 'media'}"><b>${esc(f.franja)}</b><small>${esc(f.lectura)}</small></div>`).join('') + `</div>`;
+    }
+
+    if (se) {
+      h += `<div class="card"><h3>Sensibilidad y dosis total</h3><div class="stats">` +
+        stat(se.observada_mgdl_por_UI != null ? se.observada_mgdl_por_UI : null, 'mg/dL que te bajó 1 U (observado)') +
+        stat(se.configurada_mgdl_por_UI != null ? se.configurada_mgdl_por_UI : null, 'tu factor en Ajustes') +
+        stat(se.fsi_regla_1800 != null ? se.fsi_regla_1800 : null, 'regla del 1800') +
+        stat(se.g_por_UI_regla_500 != null ? se.g_por_UI_regla_500 : null, 'g/UI por regla del 500') +
+        stat(se.dti_estimada != null ? se.dti_estimada + ' U' : null, 'dosis total diaria estimada') + `</div>
+        <p class="hint">Correcciones válidas: ${se.correcciones_validas}. ${se.dti_fiable ? '' : 'La dosis total estimada todavía no es fiable: anota todas tus dosis varios días. '}${esc(se.nota || '')}</p></div>`;
+    }
+
     const g = s.gym_antes_despues, t = s.toujeo;
     if (g || t) {
       h += `<div class="card"><h3>Gym y Toujeo</h3><ul class="plain">`;
       if (g) h += g.n ? `<li>Gym: en ${g.suben} de ${g.n} sesiones con lectura antes y después, la glucosa subió. Cambio medio: ${g.cambio_medio > 0 ? '+' : ''}${g.cambio_medio} mg/dL.</li>` : `<li>Gym: anota la glucosa "antes del gym" y "después del gym" para ver cuánto te sube.</li>`;
       if (t) h += t.registros ? `<li>Toujeo: ${t.registros} registros, media de ${t.dosis_media} U, hora habitual ${t.hora_media}, variación entre días de ${t.variacion_horaria_min} min.</li>` : `<li>Toujeo: registra la hora de cada puesta para ver tu regularidad.</li>`;
+      if (s.ayunas && s.ayunas.n) h += `<li>En ayunas (${s.ayunas.n} lecturas): mediana de ${s.ayunas.mediana} mg/dL.</li>`;
+      if (s.madrugada && s.madrugada.n) h += `<li>De madrugada o antes de dormir (${s.madrugada.n} lecturas): mediana de ${s.madrugada.mediana} mg/dL.</li>`;
       h += `</ul></div>`;
     }
     if (d.senales && d.senales.length) h += `<div class="card"><h3>Señales detectadas</h3><ul class="plain">${d.senales.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
     if (d.patrones && d.patrones.length) h += `<div class="card"><h3>Patrones</h3>${d.patrones.map(p => `<div class="sug"><b>${esc(p.titulo)}</b><small>${esc(p.detalle)}</small></div>`).join('')}</div>`;
     if (d.sugerencias && d.sugerencias.length) h += `<div class="card"><h3>Sugerencias</h3>${d.sugerencias.map(x => `<div class="sug ${x.prioridad}"><b>${esc(x.texto)}</b><small>Prioridad ${x.prioridad}${x.requiere_endocrino ? '. Coméntalo con tu endocrino antes de cambiar nada.' : '.'}</small></div>`).join('')}</div>`;
     if (d.preguntas_endocrino && d.preguntas_endocrino.length) h += `<div class="card"><h3>Para tu próxima consulta</h3><ul class="plain">${d.preguntas_endocrino.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
-    if (d.aviso_ia) h += `<div class="status info">La IA no pudo redactar el análisis (${esc(d.aviso_ia)}), pero las estadísticas anteriores son correctas.</div>`;
+    if (d.aviso_ia) h += `<div class="status info">La IA no pudo redactar la interpretación (${esc(d.aviso_ia)}), pero las tablas anteriores son correctas.</div>`;
     $('#coachOut').innerHTML = h;
     $('#coachOut').classList.remove('tabpanel', 'enter'); $('#coachOut').classList.add('tabpanel');
     void $('#coachOut').offsetWidth; $('#coachOut').classList.add('enter');

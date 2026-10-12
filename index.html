@@ -831,6 +831,7 @@ ul.plain li{margin:5px 0}
     day: [['gym','Día de gym','chk'], ['note','Nota','txt']],
     chart: [['note','Nota','txt']]
   };
+   const linkedMeal = r => entries.find(m => m.type === 'meal' && m.ts === r.ts && !(m.carbs > 0));
   let editing = null;
   function openEdit(e) {
     editing = e;
@@ -841,6 +842,10 @@ ul.plain li{margin:5px 0}
       else if (kind === 'chk') f.push(`<label style="display:flex;gap:10px;align-items:center;font-weight:600"><input id="ed-${k}" type="checkbox" style="width:auto" ${e[k] ? 'checked' : ''}>${label}</label>`);
       else f.push(`<div class="field"><label for="ed-${k}">${label}</label><input id="ed-${k}" name="ed-${k}" autocomplete="off" ${kind === 'num' ? 'type="number" step="0.5" inputmode="decimal"' : 'maxlength="300"'} value="${esc(v)}"></div>`);
     });
+    if (e.type === 'reading') {
+      const lm = linkedMeal(e);
+      f.push(`<div class="field"><label for="ed-ins">Insulina Fiasp (U)</label><input id="ed-ins" name="ed-ins" autocomplete="off" type="number" step="0.5" min="0" max="100" inputmode="decimal" placeholder="Opcional" value="${lm ? esc(lm.dose) : ''}"></div>`);
+    }
     $('#edFields').innerHTML = f.join('');
     setStatus('#edStatus', '', '');
     $('#edModal').hidden = false;
@@ -862,9 +867,22 @@ ul.plain li{margin:5px 0}
       if (ch.carbs == null) ch.carbs = 0;
     }
     if (e.type === 'basal' && !(ch.units > 0 && ch.units <= 200)) { setStatus('#edStatus', 'err', 'Revisa las unidades de Toujeo.'); return; }
+    let ins = null;
+    if (e.type === 'reading') {
+      ins = numOrNull($('#ed-ins').value);
+      if (ins != null && !(ins >= 0 && ins <= 100)) { setStatus('#edStatus', 'err', 'Revisa la insulina (0 a 100 U).'); return; }
+    }
     $('#edSave').disabled = true;
-    try { await updateEntry(e, ch); $('#edModal').hidden = true; editing = null; toast('Registro actualizado'); }
-    catch (err) { setStatus('#edStatus', 'err', esc(err.message)); }
+    try {
+      const lm = e.type === 'reading' ? linkedMeal(e) : null;
+      await updateEntry(e, ch);
+      if (e.type === 'reading') {
+        if (lm && ins > 0) await updateEntry(lm, { ts: ch.ts, bg: ch.mgdl, dose: ins });
+        else if (lm) await removeEntry(lm);
+        else if (ins > 0) await addEntry({ type:'meal', kind:'correccion', carbs:0, bg: ch.mgdl, dose: ins, suggested:null, note: ch.note, gym: !!e.gym, ts: ch.ts });
+      }
+      $('#edModal').hidden = true; editing = null; toast('Registro actualizado');
+    } catch (err) { setStatus('#edStatus', 'err', esc(err.message)); }
     $('#edSave').disabled = false;
   });
 

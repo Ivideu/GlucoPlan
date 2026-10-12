@@ -1,8 +1,13 @@
 // API del historial (Netlify Blobs, incluido en el plan gratuito).
+//   GET    /api/data?months=2          -> { entries: [...] }
+//   GET    /api/data?what=settings     -> { settings: {...} | null }
+//   POST   /api/data  { entry }        -> { entry }   (añade un registro)
+//   POST   /api/data  { settings }     -> { ok: true } (guarda ajustes)
+//   DELETE /api/data?id=...&ts=...     -> { ok: true }
 import { randomUUID } from "node:crypto";
 import { checkAuth, loadEntries, monthKey, preflight, reply, store } from "../lib/shared.mjs";
 
-const TYPES = ["meal", "reading", "chart", "day", "basal", "correction"];
+const TYPES = ["meal", "reading", "chart", "day", "basal"];
 const CONTEXTS = ["ayunas", "pre_comida", "post2h", "pre_gym", "post_gym", "noche", "otro"];
 
 const num = (v, min, max) => {
@@ -11,10 +16,10 @@ const num = (v, min, max) => {
 };
 const txt = (v, len) => String(v ?? "").slice(0, len);
 
-function cleanEntry(e) {
+function cleanEntry(e, id) {
   if (!e || !TYPES.includes(e.type)) return null;
   const out = {
-    id: randomUUID(),
+    id: id ? txt(id, 64) : randomUUID(),
     ts: num(e.ts, 0, 4e12) ?? Date.now(),
     type: e.type,
     gym: !!e.gym,
@@ -24,16 +29,13 @@ function cleanEntry(e) {
   if (e.type === "meal") {
     out.carbs = num(e.carbs, 0, 500);
     out.bg = num(e.bg, 20, 600);
-    out.dose = num(e.dose, 0, 100);
-    out.calculatedDose = num(e.calculatedDose, 0, 100);
+    out.dose = num(e.dose, 0, 100); // dosis REAL que se pinchó la persona
+    out.suggested = num(e.suggested, 0, 100); // dosis que propuso la app
+    out.kind = ["comida", "cafe", "correccion"].includes(e.kind) ? e.kind : "comida";
     if (out.carbs === null || out.dose === null) return null;
   }
-  if (e.type === "correction") {
-    out.bg = num(e.bg, 20, 600);
-    out.dose = num(e.dose, 0, 100);
-    if (out.bg === null || out.dose === null) return null;
-  }
   if (e.type === "basal") {
+    // Toujeo: unidades y hora real de la puesta (ts), que puede ser anterior a ahora.
     out.units = num(e.units, 0, 200);
     if (out.units === null) return null;
   }
@@ -88,6 +90,25 @@ export default async (req) => {
         for (const k of SETTING_KEYS) clean[k] = txt(body.settings[k], 20);
         await s.setJSON("settings", clean);
         return reply(200, { ok: true });
+      }
+
+      if (body.update) {
+        const { id, oldTs, entry: raw } = body.update;
+        const old = Number(oldTs);
+        const entry = id && Number.isFinite(old) ? cleanEntry(raw, id) : null;
+        if (!entry) return reply(400, { error: "Registro no válido" });
+        const oldKey = `entries/${monthKey(old)}`, newKey = `entries/${monthKey(entry.ts)}`;
+        const oldList = (await s.get(oldKey, { type: "json" })) || [];
+        if (!oldList.some((x) => x.id === entry.id)) return reply(404, { error: "No se encontró el registro" });
+        if (oldKey === newKey) {
+          await s.setJSON(oldKey, oldList.map((x) => (x.id === entry.id ? entry : x)));
+        } else {
+          await s.setJSON(oldKey, oldList.filter((x) => x.id !== entry.id));
+          const newList = (await s.get(newKey, { type: "json" })) || [];
+          newList.push(entry);
+          await s.setJSON(newKey, newList);
+        }
+        return reply(200, { entry });
       }
 
       const entry = cleanEntry(body.entry);

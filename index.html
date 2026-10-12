@@ -297,11 +297,15 @@ ul.plain li{margin:5px 0}
     <div class="cols">
       <div class="stack">
         <div class="card">
-          <h2>Anotar glucosa</h2>
-          <p class="sub">La lectura de 2 horas después de comer es la que más enseña al coach.</p>
+          <h2>Anotar glucosa e insulina</h2>
+          <p class="sub">Apunta la glucosa, la insulina que te has puesto, o las dos cosas. La lectura de 2 horas después de comer es la que más enseña al coach.</p>
           <div class="fgrid">
             <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
-            <div class="field"><label for="r-ctx">Momento</label>
+            <div class="field"><label for="r-ins">Insulina Fiasp (U)</label><input id="r-ins" type="number" step="0.5" min="0" max="100" inputmode="decimal" placeholder="Opcional"></div>
+          </div>
+          <div class="fgrid" style="margin-top:12px">
+            <div class="field"><label for="r-when">Momento</label><input id="r-when" type="datetime-local"></div>
+            <div class="field"><label for="r-ctx">Tipo de lectura</label>
               <select id="r-ctx">
                 <option value="post2h">2 horas después de comer</option>
                 <option value="pre_comida">Antes de comer</option>
@@ -312,8 +316,17 @@ ul.plain li{margin:5px 0}
                 <option value="otro">Otro</option>
               </select></div>
           </div>
-          <div class="field" style="margin-top:12px"><label for="r-note">Nota (opcional)</label><input id="r-note" maxlength="120"></div>
-          <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar lectura</button></div>
+          <div class="chips" style="margin-top:8px"><button class="chip" type="button" id="r-now">Usar la hora actual</button></div>
+          <div class="field" style="margin-top:12px"><label for="r-carbs">Hidratos (g, opcional)</label><input id="r-carbs" type="number" inputmode="decimal" min="0" placeholder="Si la insulina es para una comida o café"></div>
+          <div class="field" style="margin-top:12px"><label for="r-note">Nota (opcional)</label>
+            <div class="chips" id="qNotes" style="margin-bottom:8px">
+              <button class="chip" type="button" aria-pressed="false">Café con leche</button>
+              <button class="chip" type="button" aria-pressed="false">Merienda</button>
+              <button class="chip" type="button" aria-pressed="false">Sobre azúcar</button>
+            </div>
+            <input id="r-note" maxlength="120" placeholder="O escribe lo que quieras">
+          </div>
+          <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar</button></div>
         </div>
         <div class="card">
           <div class="head"><h2>Últimas 24 horas</h2><button class="btn ghost small" type="button" id="toGlucosa">Ver más</button></div>
@@ -541,6 +554,20 @@ ul.plain li{margin:5px 0}
   </div>
 </div>
 
+<!-- EDITAR REGISTRO -->
+<div class="modal" id="edModal" role="dialog" aria-modal="true" aria-labelledby="edTitle" hidden>
+  <div class="box">
+    <h2 id="edTitle">Editar registro</h2>
+    <p class="sub">Cambia lo que necesites: hora, valores o nota.</p>
+    <div id="edFields" class="stack" style="gap:12px"></div>
+    <div id="edStatus"></div>
+    <div class="actions">
+      <button class="btn" id="edSave" type="button">Guardar cambios</button>
+      <button class="btn ghost" id="edCancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ACCESO -->
 <div class="modal" id="login" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
   <div class="box">
@@ -684,6 +711,18 @@ ul.plain li{margin:5px 0}
     entries.sort((a, b) => b.ts - a.ts);
     renderAll();
   }
+  async function updateEntry(e, changes) {
+    const merged = { ...e, ...changes };
+    if (isCloud()) {
+      const d = await api('/api/data', { method:'POST', body: JSON.stringify({ update: { id: e.id, oldTs: e.ts, entry: merged } }) });
+      entries = entries.map(x => x.id === e.id ? d.entry : x);
+    } else {
+      entries = entries.map(x => x.id === e.id ? merged : x);
+      store.entries = entries.slice().sort((a, b) => b.ts - a.ts).slice(0, 600); save();
+    }
+    entries.sort((a, b) => b.ts - a.ts);
+    renderAll();
+  }
   async function removeEntry(e) {
     if (isCloud()) await api(`/api/data?id=${encodeURIComponent(e.id)}&ts=${e.ts}`, { method:'DELETE' });
     entries = entries.filter(x => x.id !== e.id);
@@ -783,6 +822,52 @@ ul.plain li{margin:5px 0}
     $('#tjSave').disabled = false;
   });
 
+  /* ---------- Editar registros ---------- */
+  const KINDS = { comida:'Comida', cafe:'Café o snack', correccion:'Corrección' };
+  const EDIT = {
+    reading: [['mgdl','Glucosa (mg/dL)','num'], ['context','Tipo de lectura','sel', CTX], ['note','Nota','txt']],
+    meal: [['kind','Tipo','sel', KINDS], ['carbs','Hidratos (g)','num'], ['bg','Glucemia (mg/dL)','num'], ['dose','Insulina que te pusiste (U)','num'], ['note','Nota','txt']],
+    basal: [['units','Toujeo (U)','num'], ['note','Nota','txt']],
+    day: [['gym','Día de gym','chk'], ['note','Nota','txt']],
+    chart: [['note','Nota','txt']]
+  };
+  let editing = null;
+  function openEdit(e) {
+    editing = e;
+    const f = [`<div class="field"><label for="ed-ts">Fecha y hora</label><input id="ed-ts" type="datetime-local" value="${toLocalInput(e.ts)}"></div>`];
+    (EDIT[e.type] || []).forEach(([k, label, kind, opts]) => {
+      const v = e[k] ?? '';
+      if (kind === 'sel') f.push(`<div class="field"><label for="ed-${k}">${label}</label><select id="ed-${k}">${Object.entries(opts).map(([ov, ol]) => `<option value="${ov}" ${ov === (e[k] || (k === 'kind' ? 'comida' : 'otro')) ? 'selected' : ''}>${ol}</option>`).join('')}</select></div>`);
+      else if (kind === 'chk') f.push(`<label style="display:flex;gap:10px;align-items:center;font-weight:600"><input id="ed-${k}" type="checkbox" style="width:auto" ${e[k] ? 'checked' : ''}>${label}</label>`);
+      else f.push(`<div class="field"><label for="ed-${k}">${label}</label><input id="ed-${k}" ${kind === 'num' ? 'type="number" step="0.5" inputmode="decimal"' : 'maxlength="300"'} value="${esc(v)}"></div>`);
+    });
+    $('#edFields').innerHTML = f.join('');
+    setStatus('#edStatus', '', '');
+    $('#edModal').hidden = false;
+  }
+  $('#edCancel').addEventListener('click', () => { $('#edModal').hidden = true; editing = null; });
+  $('#edSave').addEventListener('click', async () => {
+    const e = editing; if (!e) return;
+    const ts = new Date($('#ed-ts').value).getTime();
+    if (!isFinite(ts)) { setStatus('#edStatus', 'err', 'Elige la fecha y la hora.'); return; }
+    if (ts > Date.now() + 5 * 6e4) { setStatus('#edStatus', 'err', 'La hora no puede ser futura.'); return; }
+    const ch = { ts };
+    (EDIT[e.type] || []).forEach(([k, , kind]) => {
+      const el = $('#ed-' + k);
+      ch[k] = kind === 'chk' ? el.checked : kind === 'num' ? numOrNull(el.value) : el.value.trim();
+    });
+    if (e.type === 'reading' && !(ch.mgdl >= 20 && ch.mgdl <= 600)) { setStatus('#edStatus', 'err', 'La glucosa debe estar entre 20 y 600.'); return; }
+    if (e.type === 'meal') {
+      if (ch.dose == null || ch.dose < 0 || ch.dose > 100) { setStatus('#edStatus', 'err', 'Revisa la insulina (0 a 100 U).'); return; }
+      if (ch.carbs == null) ch.carbs = 0;
+    }
+    if (e.type === 'basal' && !(ch.units > 0 && ch.units <= 200)) { setStatus('#edStatus', 'err', 'Revisa las unidades de Toujeo.'); return; }
+    $('#edSave').disabled = true;
+    try { await updateEntry(e, ch); $('#edModal').hidden = true; editing = null; toast('Registro actualizado'); }
+    catch (err) { setStatus('#edStatus', 'err', esc(err.message)); }
+    $('#edSave').disabled = false;
+  });
+
   /* ---------- Gym ---------- */
   function renderGym() {
     const on = gymToday();
@@ -803,10 +888,10 @@ ul.plain li{margin:5px 0}
     if (e.type === 'meal') {
       const lab = e.kind === 'cafe' ? 'Café / snack' : e.kind === 'correccion' ? 'Corrección' : 'Comida';
       const sug = e.suggested != null && e.suggested !== e.dose ? ` (la app sugería ${fmt(e.suggested)})` : '';
-      return [ '🍽️', `<b>${lab}</b>: ${e.carbs ? fmt(e.carbs) + ' g de hidratos, ' : ''}Fiasp ${fmt(e.dose)} U${sug}${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}` ];
+      return [ '🍽️', `<b>${lab}</b>: ${e.carbs ? fmt(e.carbs) + ' g de hidratos, ' : ''}Fiasp ${fmt(e.dose)} U${sug}${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
     }
     if (e.type === 'reading') return [ '🩸', `<b>${fmt(e.mgdl)} mg/dL</b> ${CTX[e.context] || ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
-    if (e.type === 'basal') return [ '💉', `<b>Toujeo ${fmt(e.units)} U</b>` ];
+    if (e.type === 'basal') return [ '💉', `<b>Toujeo ${fmt(e.units)} U</b>${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
     if (e.type === 'chart') {
       const s = e.summary || {};
       return [ '📈', `<b>Gráfica</b> ${esc(s.periodo || '')}: media ${s.media_mgdl != null ? fmt(s.media_mgdl) + ' mg/dL' : '—'}, en rango ${s.tir_pct != null ? fmt(s.tir_pct) + ' %' : '—'}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
@@ -819,13 +904,14 @@ ul.plain li{margin:5px 0}
     if (!entries.length) { box.innerHTML = '<p class="empty">Todavía no hay registros.</p>'; return; }
     box.innerHTML = entries.slice(0, n).map(e => {
       const [ic, html] = describe(e);
-      return `<div class="row" data-id="${e.id}"><div class="ic ${e.type}" aria-hidden="true">${ic}</div><div>${html}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div><button class="x" type="button" aria-label="Borrar registro">×</button></div>`;
+      return `<div class="row" data-id="${e.id}"><div class="ic ${e.type}" aria-hidden="true">${ic}</div><div>${html}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div><div style="display:flex;gap:2px"><button class="x ed" type="button" aria-label="Editar registro">✎</button><button class="x" type="button" aria-label="Borrar registro">×</button></div></div>`;
     }).join('');
   }
   function renderEntries() { fillLog('#entryLogHoy', 6); fillLog('#entryLog', 30); }
   ['#entryLogHoy', '#entryLog'].forEach(sel => $(sel).addEventListener('click', async ev => {
     const btn = ev.target.closest('.x'); if (!btn) return;
     const e = entries.find(x => x.id === btn.closest('.row').dataset.id);
+    if (e && btn.classList.contains('ed')) { openEdit(e); return; }
     if (e && confirm('¿Borrar este registro?')) { try { await removeEntry(e); toast('Registro borrado'); } catch (err) { toast(err.message, 'err'); } }
   }));
 
@@ -844,13 +930,43 @@ ul.plain li{margin:5px 0}
     a.download = 'glucoplan-historial.csv'; a.click();
   });
 
+  /* Hora y notas rápidas */
+  let whenTouched = false, quickKind = null;
+  const setNow = () => { if (!whenTouched) $('#r-when').value = toLocalInput(Date.now()); };
+  $('#r-when').addEventListener('input', () => { whenTouched = true; });
+  $('#r-now').addEventListener('click', () => { whenTouched = false; setNow(); });
+  const QUICK = { 'Café con leche':'cafe', 'Merienda':'comida', 'Sobre azúcar':'cafe' };
+  $$('#qNotes .chip').forEach(c => c.addEventListener('click', () => {
+    const on = c.getAttribute('aria-pressed') !== 'true';
+    $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    const labels = Object.keys(QUICK), n = $('#r-note'), cur = n.value.trim();
+    if (on) {
+      c.setAttribute('aria-pressed', 'true'); quickKind = QUICK[c.textContent];
+      n.value = !cur || labels.includes(cur) ? c.textContent : cur + ', ' + c.textContent;
+    } else { quickKind = null; if (cur === c.textContent) n.value = ''; }
+  }));
+
   $('#saveReading').addEventListener('click', async () => {
     const mgdl = numOrNull($('#r-val').value);
-    if (!(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
+    const units = numOrNull($('#r-ins').value);
+    const carbs = numOrNull($('#r-carbs').value);
+    if (mgdl == null && !(units > 0)) { toast('Escribe la glucosa o la insulina', 'err'); return; }
+    if (mgdl != null && !(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
+    if (units != null && !(units >= 0 && units <= 100)) { toast('Revisa las unidades de insulina', 'err'); return; }
+    const ts = whenTouched ? new Date($('#r-when').value).getTime() : Date.now();
+    if (!isFinite(ts)) { toast('Elige la fecha y la hora', 'err'); return; }
+    if (ts > Date.now() + 5 * 6e4) { toast('La hora no puede ser futura', 'err'); return; }
+    const note = $('#r-note').value.trim(), gym = gymToday();
     try {
-      await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note: $('#r-note').value, gym: gymToday() });
-      $('#r-val').value = ''; $('#r-note').value = '';
-      toast(mgdl < 70 ? 'Guardada. Glucosa baja: trátala según tu pauta' : 'Lectura guardada: ' + fmt(mgdl) + ' mg/dL', mgdl < 70 ? 'err' : 'ok');
+      if (mgdl != null) await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts });
+      if (units > 0) {
+        const kind = quickKind || (carbs > 0 ? 'comida' : 'correccion');
+        await addEntry({ type:'meal', kind, carbs: carbs || 0, bg: mgdl, dose: units, suggested: null, note, gym, ts });
+      }
+      ['#r-val', '#r-ins', '#r-carbs', '#r-note'].forEach(id => { $(id).value = ''; });
+      $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+      quickKind = null; whenTouched = false; setNow();
+      toast(mgdl != null && mgdl < 70 ? 'Guardado. Glucosa baja: trátala según tu pauta' : 'Guardado' + (units > 0 ? ': ' + fmt(units) + ' U' : ''), mgdl != null && mgdl < 70 ? 'err' : 'ok');
     } catch (err) { toast(err.message, 'err'); }
   });
   $('#r-val').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
@@ -1331,7 +1447,7 @@ ul.plain li{margin:5px 0}
   });
 
   /* ---------- Inicio y refresco automático ---------- */
-  fillSettings(); renderSync(); renderItems(); renderAll();
+  fillSettings(); renderSync(); renderItems(); renderAll(); setNow();
   const h = location.hash.slice(1);
   showTab(TABS.includes(h) ? h : 'hoy');
   (async () => {
@@ -1342,7 +1458,7 @@ ul.plain li{margin:5px 0}
     else openLogin();
   })();
   // Cada minuto se actualizan los tiempos; cada 2 minutos y al volver a la pestaña se traen los datos de otros dispositivos.
-  setInterval(() => { renderToujeo(); renderHero(); renderCharts(false); }, 60000);
+  setInterval(() => { renderToujeo(); renderHero(); renderCharts(false); setNow(); }, 60000);
   setInterval(() => { if (isCloud() && !document.hidden) loadEntries(true); }, 120000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) loadEntries(true); });
 })();

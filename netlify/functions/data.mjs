@@ -2,6 +2,7 @@
 //   GET    /api/data?months=2          -> { entries: [...] }
 //   GET    /api/data?what=settings     -> { settings: {...} | null }
 //   POST   /api/data  { entry }        -> { entry }   (añade un registro)
+//   POST   /api/data  { update }       -> { entry }   (edita un registro)
 //   POST   /api/data  { settings }     -> { ok: true } (guarda ajustes)
 //   DELETE /api/data?id=...&ts=...     -> { ok: true }
 import { randomUUID } from "node:crypto";

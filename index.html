@@ -1,77 +1,1055 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mi Plan Fitness</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GlucoPlan</title>
+<meta name="theme-color" content="#F2F8F9">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F8F9; --surface:#FFFFFF; --ink:#10303A; --muted:#5B7782; --line:#DCE9EC;
+  --teal:#0F8B8D; --teal-ink:#0A6264; --teal-soft:#D8F0EF; --sky:#BFE3F5; --sky-soft:#E6F4FB;
+  --amber:#B97800; --amber-soft:#FFF1CF; --rose:#C23550; --rose-soft:#FCE3E7; --green-soft:#DFF5E6; --green:#1E7B43;
+  --display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --body:'Figtree','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:84px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;letter-spacing:-.01em}
+h2{font-size:1.6rem}
+h3{font-size:1.1rem}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px;border-radius:6px}
+.app{max-width:1040px;margin:0 auto;padding:20px 16px 56px}
 
-  <style>
-    body {
-      margin: 0;
-      padding: 40px 20px;
-      font-family: system-ui, sans-serif;
-      background: #f8fafc;
-      color: #0f172a;
-    }
+/* Cabecera */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:8px 0 18px}
+.brand h1{font-size:2rem}
+.brand p{color:var(--muted);margin-top:2px}
+.sync{font-size:.85rem;margin-top:4px!important}
+.sync.on{color:var(--green)}
+.basal{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);
+  border-radius:999px;padding:8px 8px 8px 18px}
+.basal strong{font-family:var(--display);font-size:1.05rem}
+.basal span{color:var(--muted);font-size:.9rem}
+.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:600;cursor:pointer;background:var(--teal);color:#fff;
+  transition:background .15s,transform .1s}
+.btn:hover{background:var(--teal-ink)}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--teal-ink);border:1.5px solid var(--teal)}
+.btn.ghost:hover{background:var(--teal-soft)}
+.btn.small{padding:6px 12px;font-size:.9rem}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.basal.done{background:var(--green-soft);border-color:#BFE6CC}
+.basal.done .btn{background:var(--green)}
 
-    h1 {
-      text-align: center;
-      font-size: 2rem;
-      margin-bottom: 30px;
-    }
+/* Navegación */
+.nav{position:sticky;top:0;z-index:5;background:rgba(242,248,249,.92);backdrop-filter:blur(8px);
+  padding:10px 16px;margin:0 -16px 20px;border-bottom:1px solid var(--line);
+  display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:0;background:transparent;border-radius:999px;padding:9px 18px;font-weight:600;color:var(--muted);cursor:pointer}
+.tab:hover{background:var(--sky-soft);color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--teal);color:#fff}
+[hidden]{display:none!important}
 
-    .grid {
-      display: grid;
-      gap: 20px;
-      max-width: 600px;
-      margin: auto;
-    }
+/* Paneles */
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:start}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px}
+.panel + .panel{margin-top:16px}
+.panel h2{margin-bottom:4px}
+.sub{color:var(--muted);margin-bottom:14px}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;
+  border:2px dashed #A9D4DA;border-radius:16px;background:var(--sky-soft);padding:26px 16px;min-height:180px;
+  cursor:pointer;overflow:hidden;position:relative}
+.drop:hover{background:#DCEFF9}
+.drop img{max-width:100%;max-height:300px;border-radius:12px;display:block}
+.drop .cam{font-size:2.2rem}
+.drop strong{font-family:var(--display);font-size:1.15rem}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.status{margin-top:12px;border-radius:12px;padding:10px 14px;font-size:.95rem}
+.status.info{background:var(--sky-soft);color:var(--teal-ink)}
+.status.err{background:var(--rose-soft);color:var(--rose)}
+.status.ok{background:var(--green-soft);color:var(--green)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--teal);border-right-color:transparent;border-radius:50%;
+  animation:sp .8s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
 
-    .card {
-      padding: 20px;
-      border-radius: 16px;
-      background: white;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      transition: transform .2s, box-shadow .2s;
-    }
+.items{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+.item{display:grid;grid-template-columns:1fr 92px 64px 32px;gap:8px;align-items:center;background:var(--bg);border-radius:12px;padding:8px 10px}
+.item .name small{display:block;color:var(--muted)}
+.item .name small.low{color:var(--amber);font-weight:600}
+.item input{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;text-align:right}
+.item .c{text-align:right;font-weight:600}
+.item .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.2rem;border-radius:8px}
+.item .x:hover{background:var(--rose-soft);color:var(--rose)}
+.empty{color:var(--muted);padding:10px 2px}
+.add{display:grid;grid-template-columns:1fr 100px auto;gap:8px;margin-top:6px}
+@media(max-width:480px){.add{grid-template-columns:1fr 80px}.add .btn{grid-column:1/-1}.item{grid-template-columns:1fr 78px 54px 28px}}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-weight:600;font-size:.92rem}
+.field input,.field select,.field textarea,.add input{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:12px}
+.hint{color:var(--muted);font-size:.85rem}
 
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-    }
+.dose{background:var(--teal-soft);border-color:#B5E0DE;position:sticky;top:78px}
+@media(max-width:820px){.dose{position:static}}
+.dose .big{font-family:var(--display);font-weight:700;font-size:5rem;line-height:1;color:var(--teal-ink);margin:8px 0 2px}
+.dose .big small{font-size:1.4rem;font-weight:500;margin-left:6px}
+.break{display:grid;gap:6px;margin:14px 0;font-size:.95rem}
+.break div{display:flex;justify-content:space-between;border-bottom:1px dashed #9CCFCC;padding-bottom:4px}
+.warns{display:grid;gap:8px;margin:12px 0}
+.warn{border-radius:12px;padding:10px 12px;font-size:.93rem;background:var(--amber-soft);color:#7A4F00}
+.warn.danger{background:var(--rose-soft);color:var(--rose);font-weight:600}
+.fine{font-size:.82rem;color:var(--teal-ink);margin-top:10px}
 
-    .emoji {
-      font-size: 2rem;
-    }
+.hist{margin-top:16px}
+.hist table{width:100%;border-collapse:collapse;font-size:.93rem}
+.hist th,.hist td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+.hist th{color:var(--muted);font-weight:600}
 
-    .title {
-      font-size: 1.2rem;
-      font-weight: 600;
-    }
-  </style>
+/* Registro y coach */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:8px 14px;font-weight:600;cursor:pointer}
+.chip:hover{border-color:var(--teal)}
+.chip[aria-pressed="true"]{background:var(--teal-soft);border-color:var(--teal);color:var(--teal-ink)}
+.log{display:grid;gap:8px;margin-top:10px}
+.log .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--bg);border-radius:12px;padding:10px 12px}
+.log .row small{display:block;color:var(--muted)}
+.log .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.2rem;border-radius:8px;padding:2px 8px}
+.log .x:hover{background:var(--rose-soft);color:var(--rose)}
+.tag{display:inline-block;background:var(--sky-soft);color:var(--teal-ink);border-radius:8px;padding:1px 8px;font-size:.78rem;font-weight:600;margin-left:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+.stat{background:var(--bg);border-radius:14px;padding:12px}
+.stat b{display:block;font-family:var(--display);font-size:1.7rem;line-height:1.1}
+.stat span{color:var(--muted);font-size:.85rem}
+.sug{border-left:4px solid var(--teal);background:var(--bg);border-radius:0 12px 12px 0;padding:10px 14px;margin-top:10px}
+.sug.alta{border-color:var(--rose)}
+.sug.media{border-color:var(--amber)}
+.sug small{display:block;color:var(--muted);margin-top:2px}
+ul.plain{margin:8px 0 0;padding-left:18px}
+ul.plain li{margin:4px 0}
+
+/* Entreno / menú / compra */
+.light{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+@media(max-width:700px){.light{grid-template-columns:1fr 1fr}}
+.light div{border-radius:14px;padding:12px;font-size:.9rem}
+.light b{display:block;font-family:var(--display);font-size:1.05rem;margin-bottom:2px}
+.l1{background:var(--rose-soft)}.l2{background:var(--amber-soft)}.l3{background:var(--green-soft)}.l4{background:var(--rose-soft)}
+.tablewrap{overflow-x:auto;margin-top:6px}
+table.ex{width:100%;border-collapse:collapse;min-width:560px}
+table.ex th{text-align:left;color:var(--muted);font-weight:600;font-size:.88rem;padding:8px 10px;border-bottom:2px solid var(--line)}
+table.ex td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.ex tr.done td{color:#8AA3AB}
+table.ex tr.done .exn{text-decoration:line-through}
+.exn{font-weight:600}
+.chk{width:22px;height:22px;accent-color:var(--teal)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:760px){.two{grid-template-columns:1fr}}
+.two .panel + .panel{margin-top:0}
+.meal{display:grid;grid-template-columns:130px 1fr 84px;gap:14px;padding:16px 0;border-bottom:1px solid var(--line);align-items:start}
+.meal:last-child{border-bottom:0}
+.meal .when b{font-family:var(--display);font-size:1.1rem;display:block}
+.meal .when span{color:var(--muted);font-size:.88rem}
+.meal .carb{justify-self:end;background:var(--sky-soft);border-radius:12px;padding:6px 10px;text-align:center;font-weight:700;color:var(--teal-ink)}
+.meal .carb small{display:block;font-weight:500;color:var(--muted);font-size:.75rem}
+@media(max-width:600px){.meal{grid-template-columns:1fr 70px}.meal .when{grid-column:1/-1}}
+.total{display:flex;justify-content:space-between;margin-top:10px;padding:12px 14px;background:var(--bg);border-radius:12px;font-weight:600}
+.shop{columns:2 300px;column-gap:20px}
+.group{break-inside:avoid;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+.group h3{margin-bottom:8px}
+.group label{display:flex;gap:10px;align-items:flex-start;padding:5px 0;cursor:pointer}
+.group input{width:20px;height:20px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto}
+.group label.on span{text-decoration:line-through;color:#8AA3AB}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.settings{max-width:620px}
+.settings .field{margin-top:12px}
+.foot{margin-top:36px;padding:16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:.88rem}
+
+/* Acceso */
+.modal{position:fixed;inset:0;background:rgba(16,48,58,.5);display:grid;place-items:center;padding:16px;z-index:20}
+.modal .box{background:#fff;border-radius:22px;padding:24px;max-width:440px;width:100%;max-height:92vh;overflow:auto}
+.modal .actions{margin:16px 0 0}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
-
 <body>
+<div class="app">
 
-  <h1>Mi Plan Fitness</h1>
+  <header class="top">
+    <div class="brand">
+      <h1>GlucoPlan</h1>
+      <p>Comida, insulina, entreno y compra en un solo sitio.</p>
+      <p class="sync" id="syncState"></p>
+    </div>
+    <div class="basal" id="basalBox">
+      <div><strong id="basalTitle">Toujeo 28 U</strong><br><span id="basalState">Sin marcar hoy</span></div>
+      <button class="btn small" id="basalBtn" type="button">Marcar puesta</button>
+    </div>
+  </header>
 
-  <div class="grid">
-    <a class="card" href="ejercicios.html">
-      <span class="emoji">💪</span>
-      <span class="title">Rutina de ejercicios</span>
-    </a>
+  <nav class="nav" role="tablist" aria-label="Secciones">
+    <button class="tab" role="tab" data-tab="comida" aria-selected="true">Comida e insulina</button>
+    <button class="tab" role="tab" data-tab="glucosa" aria-selected="false">Glucosa</button>
+    <button class="tab" role="tab" data-tab="coach" aria-selected="false">Coach</button>
+    <button class="tab" role="tab" data-tab="entreno" aria-selected="false">Entreno</button>
+    <button class="tab" role="tab" data-tab="menu" aria-selected="false">Menú semanal</button>
+    <button class="tab" role="tab" data-tab="compra" aria-selected="false">Lista de la compra</button>
+    <button class="tab" role="tab" data-tab="ajustes" aria-selected="false">Ajustes</button>
+  </nav>
 
-    <a class="card" href="dieta.html">
-      <span class="emoji">🍽️</span>
-      <span class="title">Plan de alimentación</span>
-    </a>
+  <!-- COMIDA -->
+  <section id="tab-comida" role="tabpanel">
+    <div class="grid">
+      <div>
+        <div class="panel">
+          <h2>Foto del plato</h2>
+          <p class="sub">Haz una foto antes de comer. La IA estima alimentos, gramos e hidratos; tú los revisas.</p>
+          <div class="drop">
+            <img id="preview" alt="Vista previa del plato" hidden>
+            <div id="dropText">
+              <div class="cam" aria-hidden="true">📷</div>
+              <strong>Hacer o elegir una foto</strong>
+              <p class="hint">Plato entero, buena luz y desde arriba mejora la estimación.</p>
+            </div>
+            <input type="file" id="file" accept="image/*" capture="environment" aria-label="Hacer o elegir una foto del plato">
+          </div>
+          <div id="status"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Alimentos del plato</h2>
+          <p class="sub">Ajusta los gramos o añade alimentos a mano si la foto no acierta.</p>
+          <div class="items" id="items"></div>
+          <div class="add">
+            <input id="foodIn" list="foodList" placeholder="Buscar alimento (arroz, pan, manzana…)" aria-label="Alimento">
+            <input id="gramsIn" type="number" inputmode="decimal" min="0" placeholder="g" aria-label="Gramos">
+            <button class="btn ghost" id="addBtn" type="button">Añadir</button>
+          </div>
+          <datalist id="foodList"></datalist>
+          <div class="row2">
+            <div class="field">
+              <label for="extra">Hidratos extra (g)</label>
+              <input id="extra" type="number" inputmode="decimal" min="0" placeholder="0">
+              <span class="hint">Etiquetas, salsas, postre…</span>
+            </div>
+            <div class="field">
+              <label for="bg">Glucemia actual (mg/dL)</label>
+              <input id="bg" type="number" inputmode="decimal" min="0" placeholder="Opcional">
+              <span class="hint">Sensor o glucómetro.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside>
+        <div class="panel dose" aria-live="polite">
+          <h2>Dosis de Fiasp</h2>
+          <div id="doseBox"></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="panel hist">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2>Últimas comidas</h2>
+        <div class="actions" style="margin:0">
+          <button class="btn ghost small" id="csvBtn" type="button">Descargar CSV</button>
+        </div>
+      </div>
+      <div id="histBox"></div>
+    </div>
+  </section>
+
+  <!-- GLUCOSA -->
+  <section id="tab-glucosa" role="tabpanel" hidden>
+    <div class="panel">
+      <h2>Cómo ha sido hoy</h2>
+      <p class="sub">Marca lo que ha pasado hoy. Las lecturas y comidas que guardes después llevarán esta información y el coach la usará para comparar.</p>
+      <div class="chips">
+        <button class="chip" type="button" id="flagGym" aria-pressed="false">Hoy he hecho gimnasio</button>
+        <button class="chip" type="button" id="flagCarb" aria-pressed="false">Hoy he comido más hidratos de lo normal</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Anotar una lectura</h2>
+      <p class="sub">Lo que más enseña al coach: la glucosa 2 horas después de comer.</p>
+      <div class="fgrid">
+        <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
+        <div class="field"><label for="r-ctx">Momento</label>
+          <select id="r-ctx">
+            <option value="post2h">2 horas después de comer</option>
+            <option value="pre_comida">Antes de comer</option>
+            <option value="ayunas">En ayunas</option>
+            <option value="pre_gym">Antes del gimnasio</option>
+            <option value="post_gym">Después del gimnasio</option>
+            <option value="noche">Antes de dormir o de madrugada</option>
+            <option value="otro">Otro</option>
+          </select></div>
+        <div class="field"><label for="r-note">Nota (opcional)</label><input id="r-note" maxlength="120"></div>
+      </div>
+      <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar lectura</button></div>
+      <div id="readingStatus"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Subir una gráfica de glucosa</h2>
+      <p class="sub">Haz una captura de tu app del sensor (día o semana). La IA extrae los datos y tú los confirmas antes de guardar.</p>
+      <div class="drop" style="min-height:130px">
+        <img id="chartPreview" alt="Vista previa de la gráfica" hidden>
+        <div id="chartDropText">
+          <div class="cam" aria-hidden="true">📈</div>
+          <strong>Elegir captura de la gráfica</strong>
+        </div>
+        <input type="file" id="chartFile" accept="image/*" aria-label="Elegir captura de la gráfica de glucosa">
+      </div>
+      <p class="hint" style="margin-top:8px">Con el plan gratuito, Google puede usar lo que envías para mejorar sus productos. Recorta tu nombre y otros datos personales antes de subir la captura.</p>
+      <div id="chartStatus"></div>
+      <div id="chartForm" hidden>
+        <div class="fgrid">
+          <div class="field"><label for="c-periodo">Periodo</label><input id="c-periodo"></div>
+          <div class="field"><label for="c-media">Media (mg/dL)</label><input id="c-media" type="number" inputmode="decimal"></div>
+          <div class="field"><label for="c-tir">Tiempo en rango (%)</label><input id="c-tir" type="number" inputmode="decimal"></div>
+          <div class="field"><label for="c-bajo">Por debajo (%)</label><input id="c-bajo" type="number" inputmode="decimal"></div>
+          <div class="field"><label for="c-alto">Por encima (%)</label><input id="c-alto" type="number" inputmode="decimal"></div>
+          <div class="field"><label for="c-hipos">Eventos de glucosa baja</label><input id="c-hipos" type="number" inputmode="decimal"></div>
+          <div class="field"><label for="c-min">Mínima (mg/dL)</label><input id="c-min" type="number" inputmode="decimal"></div>
+          <div class="field"><label for="c-max">Máxima (mg/dL)</label><input id="c-max" type="number" inputmode="decimal"></div>
+        </div>
+        <ul class="plain" id="chartPatterns"></ul>
+        <div class="field" style="margin-top:12px"><label for="c-note">Qué pasó esos días (gimnasio, más hidratos…)</label><input id="c-note" maxlength="200"></div>
+        <div class="actions" style="margin-top:14px"><button class="btn" id="saveChart" type="button">Guardar gráfica</button></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Registro reciente</h2>
+      <div class="log" id="entryLog"></div>
+    </div>
+  </section>
+
+  <!-- COACH -->
+  <section id="tab-coach" role="tabpanel" hidden>
+    <div class="panel">
+      <h2>Coach de datos</h2>
+      <p class="sub">Analiza tus últimos 28 días: lecturas, comidas, gimnasio y gráficas. Detecta patrones y te prepara preguntas para tu endocrino. No cambia tus ajustes ni tu dosis por sí solo.</p>
+      <div class="actions" style="margin:0"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button></div>
+      <div id="coachStatus"></div>
+    </div>
+    <div id="coachOut"></div>
+  </section>
+
+  <!-- ENTRENO -->
+  <section id="tab-entreno" role="tabpanel" hidden>
+    <div class="panel">
+      <h2>Gimnasio a las 6:00, tres días por semana</h2>
+      <p class="sub">Lunes, miércoles y viernes. Fuerza primero y cardio después: es lo que mejor protege frente a bajadas de glucosa. Unos 55 minutos.</p>
+      <div class="chips" id="dayChips"></div>
+      <div id="workoutBox"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Antes de entrenar: semáforo de glucosa</h3>
+      <p class="sub" style="margin-bottom:0">Orientativo. Confírmalo con tu endocrino y adáptalo a cómo reaccionas tú.</p>
+      <div class="light">
+        <div class="l1"><b>Menos de 90</b>Toma 15 a 20 g de hidratos rápidos, espera y vuelve a medir antes de empezar.</div>
+        <div class="l2"><b>90 a 150</b>Puedes entrenar con un pequeño aporte de hidratos (10 a 15 g) si vas a hacer series largas.</div>
+        <div class="l3"><b>150 a 250</b>Buen rango para empezar. Mide a mitad de sesión.</div>
+        <div class="l4"><b>Más de 250</b>Mide cetonas. Si hay cetonas, no entrenes y consulta tu pauta.</div>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <h3>Mente: 5 minutos al terminar</h3>
+        <ul class="plain">
+          <li>Respiración 4-6: inspira 4 segundos, espira 6, durante 3 minutos.</li>
+          <li>Una frase: qué vas a hacer bien hoy.</li>
+          <li>Estiramientos suaves de cadera y espalda.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Progresión en 9 semanas</h3>
+        <ul class="plain">
+          <li>Semanas 1 a 4: técnica y cargas con 2 o 3 repeticiones en reserva.</li>
+          <li>Semanas 5 a 8: sube la carga un 2,5 a 5 % si completas todas las series.</li>
+          <li>Semana 9: descarga con la mitad de series.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Después del entreno</h3>
+      <ul class="plain">
+        <li>Mide al terminar y de nuevo a las 2 o 3 horas: el músculo sigue captando glucosa y puede haber bajadas tardías, incluso de madrugada.</li>
+        <li>Lleva siempre hidratos rápidos en la bolsa de deporte.</li>
+        <li>Marca "Hoy he hecho gimnasio" en la pestaña Glucosa para que el coach compare tus días de entreno.</li>
+        <li>No cambies tu dosis de Toujeo por tu cuenta. Si ves bajadas repetidas, comenta el ajuste con tu endocrino.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section id="tab-menu" role="tabpanel" hidden>
+    <div class="panel">
+      <h2>Plan de tres comidas</h2>
+      <p class="sub">Recetas de menos de 20 minutos, con los hidratos aproximados de cada comida para que calcules la dosis. Pesa y confirma siempre. Pensado para unas 2.000 kcal, con proteína en cada plato.</p>
+      <div class="chips" id="menuChips"></div>
+      <div id="menuBox"></div>
+      <div class="total"><span>Hidratos del día</span><span id="menuTotal"></span></div>
+    </div>
+    <div class="panel">
+      <h3>Preparación exprés del domingo (30 minutos)</h3>
+      <ul class="plain">
+        <li>Cuece legumbres y arroz para varios días y guárdalos en táperes.</li>
+        <li>Hornea la pechuga de pollo de dos comidas.</li>
+        <li>Lava y trocea verduras para ensaladas y salteados.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- COMPRA -->
+  <section id="tab-compra" role="tabpanel" hidden>
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Lista de la compra semanal</h2>
+      <p class="sub">Cantidades orientativas para una persona y siete días del menú. Marca lo que ya tienes.</p>
+      <div class="actions">
+        <button class="btn" id="copyShop" type="button">Copiar lista</button>
+        <button class="btn ghost" id="resetShop" type="button">Desmarcar todo</button>
+      </div>
+      <div id="shopStatus"></div>
+    </div>
+    <div class="shop" id="shopBox"></div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="tab-ajustes" role="tabpanel" hidden>
+    <div class="panel settings">
+      <h2>Tus ajustes de insulina</h2>
+      <p class="sub">Pon aquí los valores que te haya indicado tu endocrino. Con la sesión iniciada se sincronizan entre tus dispositivos.</p>
+      <div class="field">
+        <label for="s-icr">Ratio insulina/hidratos: 1 unidad cubre cuántos gramos</label>
+        <input id="s-icr" type="number" step="0.1" min="1" inputmode="decimal" placeholder="Ej.: 10 (pregunta a tu endocrino)">
+      </div>
+      <div class="field">
+        <label for="s-isf">Factor de sensibilidad: 1 unidad baja cuántos mg/dL</label>
+        <input id="s-isf" type="number" step="1" min="1" inputmode="decimal" placeholder="30">
+        <span class="hint">Un factor de corrección de 1/30 equivale a 30.</span>
+      </div>
+      <div class="field">
+        <label for="s-target">Glucemia objetivo (mg/dL)</label>
+        <input id="s-target" type="number" step="1" min="70" inputmode="decimal" placeholder="Ej.: 110">
+      </div>
+      <div class="field">
+        <label for="s-step">Salto de tu pluma</label>
+        <select id="s-step"><option value="0.5">0,5 unidades</option><option value="1">1 unidad</option></select>
+      </div>
+      <div class="field">
+        <label for="s-max">Aviso de dosis máxima (unidades, opcional)</label>
+        <input id="s-max" type="number" step="0.5" min="0" inputmode="decimal" placeholder="Te avisa si el cálculo la supera">
+      </div>
+      <div class="field">
+        <label for="s-adj">Reducción de dosis (%) acordada con tu endocrino</label>
+        <input id="s-adj" type="number" step="5" min="0" max="80" inputmode="decimal" placeholder="0">
+        <span class="hint">Por ejemplo, para comidas cercanas al ejercicio. Déjalo en 0 si no la tienes pautada.</span>
+      </div>
+      <div class="field">
+        <label for="s-basal">Toujeo (unidades al día)</label>
+        <input id="s-basal" type="number" step="1" min="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="s-api">Dirección de tu web en Netlify (solo si alojas esta página en GitHub Pages)</label>
+        <input id="s-api" type="url" placeholder="https://tu-sitio.netlify.app">
+        <span class="hint">Déjalo vacío si la web está desplegada en Netlify.</span>
+      </div>
+      <div class="actions" style="margin-top:18px">
+        <button class="btn" id="saveSet" type="button">Guardar ajustes</button>
+        <button class="btn ghost" id="logoutBtn" type="button">Cerrar sesión</button>
+      </div>
+      <div id="setStatus"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    GlucoPlan es una herramienta de apoyo y no sustituye la indicación de tu endocrino. Las estimaciones de la foto son aproximadas: revisa los gramos antes de pinchar. Ante hipoglucemias, glucemias muy altas o cualquier duda, sigue tu pauta médica.
+  </footer>
+</div>
+
+<!-- ACCESO -->
+<div class="modal" id="login" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
+  <div class="box">
+    <h2 id="loginTitle">Entra en GlucoPlan</h2>
+    <p class="sub" style="margin-top:6px">Escribe la clave que pusiste en Netlify (variable APP_PASSWORD). Protege tu historial y el uso de la IA.</p>
+    <div class="field">
+      <label for="pw">Clave de acceso</label>
+      <input id="pw" type="password" autocomplete="current-password">
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label for="loginApi">Dirección de Netlify (solo si esta página está en GitHub Pages)</label>
+      <input id="loginApi" type="url" placeholder="https://tu-sitio.netlify.app">
+    </div>
+    <div id="loginStatus"></div>
+    <div class="actions">
+      <button class="btn" id="loginBtn" type="button">Entrar</button>
+      <button class="btn ghost" id="localBtn" type="button">Usar sin sincronizar</button>
+    </div>
+    <p class="hint">Sin sincronizar, el historial se queda solo en este dispositivo y no hay análisis con IA.</p>
   </div>
+</div>
 
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const KEY = 'glucoplan:v2';
+  const fmt = n => Number(n).toLocaleString('es-ES', { maximumFractionDigits: 1 });
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const dayStr = ts => new Date(ts).toLocaleDateString('sv-SE');
+  const todayKey = () => dayStr(Date.now());
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const numOrNull = v => (v === '' || v == null || !isFinite(Number(v)) ? null : Number(v));
+
+  /* ---------- Datos fijos ---------- */
+  const FOODS = [
+    ['Arroz blanco cocido',28],['Arroz integral cocido',23],['Pasta cocida',31],['Pasta integral cocida',26],
+    ['Pan blanco',50],['Pan integral',41],['Patata cocida',17],['Patatas fritas',35],['Boniato cocido',20],
+    ['Lentejas cocidas',17],['Garbanzos cocidos',20],['Judías blancas cocidas',16],['Avena en copos',60],
+    ['Cereales de desayuno',75],['Galletas tipo María',75],['Yogur natural',5],['Yogur griego natural',4],
+    ['Leche',5],['Plátano',21],['Manzana',12],['Naranja',9],['Kiwi',11],['Fresas y frutos rojos',7],['Uvas',17],
+    ['Pizza',33],['Hummus',14],['Wrap de trigo',48],['Zumo de naranja',10],['Refresco de cola',11],
+    ['Chocolate negro 70 %',30],['Aguacate',2],['Huevo',1],['Pechuga de pollo',0]
+  ];
+  const CTX = { post2h:'2 h después de comer', pre_comida:'antes de comer', ayunas:'en ayunas', pre_gym:'antes del gimnasio', post_gym:'después del gimnasio', noche:'noche o madrugada', otro:'otro momento' };
+
+  const WORKOUTS = [
+    { day:'Lunes', title:'Tren inferior y core', rows:[
+      ['Calentamiento: bici o remo suave + movilidad de cadera','8 min','—','Ritmo en el que puedas hablar.'],
+      ['Sentadilla goblet','3 × 10','75 s','Baja controlado, talones apoyados.'],
+      ['Peso muerto rumano con mancuernas','3 × 10','90 s','Espalda neutra, cadera atrás.'],
+      ['Zancadas caminando','3 × 10 por pierna','60 s','Pasos largos y tronco recto.'],
+      ['Puente de glúteo','3 × 12','60 s','Pausa de 1 segundo arriba.'],
+      ['Plancha frontal','3 × 30 a 40 s','45 s','Costillas recogidas.'],
+      ['Paseo del granjero con mancuernas','3 × 30 m','60 s','Agarre fuerte, hombros atrás.'],
+      ['Cierre: caminar en cinta','10 min','—','Baja pulsaciones y vuelve a medir.']
+    ]},
+    { day:'Miércoles', title:'Tren superior', rows:[
+      ['Calentamiento: remo suave + rotaciones de hombro','8 min','—','Banda elástica si tienes.'],
+      ['Press de banca con mancuernas','3 × 10','90 s','Escápulas juntas y abajo.'],
+      ['Remo con mancuerna o en máquina','3 × 10','90 s','Tira con el codo, no con la mano.'],
+      ['Press militar sentado','3 × 10','90 s','Sin arquear la espalda.'],
+      ['Jalón al pecho','3 × 10','75 s','Pecho arriba al bajar la barra.'],
+      ['Face pull o pájaros','2 × 15','45 s','Mejora postura de oficina.'],
+      ['Curl de bíceps + tríceps en polea (superserie)','2 × 12','60 s','Sin balanceo.'],
+      ['Pallof press','3 × 10 por lado','45 s','Core anti-rotación.']
+    ]},
+    { day:'Viernes', title:'Cuerpo completo y cardio', rows:[
+      ['Calentamiento: bici + sentadilla con peso corporal','8 min','—','Sube gradualmente.'],
+      ['Peso muerto con barra hexagonal o mancuernas','3 × 8','2 min','Carga moderada, técnica limpia.'],
+      ['Prensa de piernas','3 × 10','90 s','No bloquees las rodillas.'],
+      ['Remo sentado en polea','3 × 10','75 s','Pausa 1 segundo atrás.'],
+      ['Flexiones (en banco si hace falta)','3 × 8 a 12','60 s','Cuerpo en línea recta.'],
+      ['Swing con kettlebell','3 × 15','60 s','Movimiento de bisagra de cadera.'],
+      ['Intervalos en bici: 30 s fuerte + 90 s suave','6 rondas','—','Los esfuerzos fuertes pueden subir la glucosa un rato; mide después.'],
+      ['Cierre mental: respiración 4-6 y estiramientos','5 min','—','Termina con calma antes de ir al trabajo.']
+    ]}
+  ];
+
+  const MENU = [
+    { day:'Lunes', meals:[
+      ['Desayuno','7:30 tras el gym','Avena con yogur griego, frutos rojos y nueces',42],
+      ['Comida','14:00','Pollo a la plancha con arroz integral (60 g en crudo) y ensalada',48],
+      ['Cena','21:00','Merluza al horno con verduras y 1 patata mediana',28]]},
+    { day:'Martes', meals:[
+      ['Desayuno','7:30','2 tostadas integrales con aguacate y 2 huevos revueltos, más 1 mandarina',40],
+      ['Comida','14:00','Lentejas estofadas con verduras (80 g en crudo)',45],
+      ['Cena','21:00','Wrap integral de atún, huevo cocido, tomate y lechuga',25]]},
+    { day:'Miércoles', meals:[
+      ['Desayuno','7:30 tras el gym','Yogur griego con 40 g de avena, nueces y 1 manzana',47],
+      ['Comida','14:00','Pasta integral (70 g en crudo) con ternera picada y tomate',50],
+      ['Cena','21:00','Salmón a la plancha con brócoli y 120 g de boniato',25]]},
+    { day:'Jueves', meals:[
+      ['Desayuno','7:30','Tortilla de 3 huevos con jamón, 2 rebanadas de pan integral y 1 kiwi',42],
+      ['Comida','14:00','Garbanzos con espinacas (70 g en crudo) y 1 huevo cocido',40],
+      ['Cena','21:00','Crema de calabacín con pechuga de pavo y 1 rebanada de pan',23]]},
+    { day:'Viernes', meals:[
+      ['Desayuno','7:30 tras el gym','2 tostadas integrales con queso fresco y pavo, más 1 kiwi y 1 manzana pequeña',40],
+      ['Comida','14:00','Salteado de ternera con verduras y arroz basmati (60 g en crudo)',48],
+      ['Cena','21:00','Tortilla de calabacín con ensalada y 1 rebanada de pan',20]]},
+    { day:'Sábado', meals:[
+      ['Desayuno','8:30','Tortitas de avena (50 g de avena, 1 huevo, medio plátano) con yogur',38],
+      ['Comida','14:00','Arroz con pollo y verduras (65 g en crudo)',50],
+      ['Cena','21:00','Revuelto de gambas y champiñones con ensalada y 1 rebanada de pan',20]]},
+    { day:'Domingo', meals:[
+      ['Desayuno','8:30','2 tostadas integrales con tomate y aceite, 2 huevos y 1 pieza de fruta',42],
+      ['Comida','14:00','Pollo al horno con 200 g de patata y verduras',37],
+      ['Cena','21:00','Ensalada grande con garbanzos, atún y queso feta',22]]}
+  ];
+
+  const SHOP = [
+    ['Proteínas',['Pechuga de pollo, 600 g','Ternera (picada 150 g + filetes 150 g)','Merluza, 1 filete','Salmón, 1 filete','Gambas peladas, 150 g','Pechuga de pavo, 150 g','Pavo y jamón en lonchas, 150 g','Atún en lata, 3 latas','Huevos, 18 unidades']],
+    ['Lácteos',['Yogur griego natural, 6 unidades','Queso fresco, 1 tarrina','Queso feta, 80 g']],
+    ['Hidratos y legumbres',['Avena en copos, 300 g','Pan integral en rebanadas, 1 paquete','Wraps integrales, 1 paquete','Arroz integral, 250 g','Arroz basmati, 150 g','Pasta integral, 200 g','Lentejas, 250 g','Garbanzos, 300 g (o 2 botes cocidos)','Patatas, 800 g','Boniato, 1 unidad']],
+    ['Verduras',['Tomates, 6 unidades','Lechuga o mezclum, 2 bolsas','Espinacas, 1 bolsa','Brócoli, 1 pieza','Calabacín, 4 unidades','Champiñones, 250 g','Cebolla y ajo','Pimiento y zanahoria, para salteado']],
+    ['Fruta',['Frutos rojos congelados, 300 g','Kiwis, 4','Manzanas, 4','Plátanos, 2','Mandarinas, 3','Aguacates, 2']],
+    ['Despensa',['Aceite de oliva virgen extra','Nueces, 150 g','Caldo de verduras','Sal y especias (pimentón, comino, orégano)']]
+  ];
+
+  /* ---------- Estado local ---------- */
+  const defaults = { icr:'', isf:'30', target:'', step:'0.5', maxDose:'', adj:'', basal:'28', apiBase:'' };
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY)) || {};
+      return { settings:{ ...defaults, ...(d.settings || {}) }, entries:d.entries || [], checks:d.checks || {}, shop:d.shop || {}, basalLog:d.basalLog || {} };
+    } catch { return { settings:{ ...defaults }, entries:[], checks:{}, shop:{}, basalLog:{} }; }
+  }
+  const store = load();
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch {} };
+  const getKey = () => { try { return localStorage.getItem(KEY + ':key') || ''; } catch { return ''; } };
+  const isCloud = () => !!getKey();
+  const isLocalMode = () => { try { return localStorage.getItem(KEY + ':local') === '1'; } catch { return false; } };
+
+  let items = [];
+  let nextId = 1;
+  let entries = [];
+
+  /* ---------- API ---------- */
+  async function api(path, opts = {}) {
+    const base = (store.settings.apiBase || '').replace(/\/$/, '');
+    const res = await fetch(base + path, {
+      ...opts,
+      headers: { 'Content-Type':'application/json', 'x-app-key': getKey(), ...(opts.headers || {}) }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || ('Error ' + res.status));
+    return data;
+  }
+
+  function setStatus(sel, type, html) { $(sel).innerHTML = html ? `<div class="status ${type}">${html}</div>` : ''; }
+
+  function renderSync() {
+    const el = $('#syncState');
+    if (isCloud()) { el.textContent = 'Sincronizado con tu base de datos'; el.className = 'sync on'; }
+    else { el.textContent = 'Modo local: sin sincronizar ni IA'; el.className = 'sync'; }
+  }
+
+  /* ---------- Registros ---------- */
+  async function loadEntries() {
+    if (isCloud()) {
+      try { entries = (await api('/api/data?months=2')).entries || []; }
+      catch (e) { entries = []; setStatus('#readingStatus', 'err', 'No se pudo leer el historial: ' + esc(e.message)); }
+    } else {
+      entries = store.entries.slice();
+    }
+    renderEntries(); renderHist(); renderFlags();
+  }
+  async function addEntry(e) {
+    e.ts = e.ts || Date.now();
+    if (isCloud()) {
+      const d = await api('/api/data', { method:'POST', body: JSON.stringify({ entry: e }) });
+      entries.unshift(d.entry);
+    } else {
+      entries.unshift({ ...e, id: uid() });
+      store.entries = entries.slice(0, 400); save();
+    }
+    entries.sort((a, b) => b.ts - a.ts);
+    renderEntries(); renderHist(); renderFlags();
+  }
+  async function removeEntry(e) {
+    if (isCloud()) await api(`/api/data?id=${encodeURIComponent(e.id)}&ts=${e.ts}`, { method:'DELETE' });
+    entries = entries.filter(x => x.id !== e.id);
+    if (!isCloud()) { store.entries = entries.slice(0, 400); save(); }
+    renderEntries(); renderHist(); renderFlags();
+  }
+  const todayFlag = f => entries.some(e => e.type === 'day' && e[f] && dayStr(e.ts) === todayKey());
+  const gymToday = () => entries.some(e => e.gym && dayStr(e.ts) === todayKey());
+  const carbToday = () => entries.some(e => e.highCarb && dayStr(e.ts) === todayKey());
+
+  function renderFlags() {
+    $('#flagGym').setAttribute('aria-pressed', gymToday());
+    $('#flagCarb').setAttribute('aria-pressed', carbToday());
+  }
+  async function toggleFlag(flag) {
+    try {
+      const own = entries.filter(e => e.type === 'day' && e[flag] && dayStr(e.ts) === todayKey());
+      if (own.length) { for (const e of own) await removeEntry(e); }
+      else await addEntry({ type:'day', gym: flag === 'gym', highCarb: flag === 'highCarb' });
+    } catch (err) { setStatus('#readingStatus', 'err', esc(err.message)); }
+  }
+  $('#flagGym').addEventListener('click', () => toggleFlag('gym'));
+  $('#flagCarb').addEventListener('click', () => toggleFlag('highCarb'));
+
+  function describe(e) {
+    const tags = (e.gym ? '<span class="tag">gimnasio</span>' : '') + (e.highCarb ? '<span class="tag">más hidratos</span>' : '');
+    if (e.type === 'meal') return `<b>Comida</b>: ${fmt(e.carbs)} g de hidratos, Fiasp ${fmt(e.dose)} U${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}`;
+    if (e.type === 'reading') return `<b>${fmt(e.mgdl)} mg/dL</b> ${CTX[e.context] || ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}`;
+    if (e.type === 'chart') {
+      const s = e.summary || {};
+      return `<b>Gráfica</b> ${esc(s.periodo || '')}: media ${s.media_mgdl != null ? fmt(s.media_mgdl) + ' mg/dL' : '—'}, en rango ${s.tir_pct != null ? fmt(s.tir_pct) + ' %' : '—'}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}`;
+    }
+    return `<b>Día</b>: ${e.gym ? 'gimnasio' : ''}${e.highCarb ? 'más hidratos de lo normal' : ''}`;
+  }
+  function renderEntries() {
+    const box = $('#entryLog');
+    if (!entries.length) { box.innerHTML = '<p class="empty">Todavía no hay registros.</p>'; return; }
+    box.innerHTML = entries.slice(0, 25).map(e => `<div class="row" data-id="${e.id}"><div>${describe(e)}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div><button class="x" type="button" aria-label="Borrar registro">×</button></div>`).join('');
+    $$('.row', box).forEach(row => $('.x', row).addEventListener('click', async () => {
+      const e = entries.find(x => x.id === row.dataset.id);
+      if (e && confirm('¿Borrar este registro?')) { try { await removeEntry(e); } catch (err) { setStatus('#readingStatus', 'err', esc(err.message)); } }
+    }));
+  }
+  function renderHist() {
+    const meals = entries.filter(e => e.type === 'meal').slice(0, 12);
+    const box = $('#histBox');
+    if (!meals.length) { box.innerHTML = '<p class="empty">Todavía no has guardado comidas.</p>'; return; }
+    box.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hidratos</th><th>Glucemia</th><th>Fiasp</th></tr></thead><tbody>` +
+      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
+  }
+  $('#csvBtn').addEventListener('click', () => {
+    const rows = ['fecha,tipo,hidratos_g,glucemia_mgdl,fiasp_u,gimnasio,mas_hidratos,nota',
+      ...entries.map(e => [new Date(e.ts).toISOString(), e.type, e.carbs ?? '', e.mgdl ?? e.bg ?? '', e.dose ?? '', e.gym ? 1 : 0, e.highCarb ? 1 : 0, '"' + String(e.note || '').replace(/"/g, '""') + '"'].join(','))];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type:'text/csv' }));
+    a.download = 'glucoplan-historial.csv'; a.click();
+  });
+
+  $('#saveReading').addEventListener('click', async () => {
+    const mgdl = numOrNull($('#r-val').value);
+    if (!(mgdl >= 20 && mgdl <= 600)) { setStatus('#readingStatus', 'err', 'Escribe una glucosa entre 20 y 600 mg/dL.'); return; }
+    try {
+      await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note: $('#r-note').value, gym: gymToday(), highCarb: carbToday() });
+      $('#r-val').value = ''; $('#r-note').value = '';
+      setStatus('#readingStatus', 'ok', 'Lectura guardada.');
+    } catch (err) { setStatus('#readingStatus', 'err', esc(err.message)); }
+  });
+
+  /* ---------- Pestañas ---------- */
+  function showTab(name) {
+    $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
+    $$('[role="tabpanel"]').forEach(p => p.hidden = p.id !== 'tab-' + name);
+    history.replaceState(null, '', '#' + name);
+  }
+  $$('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+
+  /* ---------- Basal ---------- */
+  function renderBasal() {
+    const done = store.basalLog[todayKey()];
+    $('#basalTitle').textContent = `Toujeo ${store.settings.basal} U`;
+    $('#basalBox').classList.toggle('done', !!done);
+    $('#basalState').textContent = done ? `Puesta hoy a las ${done}` : 'Sin marcar hoy';
+    $('#basalBtn').textContent = done ? 'Deshacer' : 'Marcar puesta';
+  }
+  $('#basalBtn').addEventListener('click', () => {
+    const k = todayKey();
+    if (store.basalLog[k]) delete store.basalLog[k];
+    else store.basalLog[k] = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+    save(); renderBasal();
+  });
+
+  /* ---------- Alimentos ---------- */
+  $('#foodList').innerHTML = FOODS.map(f => `<option value="${f[0]}">`).join('');
+  const itemCarbs = it => (it.grams || 0) * it.cp100 / 100;
+
+  function renderItems() {
+    const box = $('#items');
+    if (!items.length) { box.innerHTML = '<p class="empty">Aún no hay alimentos. Haz una foto o añádelos a mano.</p>'; calc(); return; }
+    box.innerHTML = items.map(it => `
+      <div class="item" data-id="${it.id}">
+        <div class="name">${esc(it.name)}<small class="${it.conf === 'baja' ? 'low' : ''}">${fmt(it.cp100)} g de hidratos por 100 g${it.conf ? ', confianza ' + it.conf : ''}</small></div>
+        <input type="number" inputmode="decimal" min="0" value="${it.grams}" aria-label="Gramos de ${esc(it.name)}">
+        <div class="c">${fmt(itemCarbs(it))} g</div>
+        <button class="x" type="button" aria-label="Quitar ${esc(it.name)}">×</button>
+      </div>`).join('');
+    $$('.item', box).forEach(row => {
+      const it = items.find(i => i.id == row.dataset.id);
+      $('input', row).addEventListener('input', e => { it.grams = parseFloat(e.target.value) || 0; $('.c', row).textContent = fmt(itemCarbs(it)) + ' g'; calc(); });
+      $('.x', row).addEventListener('click', () => { items = items.filter(i => i !== it); renderItems(); });
+    });
+    calc();
+  }
+  $('#addBtn').addEventListener('click', () => {
+    const name = $('#foodIn').value.trim();
+    const grams = parseFloat($('#gramsIn').value);
+    const f = FOODS.find(x => x[0].toLowerCase() === name.toLowerCase());
+    if (!f || !(grams > 0)) { setStatus('#status', 'err', 'Elige un alimento de la lista e indica los gramos.'); return; }
+    items.push({ id: nextId++, name: f[0], grams, cp100: f[1], conf: '' });
+    $('#foodIn').value = ''; $('#gramsIn').value = '';
+    $('#status').innerHTML = '';
+    renderItems();
+  });
+  $('#extra').addEventListener('input', calc);
+  $('#bg').addEventListener('input', calc);
+
+  /* ---------- Fotos ---------- */
+  async function compress(file, max, q) {
+    const bmp = await createImageBitmap(file);
+    const r = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * r); c.height = Math.round(bmp.height * r);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', q);
+  }
+
+  $('#file').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compress(file, 1280, 0.82);
+      $('#preview').src = dataUrl; $('#preview').hidden = false; $('#dropText').hidden = true;
+      if (!isCloud()) { setStatus('#status', 'err', 'Para analizar la foto con IA, entra con tu clave en Ajustes. Mientras, añade los alimentos a mano.'); return; }
+      setStatus('#status', 'info', '<span class="spin"></span>Analizando el plato…');
+      const data = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'food', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
+      if (!Array.isArray(data.items) || !data.items.length) {
+        setStatus('#status', 'err', 'No he reconocido comida en la foto. Prueba con otra o añade los alimentos a mano.');
+        return;
+      }
+      items = data.items.map(i => ({ id: nextId++, name: String(i.nombre || 'Alimento'), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), conf: i.confianza || '' }));
+      setStatus('#status', 'ok', 'Estimación lista. Revisa los gramos de cada alimento antes de pinchar.' + (data.notas ? '<br>' + esc(data.notas) : ''));
+      renderItems();
+    } catch (err) {
+      setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.');
+    }
+  });
+
+  $('#chartFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compress(file, 1600, 0.85);
+      $('#chartPreview').src = dataUrl; $('#chartPreview').hidden = false; $('#chartDropText').hidden = true;
+      if (!isCloud()) { setStatus('#chartStatus', 'err', 'Para leer la gráfica con IA, entra con tu clave. También puedes rellenar los datos a mano.'); fillChart({}); return; }
+      setStatus('#chartStatus', 'info', '<span class="spin"></span>Leyendo la gráfica…');
+      const d = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'glucose', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
+      fillChart(d);
+      setStatus('#chartStatus', 'ok', 'Datos extraídos. Corrige lo que no coincida con tu app y guarda.');
+    } catch (err) {
+      setStatus('#chartStatus', 'err', 'No se pudo leer la gráfica (' + esc(err.message) + '). Puedes rellenar los datos a mano.');
+      fillChart({});
+    }
+  });
+  const CF = { periodo:'#c-periodo', media_mgdl:'#c-media', tir_pct:'#c-tir', bajo_pct:'#c-bajo', alto_pct:'#c-alto', hipos:'#c-hipos', min_mgdl:'#c-min', max_mgdl:'#c-max' };
+  let chartPatterns = [];
+  function fillChart(d) {
+    Object.entries(CF).forEach(([k, sel]) => { $(sel).value = d[k] ?? ''; });
+    chartPatterns = d.patrones || [];
+    $('#chartPatterns').innerHTML = chartPatterns.map(p => `<li>${esc(p)}</li>`).join('');
+    $('#c-note').value = '';
+    $('#chartForm').hidden = false;
+  }
+  $('#saveChart').addEventListener('click', async () => {
+    const summary = { periodo: $('#c-periodo').value, patrones: chartPatterns };
+    ['media_mgdl','tir_pct','bajo_pct','alto_pct','hipos','min_mgdl','max_mgdl'].forEach(k => { summary[k] = numOrNull($(CF[k]).value); });
+    try {
+      await addEntry({ type:'chart', summary, note: $('#c-note').value, gym:false, highCarb:false });
+      $('#chartForm').hidden = true; $('#chartPreview').hidden = true; $('#chartDropText').hidden = false; $('#chartFile').value = '';
+      setStatus('#chartStatus', 'ok', 'Gráfica guardada en tu historial.');
+    } catch (err) { setStatus('#chartStatus', 'err', esc(err.message)); }
+  });
+
+  /* ---------- Cálculo de dosis ---------- */
+  function calcDose() {
+    const s = store.settings;
+    const icr = parseFloat(s.icr), isf = parseFloat(s.isf), target = parseFloat(s.target);
+    const step = parseFloat(s.step) || 0.5;
+    const adj = Math.min(80, Math.max(0, parseFloat(s.adj) || 0));
+    const bg = parseFloat($('#bg').value);
+    const carbs = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
+    const warns = [];
+    if (!(icr > 0)) return { missing: true, carbs };
+
+    const mealU = carbs / icr;
+    let corrU = 0;
+    if (bg > 0 && isf > 0 && target > 0) corrU = (bg - target) / isf;
+    const raw = Math.max(0, mealU + corrU);
+    let dose = Math.round(raw * (1 - adj / 100) / step) * step;
+
+    if (bg > 0 && bg < 70) { dose = 0; warns.push(['danger', 'Glucemia baja. No te pongas insulina para comer ahora: toma unos 15 g de hidratos rápidos, vuelve a medir a los 15 minutos y repite si sigue por debajo de 70.']); }
+    else if (bg >= 70 && bg < 90) warns.push(['', 'Glucemia justa. Valora pinchar después de empezar a comer: Fiasp permite ponerlo hasta 20 minutos tras el inicio de la comida.']);
+    if (bg > 250) warns.push(['danger', 'Glucemia alta. Mide cetonas y sigue la pauta que tengas para corrección y reposición.']);
+    const max = parseFloat(s.maxDose);
+    if (max > 0 && dose > max) warns.push(['danger', `La dosis supera tu aviso de ${fmt(max)} U. Revisa gramos y glucemia antes de pinchar.`]);
+    if (items.some(i => i.conf === 'baja')) warns.push(['', 'Hay alimentos con confianza baja en la foto. Pésalos o confirma los gramos.']);
+    if (carbs > 0 && !(bg > 0)) warns.push(['', 'Sin glucemia no se aplica corrección: solo cubre los hidratos.']);
+    if (!(isf > 0) || !(target > 0)) warns.push(['', 'Falta el factor de sensibilidad o la glucemia objetivo en Ajustes: no se calcula la corrección.']);
+    if (gymToday()) warns.push(['', 'Hoy has marcado gimnasio. Si comes cerca del entrenamiento, comenta con tu endocrino cuánto reducir la dosis y usa la reducción de Ajustes si la tienes pautada.']);
+    return { carbs, mealU, corrU: bg > 0 ? corrU : 0, adj, dose, warns, bg };
+  }
+
+  function calc() {
+    const r = calcDose();
+    const box = $('#doseBox');
+    if (r.missing) {
+      box.innerHTML = `<p class="sub">Para calcular la dosis, pon tu ratio insulina/hidratos en Ajustes.</p>
+        <button class="btn" type="button" id="goSet">Ir a ajustes</button>
+        <p class="fine">Hidratos del plato: ${fmt(r.carbs)} g</p>`;
+      $('#goSet').addEventListener('click', () => showTab('ajustes'));
+      return;
+    }
+    box.innerHTML = `
+      <p class="sub" style="margin-bottom:0">Hidratos totales: <strong>${fmt(r.carbs)} g</strong></p>
+      <div class="big">${fmt(r.dose)}<small>unidades</small></div>
+      <div class="break">
+        <div><span>Por los hidratos</span><span>${fmt(r.mealU)} U</span></div>
+        <div><span>Corrección por glucemia</span><span>${r.corrU >= 0 ? '+' : ''}${fmt(r.corrU)} U</span></div>
+        ${r.adj ? `<div><span>Reducción pautada</span><span>−${fmt(r.adj)} %</span></div>` : ''}
+      </div>
+      <div class="warns">${r.warns.map(w => `<div class="warn ${w[0]}">${esc(w[1])}</div>`).join('')}</div>
+      <button class="btn" id="saveMeal" type="button" ${r.carbs <= 0 ? 'disabled' : ''}>Guardar esta comida</button>
+      <p class="fine">Fiasp: pínchate unos 2 minutos antes de comer, o hasta 20 minutos después de empezar. Redondeado a saltos de ${fmt(parseFloat(store.settings.step))} U.</p>`;
+    const b = $('#saveMeal');
+    if (b) b.addEventListener('click', async () => {
+      try {
+        await addEntry({ type:'meal', carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose: r.dose, gym: gymToday(), highCarb: carbToday() });
+        setStatus('#status', 'ok', 'Comida guardada. Apunta tu glucosa 2 horas después en la pestaña Glucosa.');
+      } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
+    });
+  }
+
+  /* ---------- Coach ---------- */
+  $('#coachBtn').addEventListener('click', async () => {
+    if (!isCloud()) { setStatus('#coachStatus', 'err', 'El coach necesita la sincronización. Entra con tu clave en Ajustes.'); return; }
+    setStatus('#coachStatus', 'info', '<span class="spin"></span>Analizando tus datos…');
+    $('#coachOut').innerHTML = '';
+    try {
+      const d = await api('/api/coach', { method:'POST', body: JSON.stringify({ settings: { icr: store.settings.icr, isf: store.settings.isf, target: store.settings.target } }) });
+      setStatus('#coachStatus', '', '');
+      renderCoach(d);
+    } catch (err) { setStatus('#coachStatus', 'err', esc(err.message)); }
+  });
+  function renderCoach(d) {
+    const s = d.stats || {};
+    const stat = (v, l) => `<div class="stat"><b>${v ?? '—'}</b><span>${l}</span></div>`;
+    let h = `<div class="panel"><h2>Resumen de 28 días</h2>`;
+    if (d.alerta) h += `<div class="status err" style="margin-bottom:10px">${esc(d.alerta)}</div>`;
+    if (d.resumen) h += `<p>${esc(d.resumen)}</p>`;
+    h += `<div class="stats">${stat(s.lecturas, 'lecturas')}${stat(s.comidas, 'comidas guardadas')}${stat(s.media_lecturas != null ? s.media_lecturas + ' mg/dL' : null, 'media de lecturas')}${stat(s.bajas_menos_70, 'lecturas bajo 70')}${stat(s.dias_gym, 'días de gimnasio')}${stat(s.tras_comida && s.tras_comida.subida_media != null ? (s.tras_comida.subida_media > 0 ? '+' : '') + s.tras_comida.subida_media : null, 'cambio medio tras comer')}</div></div>`;
+    if (d.senales && d.senales.length) h += `<div class="panel"><h3>Señales detectadas</h3><ul class="plain">${d.senales.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    if (d.patrones && d.patrones.length) h += `<div class="panel"><h3>Patrones</h3>${d.patrones.map(p => `<div class="sug"><b>${esc(p.titulo)}</b><small>${esc(p.detalle)}</small></div>`).join('')}</div>`;
+    if (d.sugerencias && d.sugerencias.length) h += `<div class="panel"><h3>Sugerencias</h3>${d.sugerencias.map(x => `<div class="sug ${x.prioridad}"><b>${esc(x.texto)}</b><small>Prioridad ${x.prioridad}${x.requiere_endocrino ? '. Coméntalo con tu endocrino antes de cambiar nada.' : '.'}</small></div>`).join('')}</div>`;
+    if (d.preguntas_endocrino && d.preguntas_endocrino.length) h += `<div class="panel"><h3>Para tu próxima consulta</h3><ul class="plain">${d.preguntas_endocrino.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    if (d.aviso_ia) h += `<div class="status info">La IA no pudo redactar el análisis (${esc(d.aviso_ia)}), pero las estadísticas anteriores son correctas.</div>`;
+    $('#coachOut').innerHTML = h;
+  }
+
+  /* ---------- Entreno ---------- */
+  let wDay = [0, 1, 2][[1, 3, 5].indexOf(new Date().getDay())] ?? 0;
+  function renderWorkout() {
+    $('#dayChips').innerHTML = WORKOUTS.map((w, i) => `<button class="chip" type="button" data-i="${i}" aria-pressed="${i === wDay}">${w.day}</button>`).join('');
+    $$('#dayChips .chip').forEach(c => c.addEventListener('click', () => { wDay = +c.dataset.i; renderWorkout(); }));
+    const w = WORKOUTS[wDay];
+    $('#workoutBox').innerHTML = `<h3 style="margin:6px 0">${w.title}</h3>
+      <div class="tablewrap"><table class="ex"><thead><tr><th></th><th>Ejercicio</th><th>Series y repeticiones</th><th>Descanso</th><th>Nota</th></tr></thead><tbody>` +
+      w.rows.map((r, i) => {
+        const k = `${wDay}:${i}`;
+        return `<tr class="${store.checks[k] ? 'done' : ''}"><td><input class="chk" type="checkbox" data-k="${k}" ${store.checks[k] ? 'checked' : ''} aria-label="Hecho: ${esc(r[0])}"></td><td class="exn">${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`;
+      }).join('') + `</tbody></table></div>
+      <div class="actions" style="margin-top:14px"><button class="btn ghost small" id="resetDay" type="button">Reiniciar sesión</button></div>`;
+    $$('#workoutBox .chk').forEach(c => c.addEventListener('change', () => {
+      if (c.checked) store.checks[c.dataset.k] = 1; else delete store.checks[c.dataset.k];
+      c.closest('tr').classList.toggle('done', c.checked); save();
+    }));
+    $('#resetDay').addEventListener('click', () => { WORKOUTS[wDay].rows.forEach((_, i) => delete store.checks[`${wDay}:${i}`]); save(); renderWorkout(); });
+  }
+
+  /* ---------- Menú ---------- */
+  let mDay = (new Date().getDay() + 6) % 7;
+  function renderMenu() {
+    $('#menuChips').innerHTML = MENU.map((m, i) => `<button class="chip" type="button" data-i="${i}" aria-pressed="${i === mDay}">${m.day}</button>`).join('');
+    $$('#menuChips .chip').forEach(c => c.addEventListener('click', () => { mDay = +c.dataset.i; renderMenu(); }));
+    const m = MENU[mDay];
+    $('#menuBox').innerHTML = m.meals.map(x => `<div class="meal"><div class="when"><b>${x[0]}</b><span>${x[1]}</span></div><div>${esc(x[2])}</div><div class="carb">${x[3]} g<small>hidratos</small></div></div>`).join('');
+    $('#menuTotal').textContent = m.meals.reduce((a, x) => a + x[3], 0) + ' g';
+  }
+
+  /* ---------- Compra ---------- */
+  function renderShop() {
+    $('#shopBox').innerHTML = SHOP.map((g, gi) => `<div class="group"><h3>${g[0]}</h3>` +
+      g[1].map((it, ii) => { const k = `${gi}:${ii}`; return `<label class="${store.shop[k] ? 'on' : ''}"><input type="checkbox" data-k="${k}" ${store.shop[k] ? 'checked' : ''}><span>${esc(it)}</span></label>`; }).join('') + '</div>').join('');
+    $$('#shopBox input').forEach(c => c.addEventListener('change', () => {
+      if (c.checked) store.shop[c.dataset.k] = 1; else delete store.shop[c.dataset.k];
+      c.closest('label').classList.toggle('on', c.checked); save();
+    }));
+  }
+  $('#resetShop').addEventListener('click', () => { store.shop = {}; save(); renderShop(); });
+  $('#copyShop').addEventListener('click', async () => {
+    const text = SHOP.map(g => g[0] + '\n' + g[1].map(i => '- ' + i).join('\n')).join('\n\n');
+    try { await navigator.clipboard.writeText(text); setStatus('#shopStatus', 'ok', 'Lista copiada. Pégala en tu app de notas o en un mensaje.'); }
+    catch { setStatus('#shopStatus', 'err', 'No se pudo copiar. Selecciona el texto a mano.'); }
+  });
+
+  /* ---------- Ajustes ---------- */
+  const map = { icr:'#s-icr', isf:'#s-isf', target:'#s-target', step:'#s-step', maxDose:'#s-max', adj:'#s-adj', basal:'#s-basal', apiBase:'#s-api' };
+  const SYNCED = ['icr', 'isf', 'target', 'step', 'maxDose', 'adj', 'basal'];
+  const fillSettings = () => Object.entries(map).forEach(([k, sel]) => { $(sel).value = store.settings[k]; });
+  async function pushSettings() {
+    const s = {}; SYNCED.forEach(k => { s[k] = String(store.settings[k] ?? ''); });
+    await api('/api/data', { method:'POST', body: JSON.stringify({ settings: s }) });
+  }
+  async function pullSettings() {
+    const d = await api('/api/data?what=settings');
+    if (d.settings) {
+      SYNCED.forEach(k => { if (d.settings[k] !== undefined && d.settings[k] !== '') store.settings[k] = d.settings[k]; });
+      save(); fillSettings(); renderBasal(); calc();
+    } else { await pushSettings(); }
+  }
+  $('#saveSet').addEventListener('click', async () => {
+    Object.entries(map).forEach(([k, sel]) => { store.settings[k] = $(sel).value.trim(); });
+    if (!store.settings.basal) store.settings.basal = '28';
+    save(); renderBasal(); calc();
+    if (isCloud()) {
+      try { await pushSettings(); setStatus('#setStatus', 'ok', 'Ajustes guardados y sincronizados.'); }
+      catch (err) { setStatus('#setStatus', 'err', 'Guardados en este dispositivo, pero no se pudieron sincronizar: ' + esc(err.message)); }
+    } else setStatus('#setStatus', 'ok', 'Ajustes guardados en este dispositivo.');
+  });
+  $('#logoutBtn').addEventListener('click', () => {
+    try { localStorage.removeItem(KEY + ':key'); localStorage.removeItem(KEY + ':local'); } catch {}
+    entries = []; renderSync(); renderEntries(); renderHist(); renderFlags(); openLogin();
+  });
+
+  /* ---------- Acceso ---------- */
+  function openLogin() { $('#loginApi').value = store.settings.apiBase || ''; $('#login').hidden = false; $('#pw').focus(); }
+  $('#loginBtn').addEventListener('click', async () => {
+    const pw = $('#pw').value;
+    if (!pw) { setStatus('#loginStatus', 'err', 'Escribe tu clave.'); return; }
+    store.settings.apiBase = $('#loginApi').value.trim(); save(); fillSettings();
+    try { localStorage.setItem(KEY + ':key', pw); localStorage.removeItem(KEY + ':local'); } catch {}
+    setStatus('#loginStatus', 'info', '<span class="spin"></span>Comprobando…');
+    try {
+      await pullSettings();
+      $('#login').hidden = true; $('#pw').value = ''; setStatus('#loginStatus', '', '');
+      renderSync(); await loadEntries();
+    } catch (err) {
+      try { localStorage.removeItem(KEY + ':key'); } catch {}
+      setStatus('#loginStatus', 'err', esc(err.message) + '. Revisa la clave y la dirección de Netlify.');
+    }
+  });
+  $('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('#loginBtn').click(); });
+  $('#localBtn').addEventListener('click', async () => {
+    try { localStorage.setItem(KEY + ':local', '1'); } catch {}
+    $('#login').hidden = true; renderSync(); await loadEntries();
+  });
+
+  /* ---------- Inicio ---------- */
+  fillSettings(); renderBasal(); renderItems(); renderWorkout(); renderMenu(); renderShop(); renderSync();
+  renderEntries(); renderHist(); renderFlags();
+  const h = location.hash.slice(1);
+  if (['comida', 'glucosa', 'coach', 'entreno', 'menu', 'compra', 'ajustes'].includes(h)) showTab(h);
+  (async () => {
+    if (isCloud()) {
+      try { await pullSettings(); await loadEntries(); }
+      catch (err) { setStatus('#readingStatus', 'err', esc(err.message)); openLogin(); }
+    } else if (isLocalMode()) { await loadEntries(); }
+    else openLogin();
+  })();
+})();
+</script>
 </body>
 </html>

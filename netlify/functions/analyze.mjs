@@ -33,10 +33,10 @@ const n = (v, min, max) => {
   return v === null || v === undefined || !Number.isFinite(x) ? null : Math.min(max, Math.max(min, x));
 };
 
-// ---- Llamada a Gemini con reintentos y modelo de respaldo ----
-// Modelo principal: GEMINI_MODEL (si existe) y después estos de respaldo.
-// Comprueba en la documentación de Google que los nombres siguen vigentes.
-const FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+// ---- Llamada a Gemini con reintentos y modelos de respaldo ----
+// Se prueba primero GEMINI_MODEL (si existe) y después estos modelos.
+// Si un modelo da 404 (retirado o mal escrito), se pasa al siguiente.
+const FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
 const DEADLINE_MS = 9000; // Netlify corta las funciones a los ~10 s por defecto
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -83,6 +83,7 @@ async function askGemini({ system, parts }) {
           }
         } else {
           lastStatus = res.status;
+          if (res.status === 404) break; // modelo retirado o mal escrito: probar el siguiente
           if (!RETRYABLE.has(res.status)) {
             throw Object.assign(new Error(`Gemini devolvió un error (${res.status})`), { status: 502 });
           }
@@ -96,7 +97,7 @@ async function askGemini({ system, parts }) {
     }
   }
   throw Object.assign(
-    new Error(`Gemini está saturado ahora mismo (${lastStatus || 503}). Inténtalo de nuevo en un minuto`),
+    new Error(`Gemini no está disponible ahora mismo (${lastStatus || 503}). Inténtalo de nuevo en un minuto`),
     { status: 503 }
   );
 }

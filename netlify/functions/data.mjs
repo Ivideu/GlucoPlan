@@ -1,9 +1,4 @@
 // API del historial (Netlify Blobs, incluido en el plan gratuito).
-//   GET    /api/data?months=2          -> { entries: [...] }
-//   GET    /api/data?what=settings     -> { settings: {...} | null }
-//   POST   /api/data  { entry }        -> { entry }   (añade un registro)
-//   POST   /api/data  { settings }     -> { ok: true } (guarda ajustes)
-//   DELETE /api/data?id=...&ts=...     -> { ok: true }
 import { randomUUID } from "node:crypto";
 import { checkAuth, loadEntries, monthKey, preflight, reply, store } from "../lib/shared.mjs";
 
@@ -30,10 +25,10 @@ function cleanEntry(e) {
     out.carbs = num(e.carbs, 0, 500);
     out.bg = num(e.bg, 20, 600);
     out.dose = num(e.dose, 0, 100);
+    out.calculatedDose = num(e.calculatedDose, 0, 100);
     if (out.carbs === null || out.dose === null) return null;
   }
   if (e.type === "basal") {
-    // Toujeo: unidades y hora real de la puesta (ts), que puede ser anterior a ahora.
     out.units = num(e.units, 0, 200);
     if (out.units === null) return null;
   }

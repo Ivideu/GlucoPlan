@@ -1,5 +1,4 @@
 // POST /api/coach  { settings: { icr, isf, target } }
-// Analiza los últimos 28 días del historial. NO cambia ningún ajuste: solo propone hipótesis para revisar con el endocrino.
 import { askGemini, checkAuth, loadEntries, preflight, reply } from "../lib/shared.mjs";
 
 const TZ = "Europe/Madrid";
@@ -13,6 +12,11 @@ function computeStats(entries) {
   const meals = E.filter((e) => e.type === "meal");
   const charts = E.filter((e) => e.type === "chart");
 
+  // Análisis de autoaprendizaje (dosis real vs calculada)
+  const mealsWithOverride = meals.filter((m) => m.calculatedDose != null && m.dose > m.calculatedDose);
+  const diffs = mealsWithOverride.map((m) => m.dose - m.calculatedDose);
+  const sesgoMedio = diffs.length ? Math.round((diffs.reduce((a, b) => a + b, 0) / diffs.length) * 10) / 10 : 0;
+
   const gymDays = new Set(E.filter((e) => e.gym).map((e) => dayOf(e.ts)));
   const carbDays = new Set(E.filter((e) => e.highCarb).map((e) => dayOf(e.ts)));
   const onGym = readings.filter((r) => gymDays.has(dayOf(r.ts)));
@@ -24,15 +28,13 @@ function computeStats(entries) {
   for (const r of readings) (byContext[r.context] ||= []).push(r.mgdl);
   const contexts = Object.fromEntries(Object.entries(byContext).map(([k, v]) => [k, { n: v.length, media: avg(v) }]));
 
-  // Comidas con una lectura "2 h después" entre 75 y 210 minutos tras la comida.
   const post = [];
   for (const m of meals) {
     const r = readings.find((x) => x.context === "post2h" && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4);
-    if (r) post.push({ carbs: m.carbs, dosis: m.dose, antes: m.bg, despues: r.mgdl, gym: gymDays.has(dayOf(m.ts)) });
+    if (r) post.push({ carbs: m.carbs, dosisReal: m.dose, dosisCalc: m.calculatedDose, antes: m.bg, despues: r.mgdl, gym: gymDays.has(dayOf(m.ts)) });
   }
   const deltas = post.filter((p) => p.antes != null).map((p) => p.despues - p.antes);
 
-  // Efecto del gimnasio: lectura "antes del gym" y "después del gym" del mismo día.
   const gymPairs = [];
   for (const d of gymDays) {
     const dayR = readings.filter((r) => dayOf(r.ts) === d);
@@ -42,7 +44,6 @@ function computeStats(entries) {
   }
   const gymRises = gymPairs.filter((p) => p.cambio > 0).length;
 
-  // Toujeo: dosis y regularidad de la hora de puesta.
   const basals = E.filter((e) => e.type === "basal");
   const minutesOf = (ts) => {
     const [h, m] = new Date(ts).toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }).split(":").map(Number);
@@ -59,6 +60,11 @@ function computeStats(entries) {
   const lows = (a) => a.filter((r) => r.mgdl < 70).length;
   const stats = {
     toujeo: basal,
+    aprendizaje: {
+      comidas_con_ajuste: mealsWithOverride.length,
+      sesgo_medio_unidades: sesgoMedio,
+      estado: mealsWithOverride.length >= 3 ? "Adaptación activa por refuerzo" : "Aprendiendo (necesita más puestas reales)",
+    },
     gym_antes_despues: { n: gymPairs.length, suben: gymRises, cambio_medio: avg(gymPairs.map((p) => p.cambio)), ejemplos: gymPairs.slice(0, 6) },
     dias_analizados: 28,
     lecturas: readings.length,
@@ -71,9 +77,6 @@ function computeStats(entries) {
     dias_gym: gymDays.size,
     con_gym: { lecturas: onGym.length, media: avg(onGym.map((r) => r.mgdl)), bajas: lows(onGym) },
     sin_gym: { lecturas: offGym.length, media: avg(offGym.map((r) => r.mgdl)), bajas: lows(offGym) },
-    dias_mas_hidratos: carbDays.size,
-    con_mas_hidratos: { lecturas: onCarb.length, media: avg(onCarb.map((r) => r.mgdl)) },
-    sin_mas_hidratos: { lecturas: offCarb.length, media: avg(offCarb.map((r) => r.mgdl)) },
     tras_comida: {
       n: post.length,
       media_despues: avg(post.map((p) => p.despues)),
@@ -84,32 +87,25 @@ function computeStats(entries) {
   };
 
   const senales = [];
+  if (sesgoMedio > 0.5) {
+    senales.push(`Autoaprendizaje: Sueles añadir una media de +${sesgoMedio} U por encima de la recomendación de la app en tus comidas, lo cual indica que las sugerencias iniciales tendían a la baja.`);
+  }
   if (readings.length < 10 && charts.length < 2) {
     senales.push("Todavía hay pocos datos: apunta lecturas (sobre todo 2 h después de comer) y sube una gráfica por semana.");
   }
   if (stats.bajas_menos_70 >= 2) {
     senales.push(`Hay ${stats.bajas_menos_70} lecturas por debajo de 70 mg/dL en 28 días. Antes de tocar nada, coméntalo con tu endocrino.`);
   }
-  if (post.length >= 4 && stats.tras_comida.media_despues > 180) {
-    senales.push(`A las 2 h de comer sueles estar en ${stats.tras_comida.media_despues} mg/dL de media (${post.length} comidas).`);
-  }
-  if (stats.con_gym.bajas > 0 && stats.con_gym.bajas > stats.sin_gym.bajas) {
-    senales.push("Las bajadas se concentran en días de gimnasio.");
-  }
   return { stats, senales };
 }
 
-const COACH_SYSTEM = `Eres un asistente de análisis de datos para una persona adulta con diabetes tipo 1 (insulina rápida Fiasp y basal Toujeo).
-Recibes estadísticas de los últimos 28 días y sus ajustes actuales. Tu trabajo es describir patrones y proponer hipótesis que la persona pueda comentar con su endocrino.
+const COACH_SYSTEM = `Eres un asistente experto en análisis de datos para una persona adulta con diabetes tipo 1 (insulina rápida Fiasp y basal Toujeo).
+Recibes estadísticas de los últimos 28 días, incluyendo el módulo de autoaprendizaje (dosis reales inyectadas frente a las calculadas por la app).
+Tu trabajo es analizar si la app se quedaba corta, cómo has ajustado las dosis y proponer hipótesis que la persona pueda comentar con su endocrino.
 Reglas estrictas:
 - No eres médico y no tomas decisiones de dosis. Nunca des una dosis concreta para una comida.
 - Nunca recomiendes cambiar la dosis de la insulina basal (Toujeo).
-- Si propones revisar el ratio insulina/hidratos o el factor de sensibilidad, hazlo solo como hipótesis para consultar, con cambios pequeños (como máximo un 10 %), y solo si hay al menos 5 comidas con lectura posterior que lo apoyen. Marca siempre requiere_endocrino=true.
-- Si hay 2 o más lecturas por debajo de 70 mg/dL, la prioridad es la seguridad: indícalo en "alerta" y no sugieras aumentar la dosis.
-- Si hay pocos datos, dilo y explica qué datos faltan en lugar de inventar patrones.
-- Contexto del gimnasio: la persona entrena a las 6:00, tres días por semana, musculación seguida de cardio. En aproximadamente el 90 % de las sesiones la glucosa le SUBE (por la musculación), así que no asumas que el gimnasio siempre baja la glucosa. Compara "gym_antes_despues" con eso: si los datos contradicen la subida habitual, o si hay bajadas tardías (3 a 8 horas después del entreno o de madrugada), indícalo como patrón.
-- Toujeo: revisa "toujeo". Si la hora de puesta varía mucho (variacion_horaria_min alta), menciónalo como posible causa de variabilidad. Nunca propongas cambiar la dosis de Toujeo.
-- Compara días con gimnasio frente a días sin gimnasio solo si hay datos en ambos grupos.
+- Valora si el sesgo de autoaprendizaje (+U añadidas por el usuario) ha mejorado las glucemias post-comida.
 - Escribe en español, claro y breve, sin alarmismo.
 Devuelve SOLO un objeto JSON con este formato:
 {"resumen":"","alerta":"","patrones":[{"titulo":"","detalle":""}],"sugerencias":[{"texto":"","prioridad":"alta|media|baja","requiere_endocrino":true}],"preguntas_endocrino":[""]}
@@ -159,7 +155,6 @@ export default async (req) => {
     });
   } catch (err) {
     console.error(err);
-    // Si la IA falla, devolvemos igualmente las estadísticas y las señales calculadas.
     return reply(200, { stats, senales, resumen: "", alerta: "", patrones: [], sugerencias: [], preguntas_endocrino: [], aviso_ia: err.message });
   }
 };

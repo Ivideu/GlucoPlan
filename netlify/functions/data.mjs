@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto";
 import { checkAuth, loadEntries, monthKey, preflight, reply, store } from "../lib/shared.mjs";
 
-const TYPES = ["meal", "reading", "chart", "day"];
+const TYPES = ["meal", "reading", "chart", "day", "basal"];
 const CONTEXTS = ["ayunas", "pre_comida", "post2h", "pre_gym", "post_gym", "noche", "otro"];
 
 const num = (v, min, max) => {
@@ -32,6 +32,11 @@ function cleanEntry(e) {
     out.dose = num(e.dose, 0, 100);
     if (out.carbs === null || out.dose === null) return null;
   }
+  if (e.type === "basal") {
+    // Toujeo: unidades y hora real de la puesta (ts), que puede ser anterior a ahora.
+    out.units = num(e.units, 0, 200);
+    if (out.units === null) return null;
+  }
   if (e.type === "reading") {
     out.mgdl = num(e.mgdl, 20, 600);
     out.context = CONTEXTS.includes(e.context) ? e.context : "otro";
@@ -54,7 +59,7 @@ function cleanEntry(e) {
   return out;
 }
 
-const SETTING_KEYS = ["icr", "isf", "target", "step", "maxDose", "adj", "basal"];
+const SETTING_KEYS = ["icr", "isf", "target", "step", "maxDose", "gymAdj", "basal"];
 
 export default async (req) => {
   const pre = preflight(req);

@@ -4,214 +4,352 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GlucoPlan</title>
-<meta name="theme-color" content="#F2F8F9">
+<meta name="theme-color" content="#060A13">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F2F8F9; --surface:#FFFFFF; --ink:#10303A; --muted:#5B7782; --line:#DCE9EC;
-  --teal:#0F8B8D; --teal-ink:#0A6264; --teal-soft:#D8F0EF; --sky:#BFE3F5; --sky-soft:#E6F4FB;
-  --amber:#B97800; --amber-soft:#FFF1CF; --rose:#C23550; --rose-soft:#FCE3E7; --green-soft:#DFF5E6; --green:#1E7B43;
+  color-scheme:dark;
+  --bg:#060A13; --ink:#EAF3FA; --muted:#8FA3B8; --line:rgba(255,255,255,.1);
+  --glass:rgba(255,255,255,.055); --glass2:rgba(255,255,255,.09);
+  --teal:#2DE2C5; --cyan:#38BDF8; --violet:#8B7CFF; --amber:#FFB84D; --rose:#FF5C7A; --green:#4ADE80;
   --display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
   --body:'Figtree','Segoe UI',system-ui,-apple-system,sans-serif;
+  --grad:linear-gradient(135deg,#2DE2C5,#38BDF8);
 }
 *{box-sizing:border-box}
-html{scroll-padding-top:84px}
+html{scroll-padding-top:90px}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
-  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
-h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;letter-spacing:-.01em}
-h2{font-size:1.6rem}
-h3{font-size:1.1rem}
+  -webkit-font-smoothing:antialiased;padding:env(safe-area-inset-top,0) 0 0}
+h1,h2,h3{font-family:var(--display);line-height:1.12;margin:0;letter-spacing:-.015em}
+h2{font-size:1.45rem} h3{font-size:1.1rem}
 p{margin:0}
 button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:3px solid var(--teal);outline-offset:2px;border-radius:6px}
-.app{max-width:1040px;margin:0 auto;padding:20px 16px 56px}
-
-/* Cabecera */
-.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:8px 0 18px}
-.brand h1{font-size:2rem}
-.brand p{color:var(--muted);margin-top:2px}
-.sync{font-size:.85rem;margin-top:4px!important}
-.sync.on{color:var(--green)}
-.basal{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);
-  border-radius:999px;padding:8px 8px 8px 18px}
-.basal strong{font-family:var(--display);font-size:1.05rem}
-.basal span{color:var(--muted);font-size:.9rem}
-.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:600;cursor:pointer;background:var(--teal);color:#fff;
-  transition:background .15s,transform .1s}
-.btn:hover{background:var(--teal-ink)}
-.btn:active{transform:scale(.98)}
-.btn.ghost{background:transparent;color:var(--teal-ink);border:1.5px solid var(--teal)}
-.btn.ghost:hover{background:var(--teal-soft)}
-.btn.small{padding:6px 12px;font-size:.9rem}
-.btn[disabled]{opacity:.5;cursor:not-allowed}
-.basal.done{background:var(--green-soft);border-color:#BFE6CC}
-.basal.done .btn{background:var(--green)}
-
-/* Navegación */
-.nav{position:sticky;top:0;z-index:5;background:rgba(242,248,249,.92);backdrop-filter:blur(8px);
-  padding:10px 16px;margin:0 -16px 20px;border-bottom:1px solid var(--line);
-  display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-.nav::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;border:0;background:transparent;border-radius:999px;padding:9px 18px;font-weight:600;color:var(--muted);cursor:pointer}
-.tab:hover{background:var(--sky-soft);color:var(--ink)}
-.tab[aria-selected="true"]{background:var(--teal);color:#fff}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px;border-radius:8px}
 [hidden]{display:none!important}
 
-/* Paneles */
-.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:start}
-@media(max-width:820px){.grid{grid-template-columns:1fr}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px}
-.panel + .panel{margin-top:16px}
-.panel h2{margin-bottom:4px}
-.sub{color:var(--muted);margin-bottom:14px}
-.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;
-  border:2px dashed #A9D4DA;border-radius:16px;background:var(--sky-soft);padding:26px 16px;min-height:180px;
-  cursor:pointer;overflow:hidden;position:relative}
-.drop:hover{background:#DCEFF9}
-.drop img{max-width:100%;max-height:300px;border-radius:12px;display:block}
-.drop .cam{font-size:2.2rem}
-.drop strong{font-family:var(--display);font-size:1.15rem}
-.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.status{margin-top:12px;border-radius:12px;padding:10px 14px;font-size:.95rem}
-.status.info{background:var(--sky-soft);color:var(--teal-ink)}
-.status.err{background:var(--rose-soft);color:var(--rose)}
-.status.ok{background:var(--green-soft);color:var(--green)}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--teal);border-right-color:transparent;border-radius:50%;
-  animation:sp .8s linear infinite;vertical-align:-2px;margin-right:8px}
+/* Fondo aurora */
+.aurora{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.aurora i{position:absolute;width:58vmax;height:58vmax;border-radius:50%;filter:blur(100px);opacity:.38;animation:drift 24s ease-in-out infinite alternate}
+.aurora i:nth-child(1){background:#0B8E8F;top:-22vmax;left:-14vmax}
+.aurora i:nth-child(2){background:#5340D6;right:-20vmax;top:6vmax;animation-delay:-8s}
+.aurora i:nth-child(3){background:#0B5CA8;bottom:-28vmax;left:18vw;animation-delay:-15s}
+@keyframes drift{to{transform:translate(7vmax,5vmax) scale(1.18)}}
+
+.app{max-width:1080px;margin:0 auto;padding:18px 16px 110px}
+@media(min-width:761px){.app{padding-bottom:56px}}
+
+/* Cabecera */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 16px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:14px;background:var(--grad);display:grid;place-items:center;
+  box-shadow:0 8px 28px rgba(45,226,197,.35);animation:bob 4s ease-in-out infinite}
+.logo svg{width:24px;height:24px;stroke:#04201C;fill:#04201C}
+@keyframes bob{50%{transform:translateY(-3px)}}
+.brand h1{font-size:1.7rem;font-weight:800}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:7px 14px;font-size:.85rem;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.pill.on{color:var(--green)} .pill.on .dot{background:var(--green);box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:ping 2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 9px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+
+/* Navegación */
+.nav{position:sticky;top:8px;z-index:10;display:flex;gap:4px;justify-content:center;width:fit-content;max-width:100%;margin:0 auto 22px;
+  padding:6px;border-radius:999px;background:rgba(14,22,36,.72);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.tab{display:flex;align-items:center;gap:8px;border:0;background:transparent;border-radius:999px;padding:10px 18px;font-weight:600;color:var(--muted);cursor:pointer;transition:color .2s,background .2s}
+.tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--grad);color:#04201C}
+@media(max-width:760px){
+  .nav{position:fixed;top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0));left:12px;right:12px;width:auto;margin:0;justify-content:space-around;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .tab{flex-direction:column;gap:2px;padding:8px 10px;font-size:.72rem;flex:1;border-radius:18px}
+}
+
+/* Tarjetas */
+.card{position:relative;background:var(--glass);border:1px solid var(--line);border-radius:24px;padding:22px;overflow:hidden;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:transform .25s,border-color .25s}
+.card::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(45,226,197,.13),transparent 60%)}
+.card:hover{border-color:rgba(255,255,255,.18)}
+.card:hover::before{opacity:1}
+.card + .card{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.stack > .card + .card{margin-top:0}
+.cols{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;align-items:start;margin-top:16px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+.sub{color:var(--muted);margin:4px 0 14px}
+.hint{color:var(--muted);font-size:.85rem}
+.eyebrow{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:6px}
+
+.tabpanel.enter > *{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.tabpanel.enter > *:nth-child(2){animation-delay:.06s}
+.tabpanel.enter > *:nth-child(3){animation-delay:.12s}
+.tabpanel.enter > *:nth-child(4){animation-delay:.18s}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* Botones y campos */
+.btn{border:0;border-radius:14px;padding:12px 20px;font-weight:700;cursor:pointer;background:var(--grad);color:#04201C;
+  box-shadow:0 8px 24px rgba(45,226,197,.25);transition:transform .15s,box-shadow .2s,filter .2s}
+.btn:hover{filter:brightness(1.08);box-shadow:0 10px 30px rgba(45,226,197,.38)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);box-shadow:none}
+.btn.ghost:hover{border-color:var(--teal);color:var(--teal)}
+.btn.violet{background:linear-gradient(135deg,#8B7CFF,#38BDF8);color:#fff;box-shadow:0 8px 24px rgba(139,124,255,.3)}
+.btn.small{padding:7px 14px;font-size:.88rem;border-radius:12px}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-weight:600;font-size:.9rem;color:#C7D6E4}
+input,select,textarea{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:11px 13px;width:100%;transition:border-color .2s,background .2s}
+input:focus,select:focus{border-color:var(--teal);background:rgba(255,255,255,.09);outline:none}
+select option{background:#0E1624;color:var(--ink)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--glass);border-radius:999px;padding:7px 15px;font-weight:600;font-size:.9rem;cursor:pointer;color:var(--muted);transition:all .2s}
+.chip:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+.chip[aria-pressed="true"]{background:rgba(45,226,197,.15);border-color:var(--teal);color:var(--teal)}
+
+.status{margin-top:12px;border-radius:14px;padding:11px 14px;font-size:.93rem}
+.status.info{background:rgba(56,189,248,.12);color:#8CD8FB}
+.status.err{background:rgba(255,92,122,.13);color:#FF93A8}
+.status.ok{background:rgba(74,222,128,.12);color:#8CE9AE}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:8px}
 @keyframes sp{to{transform:rotate(360deg)}}
 
+/* Hero */
+.hero{display:grid;grid-template-columns:260px 1fr;gap:26px;align-items:center;padding:26px;
+  background:linear-gradient(135deg,rgba(45,226,197,.1),rgba(139,124,255,.1)),var(--glass)}
+@media(max-width:700px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.ring{position:relative;width:236px;height:236px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .track{fill:none;stroke:rgba(255,255,255,.08);stroke-width:14}
+.ring .arc{fill:none;stroke:var(--teal);stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset 1.3s cubic-bezier(.2,.9,.2,1),stroke .6s;filter:drop-shadow(0 0 10px currentColor)}
+.ring .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .val{font-family:var(--display);font-weight:800;font-size:4rem;line-height:1}
+.ring .unit{color:var(--muted);font-size:.85rem}
+.ring .st{margin-top:6px;font-weight:700;font-size:.9rem}
+.greet h2{font-size:1.9rem;font-weight:800}
+.greet .date{color:var(--muted);text-transform:capitalize;margin-top:2px}
+.greet .meta{margin-top:10px;color:#C7D6E4}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}
+@media(max-width:520px){.mini{grid-template-columns:1fr 1fr}}
+.mini div{background:rgba(255,255,255,.06);border-radius:16px;padding:12px;text-align:left}
+.mini b{display:block;font-family:var(--display);font-size:1.55rem;line-height:1.1}
+.mini span{color:var(--muted);font-size:.78rem}
+
+/* Toujeo */
+.tj{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.tj .u{font-family:var(--display);font-weight:800;font-size:2.4rem;line-height:1}
+.tj .u small{font-size:1rem;color:var(--muted);font-weight:500;margin-left:4px}
+.bar{height:10px;border-radius:99px;background:rgba(255,255,255,.08);margin:14px 0 8px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#8B7CFF,#38BDF8);transition:width 1s cubic-bezier(.2,.9,.2,1)}
+.tjs-soon .bar i{background:linear-gradient(90deg,#FFB84D,#FF8A4D)}
+.tjs-over .bar i{background:linear-gradient(90deg,#FF5C7A,#FF8A4D)}
+.tjnote{font-size:.92rem;color:#C7D6E4}
+.tjs-over .tjnote{color:#FF93A8}
+.tjs-soon .tjnote{color:#FFD08A}
+
+/* Gym */
+.switch{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;border:1.5px solid var(--line);background:rgba(255,255,255,.04);border-radius:18px;padding:14px 16px;cursor:pointer;text-align:left;transition:all .25s}
+.switch .t b{display:block;font-family:var(--display);font-size:1.15rem}
+.switch .t span{color:var(--muted);font-size:.86rem}
+.knob{flex:0 0 auto;width:54px;height:30px;border-radius:99px;background:rgba(255,255,255,.14);position:relative;transition:background .25s}
+.knob::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.switch[aria-checked="true"]{border-color:var(--violet);background:linear-gradient(135deg,rgba(139,124,255,.2),rgba(56,189,248,.1))}
+.switch[aria-checked="true"] .knob{background:linear-gradient(135deg,#8B7CFF,#38BDF8)}
+.switch[aria-checked="true"] .knob::after{transform:translateX(24px)}
+.gyminfo{margin-top:12px;font-size:.92rem;color:#C7D6E4;background:rgba(139,124,255,.1);border-radius:14px;padding:11px 14px}
+
+/* Gráfica */
+.chart{position:relative;margin-top:6px}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart .axis{fill:var(--muted);font-size:11px}
+.chart .draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.4s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.chart .pt{transition:r .15s}
+.tip{position:absolute;pointer-events:none;transform:translate(-50%,-110%);background:rgba(10,16,28,.95);border:1px solid var(--line);border-radius:12px;padding:7px 11px;font-size:.82rem;white-space:nowrap;z-index:3;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.tip b{font-family:var(--display);font-size:1rem}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+.stat{background:rgba(255,255,255,.06);border-radius:16px;padding:12px}
+.stat b{display:block;font-family:var(--display);font-size:1.6rem;line-height:1.1}
+.stat span{color:var(--muted);font-size:.82rem}
+
+/* Registro */
+.log{display:grid;gap:8px}
+.log .row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:rgba(255,255,255,.05);border-radius:14px;padding:10px 12px;animation:rise .4s both}
+.log .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:1.05rem}
+.ic.reading{background:rgba(45,226,197,.15)} .ic.meal{background:rgba(255,184,77,.16)} .ic.basal{background:rgba(139,124,255,.2)} .ic.day{background:rgba(56,189,248,.16)} .ic.chart{background:rgba(255,255,255,.1)}
+.log small{display:block;color:var(--muted)}
+.log .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.25rem;border-radius:10px;padding:2px 9px}
+.log .x:hover{background:rgba(255,92,122,.18);color:var(--rose)}
+.tag{display:inline-block;background:rgba(139,124,255,.2);color:#C4BCFF;border-radius:8px;padding:1px 8px;font-size:.76rem;font-weight:700;margin-left:6px}
+.empty{color:var(--muted);padding:8px 2px}
+
+/* Comida */
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;border:2px dashed rgba(45,226,197,.4);
+  border-radius:20px;background:rgba(45,226,197,.06);padding:26px 16px;min-height:180px;cursor:pointer;overflow:hidden;position:relative;transition:background .2s,border-color .2s}
+.drop:hover{background:rgba(45,226,197,.12);border-color:var(--teal)}
+.drop img{max-width:100%;max-height:300px;border-radius:14px;display:block}
+.drop .cam{font-size:2.3rem}
+.drop strong{font-family:var(--display);font-size:1.15rem}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0}
 .items{display:flex;flex-direction:column;gap:8px;margin:14px 0}
-.item{display:grid;grid-template-columns:1fr 92px 64px 32px;gap:8px;align-items:center;background:var(--bg);border-radius:12px;padding:8px 10px}
+.item{display:grid;grid-template-columns:1fr 92px 64px 32px;gap:8px;align-items:center;background:rgba(255,255,255,.05);border-radius:14px;padding:8px 10px;animation:rise .35s both}
 .item .name small{display:block;color:var(--muted)}
-.item .name small.low{color:var(--amber);font-weight:600}
-.item input{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;text-align:right}
-.item .c{text-align:right;font-weight:600}
+.item .name small.low{color:var(--amber);font-weight:700}
+.item input{text-align:right;padding:6px 8px}
+.item .c{text-align:right;font-weight:700}
 .item .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.2rem;border-radius:8px}
-.item .x:hover{background:var(--rose-soft);color:var(--rose)}
-.empty{color:var(--muted);padding:10px 2px}
+.item .x:hover{background:rgba(255,92,122,.18);color:var(--rose)}
 .add{display:grid;grid-template-columns:1fr 100px auto;gap:8px;margin-top:6px}
 @media(max-width:480px){.add{grid-template-columns:1fr 80px}.add .btn{grid-column:1/-1}.item{grid-template-columns:1fr 78px 54px 28px}}
-.field{display:flex;flex-direction:column;gap:4px}
-.field label{font-weight:600;font-size:.92rem}
-.field input,.field select,.field textarea,.add input{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;width:100%}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:12px}
-.hint{color:var(--muted);font-size:.85rem}
-
-.dose{background:var(--teal-soft);border-color:#B5E0DE;position:sticky;top:78px}
-@media(max-width:820px){.dose{position:static}}
-.dose .big{font-family:var(--display);font-weight:700;font-size:5rem;line-height:1;color:var(--teal-ink);margin:8px 0 2px}
-.dose .big small{font-size:1.4rem;font-weight:500;margin-left:6px}
+.dose{background:linear-gradient(160deg,rgba(45,226,197,.16),rgba(56,189,248,.08)),var(--glass);border-color:rgba(45,226,197,.3);position:sticky;top:84px}
+@media(max-width:860px){.dose{position:static}}
+.dose .big{font-family:var(--display);font-weight:800;font-size:5.4rem;line-height:1;margin:8px 0 2px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dose .big small{font-size:1.4rem;font-weight:500;margin-left:8px;-webkit-text-fill-color:var(--muted)}
 .break{display:grid;gap:6px;margin:14px 0;font-size:.95rem}
-.break div{display:flex;justify-content:space-between;border-bottom:1px dashed #9CCFCC;padding-bottom:4px}
+.break div{display:flex;justify-content:space-between;border-bottom:1px dashed rgba(255,255,255,.15);padding-bottom:5px}
 .warns{display:grid;gap:8px;margin:12px 0}
-.warn{border-radius:12px;padding:10px 12px;font-size:.93rem;background:var(--amber-soft);color:#7A4F00}
-.warn.danger{background:var(--rose-soft);color:var(--rose);font-weight:600}
-.fine{font-size:.82rem;color:var(--teal-ink);margin-top:10px}
-
-.hist{margin-top:16px}
-.hist table{width:100%;border-collapse:collapse;font-size:.93rem}
-.hist th,.hist td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
-.hist th{color:var(--muted);font-weight:600}
-
-/* Registro y coach */
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
-.chip{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:8px 14px;font-weight:600;cursor:pointer}
-.chip:hover{border-color:var(--teal)}
-.chip[aria-pressed="true"]{background:var(--teal-soft);border-color:var(--teal);color:var(--teal-ink)}
-.log{display:grid;gap:8px;margin-top:10px}
-.log .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--bg);border-radius:12px;padding:10px 12px}
-.log .row small{display:block;color:var(--muted)}
-.log .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.2rem;border-radius:8px;padding:2px 8px}
-.log .x:hover{background:var(--rose-soft);color:var(--rose)}
-.tag{display:inline-block;background:var(--sky-soft);color:var(--teal-ink);border-radius:8px;padding:1px 8px;font-size:.78rem;font-weight:600;margin-left:6px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
-.stat{background:var(--bg);border-radius:14px;padding:12px}
-.stat b{display:block;font-family:var(--display);font-size:1.7rem;line-height:1.1}
-.stat span{color:var(--muted);font-size:.85rem}
-.sug{border-left:4px solid var(--teal);background:var(--bg);border-radius:0 12px 12px 0;padding:10px 14px;margin-top:10px}
-.sug.alta{border-color:var(--rose)}
-.sug.media{border-color:var(--amber)}
-.sug small{display:block;color:var(--muted);margin-top:2px}
+.warn{border-radius:14px;padding:10px 13px;font-size:.92rem;background:rgba(255,184,77,.13);color:#FFD08A}
+.warn.danger{background:rgba(255,92,122,.15);color:#FF93A8;font-weight:600}
+.warn.gym{background:rgba(139,124,255,.16);color:#CFC8FF}
+.fine{font-size:.82rem;color:var(--muted);margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
 ul.plain{margin:8px 0 0;padding-left:18px}
-ul.plain li{margin:4px 0}
+ul.plain li{margin:5px 0}
+.sug{border-left:4px solid var(--teal);background:rgba(255,255,255,.05);border-radius:0 14px 14px 0;padding:10px 14px;margin-top:10px}
+.sug.alta{border-color:var(--rose)} .sug.media{border-color:var(--amber)}
+.sug small{display:block;color:var(--muted);margin-top:2px}
+.settings{max-width:640px}
+.settings .field{margin-top:14px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.foot{margin-top:30px;padding:16px;border-radius:16px;background:var(--glass);border:1px solid var(--line);color:var(--muted);font-size:.85rem}
 
-/* Entreno / menú / compra */
-.light{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
-@media(max-width:700px){.light{grid-template-columns:1fr 1fr}}
-.light div{border-radius:14px;padding:12px;font-size:.9rem}
-.light b{display:block;font-family:var(--display);font-size:1.05rem;margin-bottom:2px}
-.l1{background:var(--rose-soft)}.l2{background:var(--amber-soft)}.l3{background:var(--green-soft)}.l4{background:var(--rose-soft)}
-.tablewrap{overflow-x:auto;margin-top:6px}
-table.ex{width:100%;border-collapse:collapse;min-width:560px}
-table.ex th{text-align:left;color:var(--muted);font-weight:600;font-size:.88rem;padding:8px 10px;border-bottom:2px solid var(--line)}
-table.ex td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-table.ex tr.done td{color:#8AA3AB}
-table.ex tr.done .exn{text-decoration:line-through}
-.exn{font-weight:600}
-.chk{width:22px;height:22px;accent-color:var(--teal)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
-@media(max-width:760px){.two{grid-template-columns:1fr}}
-.two .panel + .panel{margin-top:0}
-.meal{display:grid;grid-template-columns:130px 1fr 84px;gap:14px;padding:16px 0;border-bottom:1px solid var(--line);align-items:start}
-.meal:last-child{border-bottom:0}
-.meal .when b{font-family:var(--display);font-size:1.1rem;display:block}
-.meal .when span{color:var(--muted);font-size:.88rem}
-.meal .carb{justify-self:end;background:var(--sky-soft);border-radius:12px;padding:6px 10px;text-align:center;font-weight:700;color:var(--teal-ink)}
-.meal .carb small{display:block;font-weight:500;color:var(--muted);font-size:.75rem}
-@media(max-width:600px){.meal{grid-template-columns:1fr 70px}.meal .when{grid-column:1/-1}}
-.total{display:flex;justify-content:space-between;margin-top:10px;padding:12px 14px;background:var(--bg);border-radius:12px;font-weight:600}
-.shop{columns:2 300px;column-gap:20px}
-.group{break-inside:avoid;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
-.group h3{margin-bottom:8px}
-.group label{display:flex;gap:10px;align-items:flex-start;padding:5px 0;cursor:pointer}
-.group input{width:20px;height:20px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto}
-.group label.on span{text-decoration:line-through;color:#8AA3AB}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-.settings{max-width:620px}
-.settings .field{margin-top:12px}
-.foot{margin-top:36px;padding:16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:.88rem}
-
-/* Acceso */
-.modal{position:fixed;inset:0;background:rgba(16,48,58,.5);display:grid;place-items:center;padding:16px;z-index:20}
-.modal .box{background:#fff;border-radius:22px;padding:24px;max-width:440px;width:100%;max-height:92vh;overflow:auto}
-.modal .actions{margin:16px 0 0}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Ventanas */
+.modal{position:fixed;inset:0;background:rgba(3,6,12,.7);backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;z-index:50;animation:fade .25s}
+.modal .box{background:#0E1624;border:1px solid var(--line);border-radius:26px;padding:26px;max-width:460px;width:100%;max-height:92vh;overflow:auto;animation:rise .35s cubic-bezier(.2,.8,.2,1)}
+.modal .actions{margin-top:18px}
+@keyframes fade{from{opacity:0}}
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0));z-index:60;display:grid;gap:8px;justify-items:center;pointer-events:none}
+@media(min-width:761px){.toasts{bottom:28px}}
+.toast{background:rgba(14,22,36,.96);border:1px solid var(--line);border-radius:999px;padding:11px 20px;font-weight:600;box-shadow:0 12px 36px rgba(0,0,0,.5);animation:pop .4s cubic-bezier(.3,1.5,.5,1)}
+.toast.ok{border-color:rgba(74,222,128,.5)} .toast.err{border-color:rgba(255,92,122,.5);color:#FF93A8}
+.toast.out{opacity:0;transform:translateY(10px);transition:all .3s}
+@keyframes pop{from{opacity:0;transform:translateY(20px) scale(.9)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.chart .draw{stroke-dashoffset:0}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
 
+<div class="app">
   <header class="top">
     <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5s6.5 7 6.5 12a6.5 6.5 0 0 1-13 0c0-5 6.5-12 6.5-12z"/></svg></div>
       <h1>GlucoPlan</h1>
-      <p>Comida, insulina, entreno y compra en un solo sitio.</p>
-      <p class="sync" id="syncState"></p>
     </div>
-    <div class="basal" id="basalBox">
-      <div><strong id="basalTitle">Toujeo 28 U</strong><br><span id="basalState">Sin marcar hoy</span></div>
-      <button class="btn small" id="basalBtn" type="button">Marcar puesta</button>
-    </div>
+    <div class="pill" id="syncState"><span class="dot"></span><span id="syncText"></span></div>
   </header>
 
   <nav class="nav" role="tablist" aria-label="Secciones">
-    <button class="tab" role="tab" data-tab="comida" aria-selected="true">Comida e insulina</button>
-    <button class="tab" role="tab" data-tab="glucosa" aria-selected="false">Glucosa</button>
-    <button class="tab" role="tab" data-tab="coach" aria-selected="false">Coach</button>
-    <button class="tab" role="tab" data-tab="entreno" aria-selected="false">Entreno</button>
-    <button class="tab" role="tab" data-tab="menu" aria-selected="false">Menú semanal</button>
-    <button class="tab" role="tab" data-tab="compra" aria-selected="false">Lista de la compra</button>
-    <button class="tab" role="tab" data-tab="ajustes" aria-selected="false">Ajustes</button>
+    <button class="tab" role="tab" data-tab="hoy" aria-selected="true"><span class="ic"></span>Hoy</button>
+    <button class="tab" role="tab" data-tab="comida" aria-selected="false"><span class="ic"></span>Comida</button>
+    <button class="tab" role="tab" data-tab="glucosa" aria-selected="false"><span class="ic"></span>Glucosa</button>
+    <button class="tab" role="tab" data-tab="coach" aria-selected="false"><span class="ic"></span>Coach</button>
+    <button class="tab" role="tab" data-tab="ajustes" aria-selected="false"><span class="ic"></span>Ajustes</button>
   </nav>
 
+  <!-- HOY -->
+  <section id="tab-hoy" class="tabpanel" role="tabpanel">
+    <div class="card hero">
+      <div class="ring">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="track" cx="100" cy="100" r="82"/>
+          <circle class="arc" id="ringArc" cx="100" cy="100" r="82"/>
+        </svg>
+        <div class="mid">
+          <div class="val" id="ringVal">—</div>
+          <div class="unit">mg/dL</div>
+          <div class="st" id="ringState">Sin lecturas</div>
+        </div>
+      </div>
+      <div class="greet">
+        <h2 id="greet">Hola</h2>
+        <p class="date" id="dateLine"></p>
+        <p class="meta" id="ringMeta">Anota tu primera lectura para empezar.</p>
+        <div class="mini">
+          <div><b id="hs-media">—</b><span>media 7 días</span></div>
+          <div><b id="hs-tir">—</b><span>en rango 7 días</span></div>
+          <div><b id="hs-low">—</b><span>bajas (&lt; 70)</span></div>
+          <div><b id="hs-meals">—</b><span>comidas hoy</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div class="stack">
+        <div class="card">
+          <h2>Anotar glucosa</h2>
+          <p class="sub">La lectura de 2 horas después de comer es la que más enseña al coach.</p>
+          <div class="fgrid">
+            <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
+            <div class="field"><label for="r-ctx">Momento</label>
+              <select id="r-ctx">
+                <option value="post2h">2 horas después de comer</option>
+                <option value="pre_comida">Antes de comer</option>
+                <option value="ayunas">En ayunas</option>
+                <option value="pre_gym">Antes del gimnasio</option>
+                <option value="post_gym">Después del gimnasio</option>
+                <option value="noche">Antes de dormir o madrugada</option>
+                <option value="otro">Otro</option>
+              </select></div>
+          </div>
+          <div class="field" style="margin-top:12px"><label for="r-note">Nota (opcional)</label><input id="r-note" maxlength="120"></div>
+          <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar lectura</button></div>
+        </div>
+        <div class="card">
+          <div class="head"><h2>Últimas 24 horas</h2><button class="btn ghost small" type="button" id="toGlucosa">Ver más</button></div>
+          <div class="chart" id="chartHoy"></div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card" id="toujeoCard">
+          <div class="eyebrow">Insulina basal</div>
+          <div id="toujeoBox"></div>
+          <button class="btn violet block" id="tjOpen" type="button" style="margin-top:14px">Registrar Toujeo</button>
+        </div>
+        <div class="card">
+          <div class="eyebrow">Entrenamiento</div>
+          <button class="switch" id="gymSwitch" type="button" role="switch" aria-checked="false">
+            <span class="t"><b>Hoy he ido al gym</b><span>Musculación y cardio</span></span>
+            <span class="knob" aria-hidden="true"></span>
+          </button>
+          <div class="gyminfo" id="gymInfo" hidden>
+            Tu glucosa suele subir con la musculación. La app lo tiene en cuenta en el cálculo y en el coach. Mide antes y después del gym, y vigila bajadas tardías unas horas después.
+          </div>
+        </div>
+        <div class="card">
+          <h2>Registro reciente</h2>
+          <div class="log" id="entryLogHoy" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- COMIDA -->
-  <section id="tab-comida" role="tabpanel">
-    <div class="grid">
-      <div>
-        <div class="panel">
+  <section id="tab-comida" class="tabpanel" role="tabpanel" hidden>
+    <div class="cols" style="margin-top:0">
+      <div class="stack">
+        <div class="card">
           <h2>Foto del plato</h2>
           <p class="sub">Haz una foto antes de comer. La IA estima alimentos, gramos e hidratos; tú los revisas.</p>
           <div class="drop">
@@ -225,8 +363,7 @@ table.ex tr.done .exn{text-decoration:line-through}
           </div>
           <div id="status"></div>
         </div>
-
-        <div class="panel">
+        <div class="card">
           <h2>Alimentos del plato</h2>
           <p class="sub">Ajusta los gramos o añade alimentos a mano si la foto no acierta.</p>
           <div class="items" id="items"></div>
@@ -250,61 +387,46 @@ table.ex tr.done .exn{text-decoration:line-through}
           </div>
         </div>
       </div>
-
       <aside>
-        <div class="panel dose" aria-live="polite">
+        <div class="card dose" aria-live="polite">
           <h2>Dosis de Fiasp</h2>
           <div id="doseBox"></div>
         </div>
       </aside>
     </div>
-
-    <div class="panel hist">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="card">
+      <div class="head">
         <h2>Últimas comidas</h2>
-        <div class="actions" style="margin:0">
-          <button class="btn ghost small" id="csvBtn" type="button">Descargar CSV</button>
-        </div>
+        <button class="btn ghost small" id="csvBtn" type="button">Descargar CSV</button>
       </div>
-      <div id="histBox"></div>
+      <div id="histBox" style="margin-top:8px"></div>
     </div>
   </section>
 
   <!-- GLUCOSA -->
-  <section id="tab-glucosa" role="tabpanel" hidden>
-    <div class="panel">
-      <h2>Cómo ha sido hoy</h2>
-      <p class="sub">Marca lo que ha pasado hoy. Las lecturas y comidas que guardes después llevarán esta información y el coach la usará para comparar.</p>
-      <div class="chips">
-        <button class="chip" type="button" id="flagGym" aria-pressed="false">Hoy he hecho gimnasio</button>
-        <button class="chip" type="button" id="flagCarb" aria-pressed="false">Hoy he comido más hidratos de lo normal</button>
+  <section id="tab-glucosa" class="tabpanel" role="tabpanel" hidden>
+    <div class="card">
+      <div class="head">
+        <h2>Tu glucosa</h2>
+        <div class="chips" id="rangePills">
+          <button class="chip" type="button" data-r="1" aria-pressed="false">24 h</button>
+          <button class="chip" type="button" data-r="7" aria-pressed="true">7 días</button>
+          <button class="chip" type="button" data-r="28" aria-pressed="false">28 días</button>
+        </div>
+      </div>
+      <div class="stats" id="gStats"></div>
+      <div class="chart" id="chartMain"></div>
+      <div class="legend">
+        <span><i style="background:rgba(74,222,128,.35)"></i>Rango 70 a 180</span>
+        <span><i style="background:rgba(139,124,255,.5)"></i>Día de gym</span>
+        <span><i style="background:#8B7CFF;transform:rotate(45deg)"></i>Toujeo</span>
+        <span><i style="background:#FFB84D;border-radius:50%"></i>Comida</span>
       </div>
     </div>
 
-    <div class="panel">
-      <h2>Anotar una lectura</h2>
-      <p class="sub">Lo que más enseña al coach: la glucosa 2 horas después de comer.</p>
-      <div class="fgrid">
-        <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
-        <div class="field"><label for="r-ctx">Momento</label>
-          <select id="r-ctx">
-            <option value="post2h">2 horas después de comer</option>
-            <option value="pre_comida">Antes de comer</option>
-            <option value="ayunas">En ayunas</option>
-            <option value="pre_gym">Antes del gimnasio</option>
-            <option value="post_gym">Después del gimnasio</option>
-            <option value="noche">Antes de dormir o de madrugada</option>
-            <option value="otro">Otro</option>
-          </select></div>
-        <div class="field"><label for="r-note">Nota (opcional)</label><input id="r-note" maxlength="120"></div>
-      </div>
-      <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar lectura</button></div>
-      <div id="readingStatus"></div>
-    </div>
-
-    <div class="panel">
+    <div class="card">
       <h2>Subir una gráfica de glucosa</h2>
-      <p class="sub">Haz una captura de tu app del sensor (día o semana). La IA extrae los datos y tú los confirmas antes de guardar.</p>
+      <p class="sub">Haz una captura de tu app del sensor. La IA extrae los datos y tú los confirmas antes de guardar.</p>
       <div class="drop" style="min-height:130px">
         <img id="chartPreview" alt="Vista previa de la gráfica" hidden>
         <div id="chartDropText">
@@ -316,7 +438,7 @@ table.ex tr.done .exn{text-decoration:line-through}
       <p class="hint" style="margin-top:8px">Con el plan gratuito, Google puede usar lo que envías para mejorar sus productos. Recorta tu nombre y otros datos personales antes de subir la captura.</p>
       <div id="chartStatus"></div>
       <div id="chartForm" hidden>
-        <div class="fgrid">
+        <div class="fgrid" style="margin-top:14px">
           <div class="field"><label for="c-periodo">Periodo</label><input id="c-periodo"></div>
           <div class="field"><label for="c-media">Media (mg/dL)</label><input id="c-media" type="number" inputmode="decimal"></div>
           <div class="field"><label for="c-tir">Tiempo en rango (%)</label><input id="c-tir" type="number" inputmode="decimal"></div>
@@ -327,115 +449,33 @@ table.ex tr.done .exn{text-decoration:line-through}
           <div class="field"><label for="c-max">Máxima (mg/dL)</label><input id="c-max" type="number" inputmode="decimal"></div>
         </div>
         <ul class="plain" id="chartPatterns"></ul>
-        <div class="field" style="margin-top:12px"><label for="c-note">Qué pasó esos días (gimnasio, más hidratos…)</label><input id="c-note" maxlength="200"></div>
+        <div class="field" style="margin-top:12px"><label for="c-note">Qué pasó esos días (gym, comidas…)</label><input id="c-note" maxlength="200"></div>
         <div class="actions" style="margin-top:14px"><button class="btn" id="saveChart" type="button">Guardar gráfica</button></div>
       </div>
     </div>
 
-    <div class="panel">
-      <h2>Registro reciente</h2>
-      <div class="log" id="entryLog"></div>
+    <div class="card">
+      <h2>Registro</h2>
+      <div class="log" id="entryLog" style="margin-top:12px"></div>
     </div>
   </section>
 
   <!-- COACH -->
-  <section id="tab-coach" role="tabpanel" hidden>
-    <div class="panel">
+  <section id="tab-coach" class="tabpanel" role="tabpanel" hidden>
+    <div class="card">
       <h2>Coach de datos</h2>
-      <p class="sub">Analiza tus últimos 28 días: lecturas, comidas, gimnasio y gráficas. Detecta patrones y te prepara preguntas para tu endocrino. No cambia tus ajustes ni tu dosis por sí solo.</p>
-      <div class="actions" style="margin:0"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button></div>
+      <p class="sub">Analiza tus últimos 28 días: lecturas, comidas, gym, Toujeo y gráficas. Detecta patrones y te prepara preguntas para tu endocrino. No cambia tus ajustes ni tu dosis por sí solo.</p>
+      <div class="actions"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button></div>
       <div id="coachStatus"></div>
     </div>
     <div id="coachOut"></div>
   </section>
 
-  <!-- ENTRENO -->
-  <section id="tab-entreno" role="tabpanel" hidden>
-    <div class="panel">
-      <h2>Gimnasio a las 6:00, tres días por semana</h2>
-      <p class="sub">Lunes, miércoles y viernes. Fuerza primero y cardio después: es lo que mejor protege frente a bajadas de glucosa. Unos 55 minutos.</p>
-      <div class="chips" id="dayChips"></div>
-      <div id="workoutBox"></div>
-    </div>
-
-    <div class="panel">
-      <h3>Antes de entrenar: semáforo de glucosa</h3>
-      <p class="sub" style="margin-bottom:0">Orientativo. Confírmalo con tu endocrino y adáptalo a cómo reaccionas tú.</p>
-      <div class="light">
-        <div class="l1"><b>Menos de 90</b>Toma 15 a 20 g de hidratos rápidos, espera y vuelve a medir antes de empezar.</div>
-        <div class="l2"><b>90 a 150</b>Puedes entrenar con un pequeño aporte de hidratos (10 a 15 g) si vas a hacer series largas.</div>
-        <div class="l3"><b>150 a 250</b>Buen rango para empezar. Mide a mitad de sesión.</div>
-        <div class="l4"><b>Más de 250</b>Mide cetonas. Si hay cetonas, no entrenes y consulta tu pauta.</div>
-      </div>
-    </div>
-
-    <div class="two">
-      <div class="panel">
-        <h3>Mente: 5 minutos al terminar</h3>
-        <ul class="plain">
-          <li>Respiración 4-6: inspira 4 segundos, espira 6, durante 3 minutos.</li>
-          <li>Una frase: qué vas a hacer bien hoy.</li>
-          <li>Estiramientos suaves de cadera y espalda.</li>
-        </ul>
-      </div>
-      <div class="panel">
-        <h3>Progresión en 9 semanas</h3>
-        <ul class="plain">
-          <li>Semanas 1 a 4: técnica y cargas con 2 o 3 repeticiones en reserva.</li>
-          <li>Semanas 5 a 8: sube la carga un 2,5 a 5 % si completas todas las series.</li>
-          <li>Semana 9: descarga con la mitad de series.</li>
-        </ul>
-      </div>
-    </div>
-    <div class="panel">
-      <h3>Después del entreno</h3>
-      <ul class="plain">
-        <li>Mide al terminar y de nuevo a las 2 o 3 horas: el músculo sigue captando glucosa y puede haber bajadas tardías, incluso de madrugada.</li>
-        <li>Lleva siempre hidratos rápidos en la bolsa de deporte.</li>
-        <li>Marca "Hoy he hecho gimnasio" en la pestaña Glucosa para que el coach compare tus días de entreno.</li>
-        <li>No cambies tu dosis de Toujeo por tu cuenta. Si ves bajadas repetidas, comenta el ajuste con tu endocrino.</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- MENU -->
-  <section id="tab-menu" role="tabpanel" hidden>
-    <div class="panel">
-      <h2>Plan de tres comidas</h2>
-      <p class="sub">Recetas de menos de 20 minutos, con los hidratos aproximados de cada comida para que calcules la dosis. Pesa y confirma siempre. Pensado para unas 2.000 kcal, con proteína en cada plato.</p>
-      <div class="chips" id="menuChips"></div>
-      <div id="menuBox"></div>
-      <div class="total"><span>Hidratos del día</span><span id="menuTotal"></span></div>
-    </div>
-    <div class="panel">
-      <h3>Preparación exprés del domingo (30 minutos)</h3>
-      <ul class="plain">
-        <li>Cuece legumbres y arroz para varios días y guárdalos en táperes.</li>
-        <li>Hornea la pechuga de pollo de dos comidas.</li>
-        <li>Lava y trocea verduras para ensaladas y salteados.</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- COMPRA -->
-  <section id="tab-compra" role="tabpanel" hidden>
-    <div class="panel" style="margin-bottom:16px">
-      <h2>Lista de la compra semanal</h2>
-      <p class="sub">Cantidades orientativas para una persona y siete días del menú. Marca lo que ya tienes.</p>
-      <div class="actions">
-        <button class="btn" id="copyShop" type="button">Copiar lista</button>
-        <button class="btn ghost" id="resetShop" type="button">Desmarcar todo</button>
-      </div>
-      <div id="shopStatus"></div>
-    </div>
-    <div class="shop" id="shopBox"></div>
-  </section>
-
   <!-- AJUSTES -->
-  <section id="tab-ajustes" role="tabpanel" hidden>
-    <div class="panel settings">
+  <section id="tab-ajustes" class="tabpanel" role="tabpanel" hidden>
+    <div class="card settings">
       <h2>Tus ajustes de insulina</h2>
-      <p class="sub">Pon aquí los valores que te haya indicado tu endocrino. Con la sesión iniciada se sincronizan entre tus dispositivos.</p>
+      <p class="sub">Pon aquí los valores que te haya indicado tu endocrino. Se sincronizan entre tus dispositivos.</p>
       <div class="field">
         <label for="s-icr">Ratio insulina/hidratos: 1 unidad cubre cuántos gramos</label>
         <input id="s-icr" type="number" step="0.1" min="1" inputmode="decimal" placeholder="Ej.: 10 (pregunta a tu endocrino)">
@@ -443,7 +483,6 @@ table.ex tr.done .exn{text-decoration:line-through}
       <div class="field">
         <label for="s-isf">Factor de sensibilidad: 1 unidad baja cuántos mg/dL</label>
         <input id="s-isf" type="number" step="1" min="1" inputmode="decimal" placeholder="30">
-        <span class="hint">Un factor de corrección de 1/30 equivale a 30.</span>
       </div>
       <div class="field">
         <label for="s-target">Glucemia objetivo (mg/dL)</label>
@@ -458,20 +497,16 @@ table.ex tr.done .exn{text-decoration:line-through}
         <input id="s-max" type="number" step="0.5" min="0" inputmode="decimal" placeholder="Te avisa si el cálculo la supera">
       </div>
       <div class="field">
-        <label for="s-adj">Reducción de dosis (%) acordada con tu endocrino</label>
-        <input id="s-adj" type="number" step="5" min="0" max="80" inputmode="decimal" placeholder="0">
-        <span class="hint">Por ejemplo, para comidas cercanas al ejercicio. Déjalo en 0 si no la tienes pautada.</span>
+        <label for="s-gym">Ajuste de la dosis de comida los días de gym (%)</label>
+        <input id="s-gym" type="number" step="5" min="-50" max="50" inputmode="decimal" placeholder="0">
+        <span class="hint">Positivo sube la dosis, negativo la baja. Como la musculación suele subirte la glucosa, no se reduce nada por defecto. Pon un valor solo si tu endocrino te lo ha indicado.</span>
       </div>
       <div class="field">
-        <label for="s-basal">Toujeo (unidades al día)</label>
+        <label for="s-basal">Toujeo habitual (unidades)</label>
         <input id="s-basal" type="number" step="1" min="0" inputmode="decimal">
+        <span class="hint">Se propone al registrar la puesta; podrás cambiarla cada vez.</span>
       </div>
-      <div class="field">
-        <label for="s-api">Dirección de tu web en Netlify (solo si alojas esta página en GitHub Pages)</label>
-        <input id="s-api" type="url" placeholder="https://tu-sitio.netlify.app">
-        <span class="hint">Déjalo vacío si la web está desplegada en Netlify.</span>
-      </div>
-      <div class="actions" style="margin-top:18px">
+      <div class="actions" style="margin-top:20px">
         <button class="btn" id="saveSet" type="button">Guardar ajustes</button>
         <button class="btn ghost" id="logoutBtn" type="button">Cerrar sesión</button>
       </div>
@@ -484,25 +519,42 @@ table.ex tr.done .exn{text-decoration:line-through}
   </footer>
 </div>
 
+<!-- TOUJEO -->
+<div class="modal" id="tjModal" role="dialog" aria-modal="true" aria-labelledby="tjTitle" hidden>
+  <div class="box">
+    <h2 id="tjTitle">¿Cuándo te pusiste el Toujeo?</h2>
+    <p class="sub">Si se te olvidó anotarlo, elige la hora real.</p>
+    <div class="field"><label for="tj-units">Unidades</label><input id="tj-units" type="number" step="1" min="1" inputmode="decimal"></div>
+    <div class="field" style="margin-top:12px"><label for="tj-when">Fecha y hora</label><input id="tj-when" type="datetime-local"></div>
+    <div class="chips" style="margin-top:12px" id="tjQuick">
+      <button class="chip" type="button" data-m="0">Ahora</button>
+      <button class="chip" type="button" data-m="60">Hace 1 h</button>
+      <button class="chip" type="button" data-m="180">Hace 3 h</button>
+      <button class="chip" type="button" data-m="1440">Ayer a esta hora</button>
+    </div>
+    <div id="tjStatus"></div>
+    <div class="actions">
+      <button class="btn violet" id="tjSave" type="button">Guardar</button>
+      <button class="btn ghost" id="tjCancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ACCESO -->
 <div class="modal" id="login" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
   <div class="box">
     <h2 id="loginTitle">Entra en GlucoPlan</h2>
-    <p class="sub" style="margin-top:6px">Escribe la clave que pusiste en Netlify (variable APP_PASSWORD). Protege tu historial y el uso de la IA.</p>
+    <p class="sub">Escribe la clave que pusiste en Netlify (variable APP_PASSWORD). Con la misma clave verás los mismos datos en el móvil y en el ordenador.</p>
     <div class="field">
       <label for="pw">Clave de acceso</label>
       <input id="pw" type="password" autocomplete="current-password">
-    </div>
-    <div class="field" style="margin-top:12px">
-      <label for="loginApi">Dirección de Netlify (solo si esta página está en GitHub Pages)</label>
-      <input id="loginApi" type="url" placeholder="https://tu-sitio.netlify.app">
     </div>
     <div id="loginStatus"></div>
     <div class="actions">
       <button class="btn" id="loginBtn" type="button">Entrar</button>
       <button class="btn ghost" id="localBtn" type="button">Usar sin sincronizar</button>
     </div>
-    <p class="hint">Sin sincronizar, el historial se queda solo en este dispositivo y no hay análisis con IA.</p>
+    <p class="hint" style="margin-top:12px">Sin sincronizar, el historial se queda solo en este dispositivo y no hay análisis con IA.</p>
   </div>
 </div>
 
@@ -511,14 +563,33 @@ table.ex tr.done .exn{text-decoration:line-through}
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const KEY = 'glucoplan:v2';
+  const DAY = 864e5;
   const fmt = n => Number(n).toLocaleString('es-ES', { maximumFractionDigits: 1 });
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const pad = n => String(n).padStart(2, '0');
   const dayStr = ts => new Date(ts).toLocaleDateString('sv-SE');
   const todayKey = () => dayStr(Date.now());
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
   const numOrNull = v => (v === '' || v == null || !isFinite(Number(v)) ? null : Number(v));
+  const clock = ts => new Date(ts).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+  const toLocalInput = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const whenLabel = ts => {
+    const d = dayStr(ts);
+    if (d === todayKey()) return 'hoy a las ' + clock(ts);
+    if (d === dayStr(Date.now() - DAY)) return 'ayer a las ' + clock(ts);
+    return new Date(ts).toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' }) + ' a las ' + clock(ts);
+  };
+  const fmtDur = ms => { const h = Math.floor(ms / 36e5), m = Math.floor(ms % 36e5 / 6e4); return h ? `${h} h ${m} min` : `${m} min`; };
 
-  /* ---------- Datos fijos ---------- */
+  const ICONS = {
+    hoy:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    comida:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    glucosa:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+    coach:'<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',
+    ajustes:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'
+  };
+  $$('.tab').forEach(t => { $('.ic', t).innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[t.dataset.tab]}</svg>`; });
+
   const FOODS = [
     ['Arroz blanco cocido',28],['Arroz integral cocido',23],['Pasta cocida',31],['Pasta integral cocida',26],
     ['Pan blanco',50],['Pan integral',41],['Patata cocida',17],['Patatas fritas',35],['Boniato cocido',20],
@@ -528,91 +599,18 @@ table.ex tr.done .exn{text-decoration:line-through}
     ['Pizza',33],['Hummus',14],['Wrap de trigo',48],['Zumo de naranja',10],['Refresco de cola',11],
     ['Chocolate negro 70 %',30],['Aguacate',2],['Huevo',1],['Pechuga de pollo',0]
   ];
-  const CTX = { post2h:'2 h después de comer', pre_comida:'antes de comer', ayunas:'en ayunas', pre_gym:'antes del gimnasio', post_gym:'después del gimnasio', noche:'noche o madrugada', otro:'otro momento' };
-
-  const WORKOUTS = [
-    { day:'Lunes', title:'Tren inferior y core', rows:[
-      ['Calentamiento: bici o remo suave + movilidad de cadera','8 min','—','Ritmo en el que puedas hablar.'],
-      ['Sentadilla goblet','3 × 10','75 s','Baja controlado, talones apoyados.'],
-      ['Peso muerto rumano con mancuernas','3 × 10','90 s','Espalda neutra, cadera atrás.'],
-      ['Zancadas caminando','3 × 10 por pierna','60 s','Pasos largos y tronco recto.'],
-      ['Puente de glúteo','3 × 12','60 s','Pausa de 1 segundo arriba.'],
-      ['Plancha frontal','3 × 30 a 40 s','45 s','Costillas recogidas.'],
-      ['Paseo del granjero con mancuernas','3 × 30 m','60 s','Agarre fuerte, hombros atrás.'],
-      ['Cierre: caminar en cinta','10 min','—','Baja pulsaciones y vuelve a medir.']
-    ]},
-    { day:'Miércoles', title:'Tren superior', rows:[
-      ['Calentamiento: remo suave + rotaciones de hombro','8 min','—','Banda elástica si tienes.'],
-      ['Press de banca con mancuernas','3 × 10','90 s','Escápulas juntas y abajo.'],
-      ['Remo con mancuerna o en máquina','3 × 10','90 s','Tira con el codo, no con la mano.'],
-      ['Press militar sentado','3 × 10','90 s','Sin arquear la espalda.'],
-      ['Jalón al pecho','3 × 10','75 s','Pecho arriba al bajar la barra.'],
-      ['Face pull o pájaros','2 × 15','45 s','Mejora postura de oficina.'],
-      ['Curl de bíceps + tríceps en polea (superserie)','2 × 12','60 s','Sin balanceo.'],
-      ['Pallof press','3 × 10 por lado','45 s','Core anti-rotación.']
-    ]},
-    { day:'Viernes', title:'Cuerpo completo y cardio', rows:[
-      ['Calentamiento: bici + sentadilla con peso corporal','8 min','—','Sube gradualmente.'],
-      ['Peso muerto con barra hexagonal o mancuernas','3 × 8','2 min','Carga moderada, técnica limpia.'],
-      ['Prensa de piernas','3 × 10','90 s','No bloquees las rodillas.'],
-      ['Remo sentado en polea','3 × 10','75 s','Pausa 1 segundo atrás.'],
-      ['Flexiones (en banco si hace falta)','3 × 8 a 12','60 s','Cuerpo en línea recta.'],
-      ['Swing con kettlebell','3 × 15','60 s','Movimiento de bisagra de cadera.'],
-      ['Intervalos en bici: 30 s fuerte + 90 s suave','6 rondas','—','Los esfuerzos fuertes pueden subir la glucosa un rato; mide después.'],
-      ['Cierre mental: respiración 4-6 y estiramientos','5 min','—','Termina con calma antes de ir al trabajo.']
-    ]}
-  ];
-
-  const MENU = [
-    { day:'Lunes', meals:[
-      ['Desayuno','7:30 tras el gym','Avena con yogur griego, frutos rojos y nueces',42],
-      ['Comida','14:00','Pollo a la plancha con arroz integral (60 g en crudo) y ensalada',48],
-      ['Cena','21:00','Merluza al horno con verduras y 1 patata mediana',28]]},
-    { day:'Martes', meals:[
-      ['Desayuno','7:30','2 tostadas integrales con aguacate y 2 huevos revueltos, más 1 mandarina',40],
-      ['Comida','14:00','Lentejas estofadas con verduras (80 g en crudo)',45],
-      ['Cena','21:00','Wrap integral de atún, huevo cocido, tomate y lechuga',25]]},
-    { day:'Miércoles', meals:[
-      ['Desayuno','7:30 tras el gym','Yogur griego con 40 g de avena, nueces y 1 manzana',47],
-      ['Comida','14:00','Pasta integral (70 g en crudo) con ternera picada y tomate',50],
-      ['Cena','21:00','Salmón a la plancha con brócoli y 120 g de boniato',25]]},
-    { day:'Jueves', meals:[
-      ['Desayuno','7:30','Tortilla de 3 huevos con jamón, 2 rebanadas de pan integral y 1 kiwi',42],
-      ['Comida','14:00','Garbanzos con espinacas (70 g en crudo) y 1 huevo cocido',40],
-      ['Cena','21:00','Crema de calabacín con pechuga de pavo y 1 rebanada de pan',23]]},
-    { day:'Viernes', meals:[
-      ['Desayuno','7:30 tras el gym','2 tostadas integrales con queso fresco y pavo, más 1 kiwi y 1 manzana pequeña',40],
-      ['Comida','14:00','Salteado de ternera con verduras y arroz basmati (60 g en crudo)',48],
-      ['Cena','21:00','Tortilla de calabacín con ensalada y 1 rebanada de pan',20]]},
-    { day:'Sábado', meals:[
-      ['Desayuno','8:30','Tortitas de avena (50 g de avena, 1 huevo, medio plátano) con yogur',38],
-      ['Comida','14:00','Arroz con pollo y verduras (65 g en crudo)',50],
-      ['Cena','21:00','Revuelto de gambas y champiñones con ensalada y 1 rebanada de pan',20]]},
-    { day:'Domingo', meals:[
-      ['Desayuno','8:30','2 tostadas integrales con tomate y aceite, 2 huevos y 1 pieza de fruta',42],
-      ['Comida','14:00','Pollo al horno con 200 g de patata y verduras',37],
-      ['Cena','21:00','Ensalada grande con garbanzos, atún y queso feta',22]]}
-  ];
-
-  const SHOP = [
-    ['Proteínas',['Pechuga de pollo, 600 g','Ternera (picada 150 g + filetes 150 g)','Merluza, 1 filete','Salmón, 1 filete','Gambas peladas, 150 g','Pechuga de pavo, 150 g','Pavo y jamón en lonchas, 150 g','Atún en lata, 3 latas','Huevos, 18 unidades']],
-    ['Lácteos',['Yogur griego natural, 6 unidades','Queso fresco, 1 tarrina','Queso feta, 80 g']],
-    ['Hidratos y legumbres',['Avena en copos, 300 g','Pan integral en rebanadas, 1 paquete','Wraps integrales, 1 paquete','Arroz integral, 250 g','Arroz basmati, 150 g','Pasta integral, 200 g','Lentejas, 250 g','Garbanzos, 300 g (o 2 botes cocidos)','Patatas, 800 g','Boniato, 1 unidad']],
-    ['Verduras',['Tomates, 6 unidades','Lechuga o mezclum, 2 bolsas','Espinacas, 1 bolsa','Brócoli, 1 pieza','Calabacín, 4 unidades','Champiñones, 250 g','Cebolla y ajo','Pimiento y zanahoria, para salteado']],
-    ['Fruta',['Frutos rojos congelados, 300 g','Kiwis, 4','Manzanas, 4','Plátanos, 2','Mandarinas, 3','Aguacates, 2']],
-    ['Despensa',['Aceite de oliva virgen extra','Nueces, 150 g','Caldo de verduras','Sal y especias (pimentón, comino, orégano)']]
-  ];
+  const CTX = { post2h:'2 h después de comer', pre_comida:'antes de comer', ayunas:'en ayunas', pre_gym:'antes del gym', post_gym:'después del gym', noche:'noche o madrugada', otro:'otro momento' };
 
   /* ---------- Estado local ---------- */
-  const defaults = { icr:'', isf:'30', target:'', step:'0.5', maxDose:'', adj:'', basal:'28', apiBase:'' };
+  const defaults = { icr:'', isf:'30', target:'', step:'0.5', maxDose:'', gymAdj:'', basal:'28' };
   function load() {
     try {
       const d = JSON.parse(localStorage.getItem(KEY)) || {};
-      return { settings:{ ...defaults, ...(d.settings || {}) }, entries:d.entries || [], checks:d.checks || {}, shop:d.shop || {}, basalLog:d.basalLog || {} };
-    } catch { return { settings:{ ...defaults }, entries:[], checks:{}, shop:{}, basalLog:{} }; }
+      return { settings:{ ...defaults, ...(d.settings || {}) }, entries:d.entries || [] };
+    } catch { return { settings:{ ...defaults }, entries:[] }; }
   }
   const store = load();
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch {} };
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ settings: store.settings, entries: store.entries })); } catch {} };
   const getKey = () => { try { return localStorage.getItem(KEY + ':key') || ''; } catch { return ''; } };
   const isCloud = () => !!getKey();
   const isLocalMode = () => { try { return localStorage.getItem(KEY + ':local') === '1'; } catch { return false; } };
@@ -620,92 +618,211 @@ table.ex tr.done .exn{text-decoration:line-through}
   let items = [];
   let nextId = 1;
   let entries = [];
+  let chartDays = 7;
+
+  /* ---------- Avisos ---------- */
+  function toast(msg, type = 'ok') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type; t.textContent = msg;
+    $('#toasts').appendChild(t);
+    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 320); }, 2600);
+  }
+  function setStatus(sel, type, html) { $(sel).innerHTML = html ? `<div class="status ${type}">${html}</div>` : ''; }
+
+  function animateNum(el, to, { from = 0, dec = 0, ms = 700 } = {}) {
+    if (!el) return;
+    const t0 = performance.now();
+    const f = v => v.toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || from === to) { el.textContent = f(to); return; }
+    const step = now => {
+      const p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = f(from + (to - from) * e);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
 
   /* ---------- API ---------- */
   async function api(path, opts = {}) {
-    const base = (store.settings.apiBase || '').replace(/\/$/, '');
-    const res = await fetch(base + path, {
-      ...opts,
-      headers: { 'Content-Type':'application/json', 'x-app-key': getKey(), ...(opts.headers || {}) }
-    });
+    const res = await fetch(path, { ...opts, headers: { 'Content-Type':'application/json', 'x-app-key': getKey(), ...(opts.headers || {}) } });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || ('Error ' + res.status));
     return data;
   }
 
-  function setStatus(sel, type, html) { $(sel).innerHTML = html ? `<div class="status ${type}">${html}</div>` : ''; }
-
-  function renderSync() {
+  function renderSync(extra) {
     const el = $('#syncState');
-    if (isCloud()) { el.textContent = 'Sincronizado con tu base de datos'; el.className = 'sync on'; }
-    else { el.textContent = 'Modo local: sin sincronizar ni IA'; el.className = 'sync'; }
+    if (isCloud()) { el.className = 'pill on'; $('#syncText').textContent = 'Sincronizado' + (extra ? ' · ' + extra : ''); }
+    else { el.className = 'pill'; $('#syncText').textContent = 'Modo local: sin sincronizar'; }
   }
 
   /* ---------- Registros ---------- */
-  async function loadEntries() {
+  const readings = () => entries.filter(e => e.type === 'reading');
+  const gymToday = () => entries.some(e => e.type === 'day' && e.gym && dayStr(e.ts) === todayKey());
+  const lastBasal = () => entries.find(e => e.type === 'basal');
+
+  function renderAll() {
+    renderHero(); renderToujeo(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc();
+  }
+  async function loadEntries(silent) {
     if (isCloud()) {
-      try { entries = (await api('/api/data?months=2')).entries || []; }
-      catch (e) { entries = []; setStatus('#readingStatus', 'err', 'No se pudo leer el historial: ' + esc(e.message)); }
-    } else {
-      entries = store.entries.slice();
-    }
-    renderEntries(); renderHist(); renderFlags();
+      try { entries = (await api('/api/data?months=2')).entries || []; renderSync(clock(Date.now())); }
+      catch (e) { if (!silent) toast('No se pudo leer el historial: ' + e.message, 'err'); return; }
+    } else entries = store.entries.slice();
+    renderAll();
   }
   async function addEntry(e) {
     e.ts = e.ts || Date.now();
     if (isCloud()) {
       const d = await api('/api/data', { method:'POST', body: JSON.stringify({ entry: e }) });
-      entries.unshift(d.entry);
+      entries.push(d.entry);
     } else {
-      entries.unshift({ ...e, id: uid() });
-      store.entries = entries.slice(0, 400); save();
+      entries.push({ ...e, id: uid() });
+      store.entries = entries.slice().sort((a, b) => b.ts - a.ts).slice(0, 600); save();
     }
     entries.sort((a, b) => b.ts - a.ts);
-    renderEntries(); renderHist(); renderFlags();
+    renderAll();
   }
   async function removeEntry(e) {
     if (isCloud()) await api(`/api/data?id=${encodeURIComponent(e.id)}&ts=${e.ts}`, { method:'DELETE' });
     entries = entries.filter(x => x.id !== e.id);
-    if (!isCloud()) { store.entries = entries.slice(0, 400); save(); }
-    renderEntries(); renderHist(); renderFlags();
+    if (!isCloud()) { store.entries = entries.slice(0, 600); save(); }
+    renderAll();
   }
-  const todayFlag = f => entries.some(e => e.type === 'day' && e[f] && dayStr(e.ts) === todayKey());
-  const gymToday = () => entries.some(e => e.gym && dayStr(e.ts) === todayKey());
-  const carbToday = () => entries.some(e => e.highCarb && dayStr(e.ts) === todayKey());
 
-  function renderFlags() {
-    $('#flagGym').setAttribute('aria-pressed', gymToday());
-    $('#flagCarb').setAttribute('aria-pressed', carbToday());
+  /* ---------- Hoy: anillo y estadísticas ---------- */
+  const C = 2 * Math.PI * 82;
+  const gColor = v => (v < 70 ? '#FF5C7A' : v <= 180 ? '#2DE2C5' : v <= 250 ? '#FFB84D' : '#FF5C7A');
+  const gState = v => (v < 70 ? 'Baja' : v <= 180 ? 'En rango' : v <= 250 ? 'Alta' : 'Muy alta');
+  let shown = { val: 0, media: 0, tir: 0, low: 0, meals: 0 };
+
+  function renderHero() {
+    const h = new Date().getHours();
+    $('#greet').textContent = h < 6 ? 'Buenas noches' : h < 14 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches';
+    $('#dateLine').textContent = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+    const arc = $('#ringArc');
+    arc.style.strokeDasharray = C;
+    const rs = readings();
+    const r = rs[0];
+    if (r) {
+      const frac = Math.min(1, Math.max(0.03, (r.mgdl - 40) / 260));
+      arc.style.strokeDashoffset = C * (1 - frac);
+      arc.style.stroke = gColor(r.mgdl); arc.style.color = gColor(r.mgdl);
+      animateNum($('#ringVal'), r.mgdl, { from: shown.val });
+      shown.val = r.mgdl;
+      const st = $('#ringState'); st.textContent = gState(r.mgdl); st.style.color = gColor(r.mgdl);
+      let meta = `Última lectura ${whenLabel(r.ts)}, ${CTX[r.context] || ''}.`;
+      if (rs[1]) { const d = r.mgdl - rs[1].mgdl; meta += ` ${Math.abs(d) < 10 ? '→ estable' : d > 0 ? '↑ +' + d : '↓ ' + d} respecto a la anterior.`; }
+      $('#ringMeta').textContent = meta;
+    } else {
+      arc.style.strokeDashoffset = C; $('#ringVal').textContent = '—';
+      $('#ringState').textContent = 'Sin lecturas'; $('#ringState').style.color = '';
+      $('#ringMeta').textContent = 'Anota tu primera lectura para empezar.';
+    }
+    const w = rs.filter(x => x.ts >= Date.now() - 7 * DAY);
+    const media = w.length ? Math.round(w.reduce((a, x) => a + x.mgdl, 0) / w.length) : null;
+    const tir = w.length ? Math.round(w.filter(x => x.mgdl >= 70 && x.mgdl <= 180).length / w.length * 100) : null;
+    const low = w.filter(x => x.mgdl < 70).length;
+    const meals = entries.filter(e => e.type === 'meal' && dayStr(e.ts) === todayKey()).length;
+    const set = (id, v, key, suf = '') => {
+      const el = $(id);
+      if (v == null) { el.textContent = '—'; return; }
+      animateNum(el, v, { from: shown[key] }); shown[key] = v;
+      if (suf) setTimeout(() => { el.textContent = fmt(v) + suf; }, 720);
+    };
+    set('#hs-media', media, 'media'); set('#hs-tir', tir, 'tir', ' %'); set('#hs-low', low, 'low'); set('#hs-meals', meals, 'meals');
   }
-  async function toggleFlag(flag) {
+
+  /* ---------- Toujeo ---------- */
+  function renderToujeo() {
+    const b = lastBasal();
+    const box = $('#toujeoBox'), card = $('#toujeoCard');
+    card.classList.remove('tjs-soon', 'tjs-over');
+    if (!b) {
+      box.innerHTML = `<div class="tj"><div class="u">${fmt(store.settings.basal || 0)}<small>U habituales</small></div></div>
+        <p class="tjnote" style="margin-top:10px">Aún no has registrado ninguna puesta. Anótala con su hora y se guardará en todos tus dispositivos.</p>`;
+      return;
+    }
+    const el = Date.now() - b.ts;
+    const pct = Math.min(100, el / DAY * 100);
+    const next = b.ts + DAY;
+    let note;
+    if (el < 22 * 36e5) note = `Próxima hacia ${whenLabel(next)} (en ${fmtDur(next - Date.now())}).`;
+    else if (el < DAY) { card.classList.add('tjs-soon'); note = `Se acerca la hora: ${whenLabel(next)} (en ${fmtDur(next - Date.now())}).`; }
+    else if (el < 27 * 36e5) { card.classList.add('tjs-soon'); note = `Han pasado ${fmtDur(el)}. Toca ponerla.`; }
+    else { card.classList.add('tjs-over'); note = `Han pasado ${fmtDur(el)}. ¿Se te ha olvidado? Si es así, sigue la pauta de tu endocrino para dosis olvidadas y anótala al ponértela.`; }
+    box.innerHTML = `<div class="tj"><div class="u">${fmt(b.units)}<small>U Toujeo</small></div><div class="hint">${whenLabel(b.ts)}</div></div>
+      <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100" aria-label="Tiempo desde la última Toujeo"><i style="width:${pct}%"></i></div>
+      <p class="tjnote"><b>Hace ${fmtDur(el)}.</b> ${note}</p>`;
+  }
+  function openToujeo() {
+    $('#tj-units').value = store.settings.basal || '';
+    $('#tj-when').value = toLocalInput(Date.now());
+    setStatus('#tjStatus', '', '');
+    $('#tjModal').hidden = false; $('#tj-units').focus();
+  }
+  $('#tjOpen').addEventListener('click', openToujeo);
+  $('#tjCancel').addEventListener('click', () => { $('#tjModal').hidden = true; });
+  $$('#tjQuick .chip').forEach(c => c.addEventListener('click', () => { $('#tj-when').value = toLocalInput(Date.now() - Number(c.dataset.m) * 6e4); }));
+  $('#tjSave').addEventListener('click', async () => {
+    const units = numOrNull($('#tj-units').value);
+    const ts = new Date($('#tj-when').value).getTime();
+    if (!(units > 0 && units <= 200)) { setStatus('#tjStatus', 'err', 'Escribe las unidades que te pusiste.'); return; }
+    if (!isFinite(ts)) { setStatus('#tjStatus', 'err', 'Elige la fecha y la hora.'); return; }
+    if (ts > Date.now() + 5 * 6e4) { setStatus('#tjStatus', 'err', 'La hora no puede ser futura.'); return; }
+    $('#tjSave').disabled = true;
     try {
-      const own = entries.filter(e => e.type === 'day' && e[flag] && dayStr(e.ts) === todayKey());
-      if (own.length) { for (const e of own) await removeEntry(e); }
-      else await addEntry({ type:'day', gym: flag === 'gym', highCarb: flag === 'highCarb' });
-    } catch (err) { setStatus('#readingStatus', 'err', esc(err.message)); }
-  }
-  $('#flagGym').addEventListener('click', () => toggleFlag('gym'));
-  $('#flagCarb').addEventListener('click', () => toggleFlag('highCarb'));
+      await addEntry({ type:'basal', units, ts });
+      store.settings.basal = String(units); save(); fillSettings();
+      if (isCloud()) pushSettings().catch(() => {});
+      $('#tjModal').hidden = true;
+      toast('Toujeo guardada: ' + fmt(units) + ' U, ' + whenLabel(ts));
+    } catch (err) { setStatus('#tjStatus', 'err', esc(err.message)); }
+    $('#tjSave').disabled = false;
+  });
 
+  /* ---------- Gym ---------- */
+  function renderGym() {
+    const on = gymToday();
+    $('#gymSwitch').setAttribute('aria-checked', on);
+    $('#gymInfo').hidden = !on;
+  }
+  $('#gymSwitch').addEventListener('click', async () => {
+    try {
+      const own = entries.filter(e => e.type === 'day' && e.gym && dayStr(e.ts) === todayKey());
+      if (own.length) { for (const e of own) await removeEntry(e); toast('Gym desmarcado'); }
+      else { await addEntry({ type:'day', gym:true }); toast('Día de gym marcado. A por ello 💪'); }
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  /* ---------- Registro ---------- */
   function describe(e) {
-    const tags = (e.gym ? '<span class="tag">gimnasio</span>' : '') + (e.highCarb ? '<span class="tag">más hidratos</span>' : '');
-    if (e.type === 'meal') return `<b>Comida</b>: ${fmt(e.carbs)} g de hidratos, Fiasp ${fmt(e.dose)} U${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}`;
-    if (e.type === 'reading') return `<b>${fmt(e.mgdl)} mg/dL</b> ${CTX[e.context] || ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}`;
+    const tags = e.gym ? '<span class="tag">gym</span>' : '';
+    if (e.type === 'meal') return [ '🍽️', `<b>Comida</b>: ${fmt(e.carbs)} g de hidratos, Fiasp ${fmt(e.dose)} U${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}` ];
+    if (e.type === 'reading') return [ '🩸', `<b>${fmt(e.mgdl)} mg/dL</b> ${CTX[e.context] || ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
+    if (e.type === 'basal') return [ '💉', `<b>Toujeo ${fmt(e.units)} U</b>` ];
     if (e.type === 'chart') {
       const s = e.summary || {};
-      return `<b>Gráfica</b> ${esc(s.periodo || '')}: media ${s.media_mgdl != null ? fmt(s.media_mgdl) + ' mg/dL' : '—'}, en rango ${s.tir_pct != null ? fmt(s.tir_pct) + ' %' : '—'}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}`;
+      return [ '📈', `<b>Gráfica</b> ${esc(s.periodo || '')}: media ${s.media_mgdl != null ? fmt(s.media_mgdl) + ' mg/dL' : '—'}, en rango ${s.tir_pct != null ? fmt(s.tir_pct) + ' %' : '—'}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
     }
-    return `<b>Día</b>: ${e.gym ? 'gimnasio' : ''}${e.highCarb ? 'más hidratos de lo normal' : ''}`;
+    if (!e.gym) return [ '🗓️', '<b>Día anotado</b>' ];
+    return [ '🏋️', '<b>Día de gym</b> (musculación y cardio)' ];
   }
-  function renderEntries() {
-    const box = $('#entryLog');
+  function fillLog(sel, n) {
+    const box = $(sel);
     if (!entries.length) { box.innerHTML = '<p class="empty">Todavía no hay registros.</p>'; return; }
-    box.innerHTML = entries.slice(0, 25).map(e => `<div class="row" data-id="${e.id}"><div>${describe(e)}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div><button class="x" type="button" aria-label="Borrar registro">×</button></div>`).join('');
-    $$('.row', box).forEach(row => $('.x', row).addEventListener('click', async () => {
-      const e = entries.find(x => x.id === row.dataset.id);
-      if (e && confirm('¿Borrar este registro?')) { try { await removeEntry(e); } catch (err) { setStatus('#readingStatus', 'err', esc(err.message)); } }
-    }));
+    box.innerHTML = entries.slice(0, n).map(e => {
+      const [ic, html] = describe(e);
+      return `<div class="row" data-id="${e.id}"><div class="ic ${e.type}" aria-hidden="true">${ic}</div><div>${html}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div><button class="x" type="button" aria-label="Borrar registro">×</button></div>`;
+    }).join('');
   }
+  function renderEntries() { fillLog('#entryLogHoy', 6); fillLog('#entryLog', 30); }
+  ['#entryLogHoy', '#entryLog'].forEach(sel => $(sel).addEventListener('click', async ev => {
+    const btn = ev.target.closest('.x'); if (!btn) return;
+    const e = entries.find(x => x.id === btn.closest('.row').dataset.id);
+    if (e && confirm('¿Borrar este registro?')) { try { await removeEntry(e); toast('Registro borrado'); } catch (err) { toast(err.message, 'err'); } }
+  }));
+
   function renderHist() {
     const meals = entries.filter(e => e.type === 'meal').slice(0, 12);
     const box = $('#histBox');
@@ -714,8 +831,8 @@ table.ex tr.done .exn{text-decoration:line-through}
       meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
   }
   $('#csvBtn').addEventListener('click', () => {
-    const rows = ['fecha,tipo,hidratos_g,glucemia_mgdl,fiasp_u,gimnasio,mas_hidratos,nota',
-      ...entries.map(e => [new Date(e.ts).toISOString(), e.type, e.carbs ?? '', e.mgdl ?? e.bg ?? '', e.dose ?? '', e.gym ? 1 : 0, e.highCarb ? 1 : 0, '"' + String(e.note || '').replace(/"/g, '""') + '"'].join(','))];
+    const rows = ['fecha,tipo,hidratos_g,glucemia_mgdl,insulina_u,gym,nota',
+      ...entries.map(e => [new Date(e.ts).toISOString(), e.type, e.carbs ?? '', e.mgdl ?? e.bg ?? '', e.dose ?? e.units ?? '', e.gym ? 1 : 0, '"' + String(e.note || '').replace(/"/g, '""') + '"'].join(','))];
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type:'text/csv' }));
     a.download = 'glucoplan-historial.csv'; a.click();
@@ -723,35 +840,140 @@ table.ex tr.done .exn{text-decoration:line-through}
 
   $('#saveReading').addEventListener('click', async () => {
     const mgdl = numOrNull($('#r-val').value);
-    if (!(mgdl >= 20 && mgdl <= 600)) { setStatus('#readingStatus', 'err', 'Escribe una glucosa entre 20 y 600 mg/dL.'); return; }
+    if (!(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
     try {
-      await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note: $('#r-note').value, gym: gymToday(), highCarb: carbToday() });
+      await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note: $('#r-note').value, gym: gymToday() });
       $('#r-val').value = ''; $('#r-note').value = '';
-      setStatus('#readingStatus', 'ok', 'Lectura guardada.');
-    } catch (err) { setStatus('#readingStatus', 'err', esc(err.message)); }
+      toast(mgdl < 70 ? 'Guardada. Glucosa baja: trátala según tu pauta' : 'Lectura guardada: ' + fmt(mgdl) + ' mg/dL', mgdl < 70 ? 'err' : 'ok');
+    } catch (err) { toast(err.message, 'err'); }
   });
+  $('#r-val').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
+
+  /* ---------- Gráfica ---------- */
+  function drawChart(el, days, anim) {
+    const to = Date.now(), from = to - days * DAY;
+    const rs = readings().filter(r => r.ts >= from).sort((a, b) => a.ts - b.ts);
+    if (!rs.length) { el.innerHTML = '<p class="empty">Sin lecturas en este periodo. Anota una glucosa y aparecerá aquí.</p>'; return; }
+    const W = 680, H = 260, pl = 34, pr = 10, pt = 14, pb = 38;
+    const vals = rs.map(r => r.mgdl);
+    const lo = Math.min(50, Math.min(...vals) - 10), hi = Math.max(220, Math.max(...vals) + 15);
+    const x = t => pl + (t - from) / (to - from) * (W - pl - pr);
+    const y = v => pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb);
+
+    // Bandas de días de gym
+    const gymDays = [...new Set(entries.filter(e => e.type === 'day' && e.gym && e.ts >= from - DAY).map(e => dayStr(e.ts)))];
+    const bands = gymDays.map(d => {
+      const s = new Date(d + 'T00:00:00').getTime(), e = s + DAY;
+      const x1 = Math.max(pl, x(s)), x2 = Math.min(W - pr, x(e));
+      return x2 > x1 ? `<rect x="${x1}" y="${pt}" width="${x2 - x1}" height="${H - pt - pb}" fill="rgba(139,124,255,.13)" rx="6"/>` : '';
+    }).join('');
+
+    // Ejes
+    let ticks = '';
+    const stepMs = days <= 1.5 ? 6 * 36e5 : days <= 8 ? DAY : 7 * DAY;
+    const t0 = new Date(from);
+    if (stepMs < DAY) t0.setMinutes(0, 0, 0); else t0.setHours(0, 0, 0, 0);
+    for (let t = t0.getTime(); t <= to; t += stepMs) {
+      if (t < from) continue;
+      const lab = stepMs < DAY ? pad(new Date(t).getHours()) + ':00' : days <= 8 ? new Date(t).toLocaleDateString('es-ES', { weekday:'short' }) : new Date(t).toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+      ticks += `<text class="axis" x="${x(t)}" y="${H - 8}" text-anchor="middle">${lab}</text>`;
+    }
+    const grid = [70, 180].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,.18)" stroke-dasharray="4 5"/><text class="axis" x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join('');
+
+    // Trazo en segmentos (corta si hay huecos grandes)
+    const segs = []; let cur = [];
+    rs.forEach((r, i) => { if (i && r.ts - rs[i - 1].ts > 9 * 36e5) { segs.push(cur); cur = []; } cur.push(r); });
+    segs.push(cur);
+    const smooth = P => {
+      if (P.length < 2) return '';
+      let d = `M${P[0][0]},${P[0][1]}`;
+      for (let i = 0; i < P.length - 1; i++) {
+        const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2, k = 0.16;
+        d += ` C${p1[0] + (p2[0] - p0[0]) * k},${p1[1] + (p2[1] - p0[1]) * k} ${p2[0] - (p3[0] - p1[0]) * k},${p2[1] - (p3[1] - p1[1]) * k} ${p2[0]},${p2[1]}`;
+      }
+      return d;
+    };
+    const paths = segs.map(sg => {
+      const P = sg.map(r => [x(r.ts), y(r.mgdl)]);
+      const d = smooth(P); if (!d) return '';
+      const area = `${d} L${P[P.length - 1][0]},${y(lo)} L${P[0][0]},${y(lo)}Z`;
+      return `<path d="${area}" fill="url(#ga-${el.id})"/><path d="${d}" fill="none" stroke="url(#gl-${el.id})" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" ${anim ? 'class="draw" pathLength="1"' : ''}/>`;
+    }).join('');
+
+    // Puntos y marcadores
+    const hits = rs.map(r => ({ ts: r.ts, px: x(r.ts), py: y(r.mgdl), html: `<b style="color:${gColor(r.mgdl)}">${fmt(r.mgdl)} mg/dL</b><br>${CTX[r.context] || ''} · ${whenLabel(r.ts)}` }));
+    let marks = '';
+    entries.filter(e => (e.type === 'basal' || e.type === 'meal') && e.ts >= from).forEach(e => {
+      const px = x(e.ts), py = H - pb - 8;
+      if (e.type === 'basal') { marks += `<rect x="${px - 5}" y="${py - 5}" width="10" height="10" fill="#8B7CFF" transform="rotate(45 ${px} ${py})"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#B6ACFF">Toujeo ${fmt(e.units)} U</b><br>${whenLabel(e.ts)}` }); }
+      else { marks += `<circle cx="${px}" cy="${py}" r="5" fill="#FFB84D"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#FFB84D">Comida ${fmt(e.carbs)} g · ${fmt(e.dose)} U</b><br>${whenLabel(e.ts)}` }); }
+    });
+    const dots = rs.map(r => `<circle class="pt" cx="${x(r.ts)}" cy="${y(r.mgdl)}" r="${rs.length > 60 ? 2.5 : 4.5}" fill="${gColor(r.mgdl)}" stroke="#0E1624" stroke-width="2"/>`).join('');
+
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfica de glucosa">
+      <defs>
+        <linearGradient id="gl-${el.id}" x1="0" x2="1"><stop offset="0" stop-color="#2DE2C5"/><stop offset="1" stop-color="#38BDF8"/></linearGradient>
+        <linearGradient id="ga-${el.id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2DE2C5" stop-opacity=".28"/><stop offset="1" stop-color="#2DE2C5" stop-opacity="0"/></linearGradient>
+      </defs>
+      <rect x="${pl}" y="${y(180)}" width="${W - pl - pr}" height="${y(70) - y(180)}" fill="rgba(74,222,128,.09)" rx="6"/>
+      ${bands}${grid}${ticks}${paths}${dots}${marks}
+      <circle id="hl" r="9" fill="none" stroke="#fff" stroke-width="2" opacity="0"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="transparent" id="hit"/>
+    </svg><div class="tip" hidden></div>`;
+    const svg = $('svg', el), tip = $('.tip', el), hl = $('#hl', el);
+    const move = ev => {
+      const r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) / r.width * W;
+      let best = null, bd = 1e9;
+      hits.forEach(h => { const d = Math.abs(h.px - sx); if (d < bd) { bd = d; best = h; } });
+      if (!best || bd > 40) { tip.hidden = true; hl.setAttribute('opacity', 0); return; }
+      tip.innerHTML = best.html; tip.hidden = false;
+      tip.style.left = Math.min(Math.max(best.px / W * 100, 14), 86) + '%'; tip.style.top = (best.py / H * 100) + '%';
+      hl.setAttribute('cx', best.px); hl.setAttribute('cy', best.py); hl.setAttribute('opacity', 1);
+    };
+    const hit = $('#hit', el);
+    hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+    hit.addEventListener('pointerleave', () => { tip.hidden = true; hl.setAttribute('opacity', 0); });
+  }
+  function renderStats() {
+    const rs = readings().filter(r => r.ts >= Date.now() - chartDays * DAY);
+    const st = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+    if (!rs.length) { $('#gStats').innerHTML = ''; return; }
+    const v = rs.map(r => r.mgdl);
+    $('#gStats').innerHTML = st(rs.length, 'lecturas') + st(fmt(Math.round(v.reduce((a, b) => a + b, 0) / v.length)), 'media mg/dL') +
+      st(Math.round(rs.filter(r => r.mgdl >= 70 && r.mgdl <= 180).length / rs.length * 100) + ' %', 'en rango') + st(Math.min(...v), 'mínima') + st(Math.max(...v), 'máxima');
+  }
+  function renderCharts(anim) {
+    if (!$('#tab-hoy').hidden) drawChart($('#chartHoy'), 1, anim);
+    if (!$('#tab-glucosa').hidden) { drawChart($('#chartMain'), chartDays, anim); renderStats(); }
+  }
+  $$('#rangePills .chip').forEach(c => c.addEventListener('click', () => {
+    chartDays = Number(c.dataset.r);
+    $$('#rangePills .chip').forEach(x => x.setAttribute('aria-pressed', x === c));
+    renderCharts(true);
+  }));
+  $('#toGlucosa').addEventListener('click', () => showTab('glucosa'));
 
   /* ---------- Pestañas ---------- */
+  const TABS = ['hoy', 'comida', 'glucosa', 'coach', 'ajustes'];
   function showTab(name) {
     $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
-    $$('[role="tabpanel"]').forEach(p => p.hidden = p.id !== 'tab-' + name);
+    $$('.tabpanel').forEach(p => {
+      const on = p.id === 'tab-' + name;
+      p.hidden = !on; p.classList.remove('enter');
+      if (on) { void p.offsetWidth; p.classList.add('enter'); }
+    });
     history.replaceState(null, '', '#' + name);
+    renderCharts(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   $$('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
-  /* ---------- Basal ---------- */
-  function renderBasal() {
-    const done = store.basalLog[todayKey()];
-    $('#basalTitle').textContent = `Toujeo ${store.settings.basal} U`;
-    $('#basalBox').classList.toggle('done', !!done);
-    $('#basalState').textContent = done ? `Puesta hoy a las ${done}` : 'Sin marcar hoy';
-    $('#basalBtn').textContent = done ? 'Deshacer' : 'Marcar puesta';
-  }
-  $('#basalBtn').addEventListener('click', () => {
-    const k = todayKey();
-    if (store.basalLog[k]) delete store.basalLog[k];
-    else store.basalLog[k] = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
-    save(); renderBasal();
+  // Brillo que sigue al puntero en las tarjetas
+  document.addEventListener('pointermove', e => {
+    const c = e.target.closest && e.target.closest('.card');
+    if (!c) return;
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px');
   });
 
   /* ---------- Alimentos ---------- */
@@ -797,28 +1019,21 @@ table.ex tr.done .exn{text-decoration:line-through}
     c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
     return c.toDataURL('image/jpeg', q);
   }
-
   $('#file').addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
     try {
       const dataUrl = await compress(file, 1280, 0.82);
       $('#preview').src = dataUrl; $('#preview').hidden = false; $('#dropText').hidden = true;
-      if (!isCloud()) { setStatus('#status', 'err', 'Para analizar la foto con IA, entra con tu clave en Ajustes. Mientras, añade los alimentos a mano.'); return; }
+      if (!isCloud()) { setStatus('#status', 'err', 'Para analizar la foto con IA, entra con tu clave (Ajustes > Cerrar sesión y vuelve a entrar). Mientras, añade los alimentos a mano.'); return; }
       setStatus('#status', 'info', '<span class="spin"></span>Analizando el plato…');
       const data = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'food', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
-      if (!Array.isArray(data.items) || !data.items.length) {
-        setStatus('#status', 'err', 'No he reconocido comida en la foto. Prueba con otra o añade los alimentos a mano.');
-        return;
-      }
+      if (!Array.isArray(data.items) || !data.items.length) { setStatus('#status', 'err', 'No he reconocido comida en la foto. Prueba con otra o añade los alimentos a mano.'); return; }
       items = data.items.map(i => ({ id: nextId++, name: String(i.nombre || 'Alimento'), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), conf: i.confianza || '' }));
       setStatus('#status', 'ok', 'Estimación lista. Revisa los gramos de cada alimento antes de pinchar.' + (data.notas ? '<br>' + esc(data.notas) : ''));
       renderItems();
-    } catch (err) {
-      setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.');
-    }
+    } catch (err) { setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.'); }
   });
-
   $('#chartFile').addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -830,10 +1045,7 @@ table.ex tr.done .exn{text-decoration:line-through}
       const d = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'glucose', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
       fillChart(d);
       setStatus('#chartStatus', 'ok', 'Datos extraídos. Corrige lo que no coincida con tu app y guarda.');
-    } catch (err) {
-      setStatus('#chartStatus', 'err', 'No se pudo leer la gráfica (' + esc(err.message) + '). Puedes rellenar los datos a mano.');
-      fillChart({});
-    }
+    } catch (err) { setStatus('#chartStatus', 'err', 'No se pudo leer la gráfica (' + esc(err.message) + '). Puedes rellenar los datos a mano.'); fillChart({}); }
   });
   const CF = { periodo:'#c-periodo', media_mgdl:'#c-media', tir_pct:'#c-tir', bajo_pct:'#c-bajo', alto_pct:'#c-alto', hipos:'#c-hipos', min_mgdl:'#c-min', max_mgdl:'#c-max' };
   let chartPatterns = [];
@@ -848,9 +1060,9 @@ table.ex tr.done .exn{text-decoration:line-through}
     const summary = { periodo: $('#c-periodo').value, patrones: chartPatterns };
     ['media_mgdl','tir_pct','bajo_pct','alto_pct','hipos','min_mgdl','max_mgdl'].forEach(k => { summary[k] = numOrNull($(CF[k]).value); });
     try {
-      await addEntry({ type:'chart', summary, note: $('#c-note').value, gym:false, highCarb:false });
+      await addEntry({ type:'chart', summary, note: $('#c-note').value });
       $('#chartForm').hidden = true; $('#chartPreview').hidden = true; $('#chartDropText').hidden = false; $('#chartFile').value = '';
-      setStatus('#chartStatus', 'ok', 'Gráfica guardada en tu historial.');
+      setStatus('#chartStatus', '', ''); toast('Gráfica guardada en tu historial');
     } catch (err) { setStatus('#chartStatus', 'err', esc(err.message)); }
   });
 
@@ -859,7 +1071,8 @@ table.ex tr.done .exn{text-decoration:line-through}
     const s = store.settings;
     const icr = parseFloat(s.icr), isf = parseFloat(s.isf), target = parseFloat(s.target);
     const step = parseFloat(s.step) || 0.5;
-    const adj = Math.min(80, Math.max(0, parseFloat(s.adj) || 0));
+    const gym = gymToday();
+    const gymAdj = gym ? Math.min(50, Math.max(-50, parseFloat(s.gymAdj) || 0)) : 0;
     const bg = parseFloat($('#bg').value);
     const carbs = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
     const warns = [];
@@ -869,20 +1082,25 @@ table.ex tr.done .exn{text-decoration:line-through}
     let corrU = 0;
     if (bg > 0 && isf > 0 && target > 0) corrU = (bg - target) / isf;
     const raw = Math.max(0, mealU + corrU);
-    let dose = Math.round(raw * (1 - adj / 100) / step) * step;
+    let dose = Math.round(raw * (1 + gymAdj / 100) / step) * step;
 
     if (bg > 0 && bg < 70) { dose = 0; warns.push(['danger', 'Glucemia baja. No te pongas insulina para comer ahora: toma unos 15 g de hidratos rápidos, vuelve a medir a los 15 minutos y repite si sigue por debajo de 70.']); }
     else if (bg >= 70 && bg < 90) warns.push(['', 'Glucemia justa. Valora pinchar después de empezar a comer: Fiasp permite ponerlo hasta 20 minutos tras el inicio de la comida.']);
-    if (bg > 250) warns.push(['danger', 'Glucemia alta. Mide cetonas y sigue la pauta que tengas para corrección y reposición.']);
+    if (bg > 250) warns.push(['danger', 'Glucemia alta. Mide cetonas y sigue la pauta que tengas para corrección.']);
     const max = parseFloat(s.maxDose);
     if (max > 0 && dose > max) warns.push(['danger', `La dosis supera tu aviso de ${fmt(max)} U. Revisa gramos y glucemia antes de pinchar.`]);
     if (items.some(i => i.conf === 'baja')) warns.push(['', 'Hay alimentos con confianza baja en la foto. Pésalos o confirma los gramos.']);
     if (carbs > 0 && !(bg > 0)) warns.push(['', 'Sin glucemia no se aplica corrección: solo cubre los hidratos.']);
     if (!(isf > 0) || !(target > 0)) warns.push(['', 'Falta el factor de sensibilidad o la glucemia objetivo en Ajustes: no se calcula la corrección.']);
-    if (gymToday()) warns.push(['', 'Hoy has marcado gimnasio. Si comes cerca del entrenamiento, comenta con tu endocrino cuánto reducir la dosis y usa la reducción de Ajustes si la tienes pautada.']);
-    return { carbs, mealU, corrU: bg > 0 ? corrU : 0, adj, dose, warns, bg };
+    if (gym) {
+      warns.push(['gym', gymAdj
+        ? `Hoy has hecho gym: se aplica tu ajuste de ${gymAdj > 0 ? '+' : ''}${fmt(gymAdj)} %. Mide a las 2 h y de nuevo unas 3 a 6 h después por si hay bajada tardía.`
+        : 'Hoy has hecho gym (musculación y cardio). La musculación suele subirte la glucosa, así que no se reduce la dosis. Mide a las 2 h y de nuevo unas 3 a 6 h después por si hay bajada tardía. Si necesitas un ajuste fijo, coméntalo con tu endocrino y ponlo en Ajustes.']);
+    }
+    return { carbs, mealU, corrU: bg > 0 ? corrU : 0, gymAdj, dose, warns, bg, gym };
   }
 
+  let shownDose = 0;
   function calc() {
     const r = calcDose();
     const box = $('#doseBox');
@@ -894,28 +1112,30 @@ table.ex tr.done .exn{text-decoration:line-through}
       return;
     }
     box.innerHTML = `
-      <p class="sub" style="margin-bottom:0">Hidratos totales: <strong>${fmt(r.carbs)} g</strong></p>
-      <div class="big">${fmt(r.dose)}<small>unidades</small></div>
+      <p class="sub" style="margin:4px 0 0">Hidratos totales: <strong>${fmt(r.carbs)} g</strong></p>
+      <div class="big"><span id="doseNum">${fmt(r.dose)}</span><small>unidades</small></div>
       <div class="break">
         <div><span>Por los hidratos</span><span>${fmt(r.mealU)} U</span></div>
         <div><span>Corrección por glucemia</span><span>${r.corrU >= 0 ? '+' : ''}${fmt(r.corrU)} U</span></div>
-        ${r.adj ? `<div><span>Reducción pautada</span><span>−${fmt(r.adj)} %</span></div>` : ''}
+        ${r.gym && r.gymAdj ? `<div><span>Ajuste por gym</span><span>${r.gymAdj > 0 ? '+' : ''}${fmt(r.gymAdj)} %</span></div>` : ''}
       </div>
       <div class="warns">${r.warns.map(w => `<div class="warn ${w[0]}">${esc(w[1])}</div>`).join('')}</div>
-      <button class="btn" id="saveMeal" type="button" ${r.carbs <= 0 ? 'disabled' : ''}>Guardar esta comida</button>
+      <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 ? 'disabled' : ''}>Guardar esta comida</button>
       <p class="fine">Fiasp: pínchate unos 2 minutos antes de comer, o hasta 20 minutos después de empezar. Redondeado a saltos de ${fmt(parseFloat(store.settings.step))} U.</p>`;
+    animateNum($('#doseNum'), r.dose, { from: shownDose, dec: r.dose % 1 ? 1 : 0, ms: 450 });
+    shownDose = r.dose;
     const b = $('#saveMeal');
     if (b) b.addEventListener('click', async () => {
       try {
-        await addEntry({ type:'meal', carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose: r.dose, gym: gymToday(), highCarb: carbToday() });
-        setStatus('#status', 'ok', 'Comida guardada. Apunta tu glucosa 2 horas después en la pestaña Glucosa.');
+        await addEntry({ type:'meal', carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose: r.dose, gym: gymToday() });
+        toast('Comida guardada. Mide tu glucosa a las 2 horas');
       } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
     });
   }
 
   /* ---------- Coach ---------- */
   $('#coachBtn').addEventListener('click', async () => {
-    if (!isCloud()) { setStatus('#coachStatus', 'err', 'El coach necesita la sincronización. Entra con tu clave en Ajustes.'); return; }
+    if (!isCloud()) { setStatus('#coachStatus', 'err', 'El coach necesita la sincronización. Cierra sesión en Ajustes y entra con tu clave.'); return; }
     setStatus('#coachStatus', 'info', '<span class="spin"></span>Analizando tus datos…');
     $('#coachOut').innerHTML = '';
     try {
@@ -927,68 +1147,31 @@ table.ex tr.done .exn{text-decoration:line-through}
   function renderCoach(d) {
     const s = d.stats || {};
     const stat = (v, l) => `<div class="stat"><b>${v ?? '—'}</b><span>${l}</span></div>`;
-    let h = `<div class="panel"><h2>Resumen de 28 días</h2>`;
+    let h = `<div class="card"><h2>Resumen de 28 días</h2>`;
     if (d.alerta) h += `<div class="status err" style="margin-bottom:10px">${esc(d.alerta)}</div>`;
-    if (d.resumen) h += `<p>${esc(d.resumen)}</p>`;
-    h += `<div class="stats">${stat(s.lecturas, 'lecturas')}${stat(s.comidas, 'comidas guardadas')}${stat(s.media_lecturas != null ? s.media_lecturas + ' mg/dL' : null, 'media de lecturas')}${stat(s.bajas_menos_70, 'lecturas bajo 70')}${stat(s.dias_gym, 'días de gimnasio')}${stat(s.tras_comida && s.tras_comida.subida_media != null ? (s.tras_comida.subida_media > 0 ? '+' : '') + s.tras_comida.subida_media : null, 'cambio medio tras comer')}</div></div>`;
-    if (d.senales && d.senales.length) h += `<div class="panel"><h3>Señales detectadas</h3><ul class="plain">${d.senales.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
-    if (d.patrones && d.patrones.length) h += `<div class="panel"><h3>Patrones</h3>${d.patrones.map(p => `<div class="sug"><b>${esc(p.titulo)}</b><small>${esc(p.detalle)}</small></div>`).join('')}</div>`;
-    if (d.sugerencias && d.sugerencias.length) h += `<div class="panel"><h3>Sugerencias</h3>${d.sugerencias.map(x => `<div class="sug ${x.prioridad}"><b>${esc(x.texto)}</b><small>Prioridad ${x.prioridad}${x.requiere_endocrino ? '. Coméntalo con tu endocrino antes de cambiar nada.' : '.'}</small></div>`).join('')}</div>`;
-    if (d.preguntas_endocrino && d.preguntas_endocrino.length) h += `<div class="panel"><h3>Para tu próxima consulta</h3><ul class="plain">${d.preguntas_endocrino.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    if (d.resumen) h += `<p style="margin-top:10px">${esc(d.resumen)}</p>`;
+    h += `<div class="stats">${stat(s.lecturas, 'lecturas')}${stat(s.comidas, 'comidas guardadas')}${stat(s.media_lecturas != null ? s.media_lecturas + ' mg/dL' : null, 'media de lecturas')}${stat(s.bajas_menos_70, 'lecturas bajo 70')}${stat(s.dias_gym, 'días de gym')}${stat(s.tras_comida && s.tras_comida.subida_media != null ? (s.tras_comida.subida_media > 0 ? '+' : '') + s.tras_comida.subida_media : null, 'cambio medio tras comer')}</div></div>`;
+    const g = s.gym_antes_despues, t = s.toujeo;
+    if (g || t) {
+      h += `<div class="card"><h3>Gym y Toujeo</h3><ul class="plain">`;
+      if (g) h += g.n ? `<li>Gym: en ${g.suben} de ${g.n} sesiones con lectura antes y después, la glucosa subió. Cambio medio: ${g.cambio_medio > 0 ? '+' : ''}${g.cambio_medio} mg/dL.</li>` : `<li>Gym: anota la glucosa "antes del gym" y "después del gym" para ver cuánto te sube.</li>`;
+      if (t) h += t.registros ? `<li>Toujeo: ${t.registros} registros, media de ${t.dosis_media} U, hora habitual ${t.hora_media}, variación entre días de ${t.variacion_horaria_min} min.</li>` : `<li>Toujeo: registra la hora de cada puesta para ver tu regularidad.</li>`;
+      h += `</ul></div>`;
+    }
+    if (d.senales && d.senales.length) h += `<div class="card"><h3>Señales detectadas</h3><ul class="plain">${d.senales.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    if (d.patrones && d.patrones.length) h += `<div class="card"><h3>Patrones</h3>${d.patrones.map(p => `<div class="sug"><b>${esc(p.titulo)}</b><small>${esc(p.detalle)}</small></div>`).join('')}</div>`;
+    if (d.sugerencias && d.sugerencias.length) h += `<div class="card"><h3>Sugerencias</h3>${d.sugerencias.map(x => `<div class="sug ${x.prioridad}"><b>${esc(x.texto)}</b><small>Prioridad ${x.prioridad}${x.requiere_endocrino ? '. Coméntalo con tu endocrino antes de cambiar nada.' : '.'}</small></div>`).join('')}</div>`;
+    if (d.preguntas_endocrino && d.preguntas_endocrino.length) h += `<div class="card"><h3>Para tu próxima consulta</h3><ul class="plain">${d.preguntas_endocrino.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
     if (d.aviso_ia) h += `<div class="status info">La IA no pudo redactar el análisis (${esc(d.aviso_ia)}), pero las estadísticas anteriores son correctas.</div>`;
     $('#coachOut').innerHTML = h;
+    $('#coachOut').classList.remove('tabpanel', 'enter'); $('#coachOut').classList.add('tabpanel');
+    void $('#coachOut').offsetWidth; $('#coachOut').classList.add('enter');
   }
-
-  /* ---------- Entreno ---------- */
-  let wDay = [0, 1, 2][[1, 3, 5].indexOf(new Date().getDay())] ?? 0;
-  function renderWorkout() {
-    $('#dayChips').innerHTML = WORKOUTS.map((w, i) => `<button class="chip" type="button" data-i="${i}" aria-pressed="${i === wDay}">${w.day}</button>`).join('');
-    $$('#dayChips .chip').forEach(c => c.addEventListener('click', () => { wDay = +c.dataset.i; renderWorkout(); }));
-    const w = WORKOUTS[wDay];
-    $('#workoutBox').innerHTML = `<h3 style="margin:6px 0">${w.title}</h3>
-      <div class="tablewrap"><table class="ex"><thead><tr><th></th><th>Ejercicio</th><th>Series y repeticiones</th><th>Descanso</th><th>Nota</th></tr></thead><tbody>` +
-      w.rows.map((r, i) => {
-        const k = `${wDay}:${i}`;
-        return `<tr class="${store.checks[k] ? 'done' : ''}"><td><input class="chk" type="checkbox" data-k="${k}" ${store.checks[k] ? 'checked' : ''} aria-label="Hecho: ${esc(r[0])}"></td><td class="exn">${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`;
-      }).join('') + `</tbody></table></div>
-      <div class="actions" style="margin-top:14px"><button class="btn ghost small" id="resetDay" type="button">Reiniciar sesión</button></div>`;
-    $$('#workoutBox .chk').forEach(c => c.addEventListener('change', () => {
-      if (c.checked) store.checks[c.dataset.k] = 1; else delete store.checks[c.dataset.k];
-      c.closest('tr').classList.toggle('done', c.checked); save();
-    }));
-    $('#resetDay').addEventListener('click', () => { WORKOUTS[wDay].rows.forEach((_, i) => delete store.checks[`${wDay}:${i}`]); save(); renderWorkout(); });
-  }
-
-  /* ---------- Menú ---------- */
-  let mDay = (new Date().getDay() + 6) % 7;
-  function renderMenu() {
-    $('#menuChips').innerHTML = MENU.map((m, i) => `<button class="chip" type="button" data-i="${i}" aria-pressed="${i === mDay}">${m.day}</button>`).join('');
-    $$('#menuChips .chip').forEach(c => c.addEventListener('click', () => { mDay = +c.dataset.i; renderMenu(); }));
-    const m = MENU[mDay];
-    $('#menuBox').innerHTML = m.meals.map(x => `<div class="meal"><div class="when"><b>${x[0]}</b><span>${x[1]}</span></div><div>${esc(x[2])}</div><div class="carb">${x[3]} g<small>hidratos</small></div></div>`).join('');
-    $('#menuTotal').textContent = m.meals.reduce((a, x) => a + x[3], 0) + ' g';
-  }
-
-  /* ---------- Compra ---------- */
-  function renderShop() {
-    $('#shopBox').innerHTML = SHOP.map((g, gi) => `<div class="group"><h3>${g[0]}</h3>` +
-      g[1].map((it, ii) => { const k = `${gi}:${ii}`; return `<label class="${store.shop[k] ? 'on' : ''}"><input type="checkbox" data-k="${k}" ${store.shop[k] ? 'checked' : ''}><span>${esc(it)}</span></label>`; }).join('') + '</div>').join('');
-    $$('#shopBox input').forEach(c => c.addEventListener('change', () => {
-      if (c.checked) store.shop[c.dataset.k] = 1; else delete store.shop[c.dataset.k];
-      c.closest('label').classList.toggle('on', c.checked); save();
-    }));
-  }
-  $('#resetShop').addEventListener('click', () => { store.shop = {}; save(); renderShop(); });
-  $('#copyShop').addEventListener('click', async () => {
-    const text = SHOP.map(g => g[0] + '\n' + g[1].map(i => '- ' + i).join('\n')).join('\n\n');
-    try { await navigator.clipboard.writeText(text); setStatus('#shopStatus', 'ok', 'Lista copiada. Pégala en tu app de notas o en un mensaje.'); }
-    catch { setStatus('#shopStatus', 'err', 'No se pudo copiar. Selecciona el texto a mano.'); }
-  });
 
   /* ---------- Ajustes ---------- */
-  const map = { icr:'#s-icr', isf:'#s-isf', target:'#s-target', step:'#s-step', maxDose:'#s-max', adj:'#s-adj', basal:'#s-basal', apiBase:'#s-api' };
-  const SYNCED = ['icr', 'isf', 'target', 'step', 'maxDose', 'adj', 'basal'];
-  const fillSettings = () => Object.entries(map).forEach(([k, sel]) => { $(sel).value = store.settings[k]; });
+  const map = { icr:'#s-icr', isf:'#s-isf', target:'#s-target', step:'#s-step', maxDose:'#s-max', gymAdj:'#s-gym', basal:'#s-basal' };
+  const SYNCED = Object.keys(map);
+  const fillSettings = () => Object.entries(map).forEach(([k, sel]) => { $(sel).value = store.settings[k] ?? ''; });
   async function pushSettings() {
     const s = {}; SYNCED.forEach(k => { s[k] = String(store.settings[k] ?? ''); });
     await api('/api/data', { method:'POST', body: JSON.stringify({ settings: s }) });
@@ -997,38 +1180,38 @@ table.ex tr.done .exn{text-decoration:line-through}
     const d = await api('/api/data?what=settings');
     if (d.settings) {
       SYNCED.forEach(k => { if (d.settings[k] !== undefined && d.settings[k] !== '') store.settings[k] = d.settings[k]; });
-      save(); fillSettings(); renderBasal(); calc();
+      save(); fillSettings(); renderToujeo(); calc();
     } else { await pushSettings(); }
   }
   $('#saveSet').addEventListener('click', async () => {
     Object.entries(map).forEach(([k, sel]) => { store.settings[k] = $(sel).value.trim(); });
     if (!store.settings.basal) store.settings.basal = '28';
-    save(); renderBasal(); calc();
+    save(); renderToujeo(); calc();
     if (isCloud()) {
-      try { await pushSettings(); setStatus('#setStatus', 'ok', 'Ajustes guardados y sincronizados.'); }
+      try { await pushSettings(); setStatus('#setStatus', 'ok', 'Ajustes guardados y sincronizados.'); toast('Ajustes sincronizados'); }
       catch (err) { setStatus('#setStatus', 'err', 'Guardados en este dispositivo, pero no se pudieron sincronizar: ' + esc(err.message)); }
     } else setStatus('#setStatus', 'ok', 'Ajustes guardados en este dispositivo.');
   });
   $('#logoutBtn').addEventListener('click', () => {
     try { localStorage.removeItem(KEY + ':key'); localStorage.removeItem(KEY + ':local'); } catch {}
-    entries = []; renderSync(); renderEntries(); renderHist(); renderFlags(); openLogin();
+    entries = []; renderSync(); renderAll(); openLogin();
   });
 
   /* ---------- Acceso ---------- */
-  function openLogin() { $('#loginApi').value = store.settings.apiBase || ''; $('#login').hidden = false; $('#pw').focus(); }
+  function openLogin() { $('#login').hidden = false; $('#pw').focus(); }
   $('#loginBtn').addEventListener('click', async () => {
     const pw = $('#pw').value;
     if (!pw) { setStatus('#loginStatus', 'err', 'Escribe tu clave.'); return; }
-    store.settings.apiBase = $('#loginApi').value.trim(); save(); fillSettings();
     try { localStorage.setItem(KEY + ':key', pw); localStorage.removeItem(KEY + ':local'); } catch {}
     setStatus('#loginStatus', 'info', '<span class="spin"></span>Comprobando…');
     try {
       await pullSettings();
       $('#login').hidden = true; $('#pw').value = ''; setStatus('#loginStatus', '', '');
       renderSync(); await loadEntries();
+      toast('Sincronizado con tu base de datos');
     } catch (err) {
       try { localStorage.removeItem(KEY + ':key'); } catch {}
-      setStatus('#loginStatus', 'err', esc(err.message) + '. Revisa la clave y la dirección de Netlify.');
+      setStatus('#loginStatus', 'err', esc(err.message) + '. Revisa la clave.');
     }
   });
   $('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('#loginBtn').click(); });
@@ -1037,18 +1220,21 @@ table.ex tr.done .exn{text-decoration:line-through}
     $('#login').hidden = true; renderSync(); await loadEntries();
   });
 
-  /* ---------- Inicio ---------- */
-  fillSettings(); renderBasal(); renderItems(); renderWorkout(); renderMenu(); renderShop(); renderSync();
-  renderEntries(); renderHist(); renderFlags();
+  /* ---------- Inicio y refresco automático ---------- */
+  fillSettings(); renderSync(); renderItems(); renderAll();
   const h = location.hash.slice(1);
-  if (['comida', 'glucosa', 'coach', 'entreno', 'menu', 'compra', 'ajustes'].includes(h)) showTab(h);
+  showTab(TABS.includes(h) ? h : 'hoy');
   (async () => {
     if (isCloud()) {
       try { await pullSettings(); await loadEntries(); }
-      catch (err) { setStatus('#readingStatus', 'err', esc(err.message)); openLogin(); }
-    } else if (isLocalMode()) { await loadEntries(); }
+      catch (err) { toast(err.message, 'err'); openLogin(); }
+    } else if (isLocalMode()) await loadEntries();
     else openLogin();
   })();
+  // Cada minuto se actualizan los tiempos; cada 2 minutos y al volver a la pestaña se traen los datos de otros dispositivos.
+  setInterval(() => { renderToujeo(); renderHero(); renderCharts(false); }, 60000);
+  setInterval(() => { if (isCloud() && !document.hidden) loadEntries(true); }, 120000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) loadEntries(true); });
 })();
 </script>
 </body>

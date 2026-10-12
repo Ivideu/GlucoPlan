@@ -1,8 +1,8 @@
 # GlucoPlan
 
-Web personal para el día a día con diabetes tipo 1: foto del plato con cálculo de dosis de Fiasp, registro de glucosa con gráficas, coach de datos, tabla de gimnasio (3 días a las 6:00), menú de 3 comidas y lista de la compra.
+Web personal para el día a día con diabetes tipo 1: foto del plato con cálculo de dosis de Fiasp, registro de glucosa con gráficas, registro de Toujeo con hora, día de gym sí/no y coach de datos. Todo se sincroniza entre móvil y ordenador.
 
-Todo funciona con servicios gratuitos: GitHub, Netlify (plan Free, con Netlify Blobs como base de datos) y la API gratuita de Gemini de Google AI Studio.
+Funciona con servicios gratuitos: GitHub, Netlify (plan Free, con Netlify Blobs como base de datos) y la API gratuita de Gemini de Google AI Studio.
 
 ## Estructura
 
@@ -16,52 +16,56 @@ glucoplan/
     ├── lib/shared.mjs              Clave de acceso, llamada a Gemini y acceso a la base de datos
     └── functions/
         ├── analyze.mjs             Lee la foto del plato y las capturas de gráficas de glucosa
-        ├── data.mjs                Guarda y lee el historial y los ajustes (Netlify Blobs)
-        └── coach.mjs               Calcula estadísticas de 28 días y propone patrones y preguntas
+        ├── data.mjs                Guarda y lee historial, Toujeo y ajustes (Netlify Blobs)
+        └── coach.mjs               Estadísticas de 28 días, patrones y preguntas para el endocrino
 ```
 
-## Puesta en marcha paso a paso
+Solo cambian `index.html`, `netlify/functions/data.mjs` y `netlify/functions/coach.mjs`. Sustituye esos tres archivos en GitHub y Netlify redesplegará solo.
 
-1. **Sube el código a GitHub.** Crea un repositorio y sube todos estos archivos respetando las carpetas (incluidos `package.json` y `netlify.toml`).
-2. **Consigue la clave gratuita de Gemini.** Entra en https://aistudio.google.com/apikey con tu cuenta de Google, pulsa "Crear clave de API" y cópiala. No hace falta tarjeta.
-3. **Crea el sitio en Netlify.** En https://app.netlify.com: Add new site > Import an existing project > GitHub > elige el repositorio. Deja el comando de build vacío y despliega.
-4. **Añade las variables de entorno.** En Netlify: Site configuration > Environment variables:
-   - `GEMINI_API_KEY`: la clave del paso 2.
-   - `APP_PASSWORD`: una clave larga que inventes tú. Protege tu historial y evita que otros gasten tu cuota de IA.
-   - Opcional: `GEMINI_MODEL` (por defecto `gemini-3.5-flash`). Si la IA tarda demasiado y Netlify corta la petición, prueba con `gemini-3.1-flash-lite`.
-   - Opcional: `ALLOWED_ORIGIN` si alojas la web en GitHub Pages (por ejemplo `https://tuusuario.github.io`).
-5. **Vuelve a desplegar.** Deploys > Trigger deploy > Deploy site, para que las variables se apliquen. No necesitas activar Blobs: se activa solo con la primera escritura.
-6. **Abre tu web y entra** con la clave `APP_PASSWORD`.
-7. **Rellena Ajustes.** Pon tu ratio insulina/hidratos, tu glucemia objetivo y el factor de sensibilidad (viene puesto en 30). Se sincronizan entre dispositivos.
-8. **Instala la web en el móvil.** Abre la URL de Netlify y usa "Añadir a pantalla de inicio".
+## Pestañas
+
+- **Hoy:** última glucosa en un anillo, anotar lectura, gráfica de 24 h, Toujeo con hora y botón de gym.
+- **Comida:** foto del plato, alimentos y dosis de Fiasp.
+- **Glucosa:** gráfica de 24 h, 7 o 28 días, subida de capturas del sensor y registro.
+- **Coach:** análisis de 28 días.
+- **Ajustes:** ratio, factor de sensibilidad, objetivo, ajuste de gym y Toujeo habitual.
+
+## Toujeo
+
+Pulsa "Registrar Toujeo", indica las unidades y la hora real (hay atajos "Ahora", "Hace 1 h", "Ayer a esta hora"). Se guarda en la base de datos con su hora y se ve en todos tus dispositivos. La tarjeta muestra cuánto hace que te la pusiste y cuándo toca la siguiente.
+
+## Gym
+
+El botón "Hoy he ido al gym" marca el día. Con él activo:
+
+- La dosis de comida no se reduce por defecto, porque la musculación suele subirte la glucosa. En Ajustes puedes poner un ajuste fijo (positivo o negativo) si tu endocrino te lo indica; se aplica solo los días de gym.
+- Aparece un aviso para medir a las 2 h y de nuevo 3 a 6 h después por posibles bajadas tardías.
+- El coach sabe que en la mayoría de tus sesiones la glucosa sube, y compara tus lecturas "antes del gym" y "después del gym".
+
+## Sincronización entre dispositivos
+
+Entra en cada dispositivo con la misma clave `APP_PASSWORD`. Historial, lecturas, comidas, gym, Toujeo y ajustes se leen de la misma base de datos. La web se actualiza sola cada 2 minutos y al volver a abrirla.
+
+## Puesta en marcha
+
+1. Sube el código a GitHub respetando las carpetas.
+2. Consigue la clave gratuita de Gemini en https://aistudio.google.com/apikey.
+3. Crea el sitio en Netlify (Add new site > Import an existing project > GitHub). Deja el comando de build vacío.
+4. Variables de entorno: `GEMINI_API_KEY`, `APP_PASSWORD` y, opcional, `GEMINI_MODEL`.
+5. Vuelve a desplegar y entra con tu clave.
+6. Rellena Ajustes y usa "Añadir a pantalla de inicio" en el móvil.
 
 ## Rutina diaria
 
-- **Antes de comer:** foto del plato, revisa los gramos, mira la dosis y pulsa "Guardar esta comida".
-- **Dos horas después:** pestaña Glucosa y anota la lectura con el momento "2 horas después de comer". Es el dato que más enseña al coach.
-- **Días de gimnasio o de más hidratos:** márcalo en Glucosa para que las lecturas y comidas del día lo lleven.
-- **Una vez por semana:** sube una captura de la gráfica de tu app del sensor, confirma los datos y guarda.
-- **Cada 2 o 3 semanas:** pestaña Coach > "Analizar mis datos". Lleva las sugerencias y preguntas a tu endocrino.
+- **Mañana:** marca gym si has ido, mide antes y después, y registra la Toujeo con su hora.
+- **Antes de comer:** foto del plato, revisa los gramos y guarda la comida.
+- **Dos horas después:** anota la glucosa con "2 horas después de comer".
+- **Cada 2 o 3 semanas:** Coach > "Analizar mis datos" y lleva las preguntas a tu endocrino.
 
 ## Qué hace y qué no hace el coach
 
-Analiza tus últimos 28 días: compara días con y sin gimnasio, días con más hidratos, la subida media tras comer y las lecturas por debajo de 70. Con eso detecta patrones y prepara preguntas.
-
-No cambia tus ajustes, no da dosis y no toca la insulina basal. Cualquier ajuste del ratio o del factor de sensibilidad debe pasar por tu endocrino. Con pocos datos, el coach lo dirá en lugar de inventar patrones.
-
-## Límites del plan gratuito
-
-- **Gemini gratuito:** unas 15 peticiones por minuto y unas 1.500 al día, más que de sobra para uso personal. Los límites exactos los ves en https://aistudio.google.com/rate-limit.
-- **Privacidad:** en el plan gratuito, Google puede usar lo que envías para mejorar sus productos y personas revisoras pueden leerlo. Recorta tu nombre y otros datos personales de las capturas de gráficas. Si no quieres compartir gráficas, anota las lecturas a mano: el coach funciona igual.
-- **Netlify Free:** 300 créditos al mes, límite fijo. Cada despliegue de producción gasta créditos, así que evita hacer decenas de despliegues al mes. Si se agotan, el sitio se pausa hasta el mes siguiente, sin cargos.
-- **Modelos de Gemini:** Google retira modelos antiguos con el tiempo. Si un día falla la IA, cambia `GEMINI_MODEL` por el modelo Flash vigente en https://ai.google.dev/gemini-api/docs/models.
-
-## Datos y seguridad
-
-- El historial y los ajustes se guardan en Netlify Blobs de tu cuenta, protegidos por `APP_PASSWORD`.
-- Progreso del gimnasio, lista de la compra y registro de Toujeo se guardan solo en cada dispositivo.
-- Las fotos se envían a tu función de Netlify y de ahí a Gemini para analizarlas. No se guardan.
+No cambia ajustes, no da dosis y no toca la insulina basal. Cualquier cambio de ratio o factor debe pasar por tu endocrino.
 
 ## Aviso
 
-GlucoPlan es una herramienta de apoyo. No sustituye la pauta de tu endocrino ni tu criterio: revisa siempre los gramos y la glucemia antes de pincharte.
+GlucoPlan es una herramienta de apoyo. No sustituye la pauta de tu endocrino: revisa siempre los gramos y la glucemia antes de pincharte.

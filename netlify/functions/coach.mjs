@@ -32,8 +32,34 @@ function computeStats(entries) {
   }
   const deltas = post.filter((p) => p.antes != null).map((p) => p.despues - p.antes);
 
+  // Efecto del gimnasio: lectura "antes del gym" y "después del gym" del mismo día.
+  const gymPairs = [];
+  for (const d of gymDays) {
+    const dayR = readings.filter((r) => dayOf(r.ts) === d);
+    const pre = dayR.filter((r) => r.context === "pre_gym").sort((a, b) => a.ts - b.ts)[0];
+    const postG = dayR.filter((r) => r.context === "post_gym").sort((a, b) => a.ts - b.ts)[0];
+    if (pre && postG && postG.ts > pre.ts) gymPairs.push({ antes: pre.mgdl, despues: postG.mgdl, cambio: postG.mgdl - pre.mgdl });
+  }
+  const gymRises = gymPairs.filter((p) => p.cambio > 0).length;
+
+  // Toujeo: dosis y regularidad de la hora de puesta.
+  const basals = E.filter((e) => e.type === "basal");
+  const minutesOf = (ts) => {
+    const [h, m] = new Date(ts).toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }).split(":").map(Number);
+    return h * 60 + m;
+  };
+  const mins = basals.map((b) => minutesOf(b.ts));
+  const basal = {
+    registros: basals.length,
+    dosis_media: basals.length ? Math.round((basals.reduce((a, b) => a + (b.units || 0), 0) / basals.length) * 10) / 10 : null,
+    hora_media: mins.length ? `${String(Math.floor(avg(mins) / 60)).padStart(2, "0")}:${String(avg(mins) % 60).padStart(2, "0")}` : null,
+    variacion_horaria_min: mins.length ? Math.max(...mins) - Math.min(...mins) : null,
+  };
+
   const lows = (a) => a.filter((r) => r.mgdl < 70).length;
   const stats = {
+    toujeo: basal,
+    gym_antes_despues: { n: gymPairs.length, suben: gymRises, cambio_medio: avg(gymPairs.map((p) => p.cambio)), ejemplos: gymPairs.slice(0, 6) },
     dias_analizados: 28,
     lecturas: readings.length,
     comidas: meals.length,
@@ -81,7 +107,9 @@ Reglas estrictas:
 - Si propones revisar el ratio insulina/hidratos o el factor de sensibilidad, hazlo solo como hipótesis para consultar, con cambios pequeños (como máximo un 10 %), y solo si hay al menos 5 comidas con lectura posterior que lo apoyen. Marca siempre requiere_endocrino=true.
 - Si hay 2 o más lecturas por debajo de 70 mg/dL, la prioridad es la seguridad: indícalo en "alerta" y no sugieras aumentar la dosis.
 - Si hay pocos datos, dilo y explica qué datos faltan en lugar de inventar patrones.
-- Compara días con gimnasio frente a días sin gimnasio y días con más hidratos frente al resto solo si hay datos en ambos grupos.
+- Contexto del gimnasio: la persona entrena a las 6:00, tres días por semana, musculación seguida de cardio. En aproximadamente el 90 % de las sesiones la glucosa le SUBE (por la musculación), así que no asumas que el gimnasio siempre baja la glucosa. Compara "gym_antes_despues" con eso: si los datos contradicen la subida habitual, o si hay bajadas tardías (3 a 8 horas después del entreno o de madrugada), indícalo como patrón.
+- Toujeo: revisa "toujeo". Si la hora de puesta varía mucho (variacion_horaria_min alta), menciónalo como posible causa de variabilidad. Nunca propongas cambiar la dosis de Toujeo.
+- Compara días con gimnasio frente a días sin gimnasio solo si hay datos en ambos grupos.
 - Escribe en español, claro y breve, sin alarmismo.
 Devuelve SOLO un objeto JSON con este formato:
 {"resumen":"","alerta":"","patrones":[{"titulo":"","detalle":""}],"sugerencias":[{"texto":"","prioridad":"alta|media|baja","requiere_endocrino":true}],"preguntas_endocrino":[""]}

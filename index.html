@@ -301,37 +301,41 @@ ul.plain li{margin:5px 0}
 
         <!--Nueva tarjeta de anotar glucosa -->
 <div class="card">
-  <h2>Anotar glucosa</h2>
-  <p class="sub">Registra tu glucemia con la fecha y hora exactas.</p>
-  <div class="fgrid">
-    <div class="field">
-      <label for="r-val">Glucosa (mg/dL)</label>
-      <input id="r-val" type="number" inputmode="decimal" min="20" max="600">
-    </div>
-    <div class="field">
-      <label for="r-time">Momento (Hora y fecha)</label>
-      <input id="r-time" type="datetime-local">
-    </div>
-  </div>
-  <div class="fgrid" style="margin-top:12px">
-    <div class="field">
-      <label for="r-preset">Nota rápida (opcional)</label>
-      <select id="r-preset">
-        <option value="">Selecciona una opción...</option>
-        <option value="Café con leche">Café con leche</option>
-        <option value="Merienda">Merienda</option>
-        <option value="Sobre azúcar">Sobre azúcar</option>
-        <option value="custom">Escribir nota personalizada...</option>
-      </select>
-    </div>
-    <div class="field" id="customNoteBox" hidden>
-      <label for="r-note">Nota personalizada</label>
-      <input id="r-note" maxlength="120" placeholder="Escribe tu nota aquí">
-    </div>
-  </div>
-  <div class="actions" style="margin-top:14px">
-    <button class="btn" id="saveReading" type="button">Guardar lectura</button>
-  </div>
+          <h2>Anotar glucosa</h2>
+          <p class="sub">Registra tu glucemia con la fecha y hora exactas.</p>
+          <div class="fgrid">
+            <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
+            <div class="field"><label for="r-time">Momento (Hora y fecha)</label><input id="r-time" type="datetime-local"></div>
+          </div>
+          <div class="fgrid" style="margin-top:12px">
+            <div class="field">
+              <label for="r-preset">Nota rápida (opcional)</label>
+              <select id="r-preset">
+                <option value="">Selecciona una opción...</option>
+                <option value="Café con leche">Café con leche</option>
+                <option value="Merienda">Merienda</option>
+                <option value="Sobre azúcar">Sobre azúcar</option>
+                <option value="custom">Escribir nota personalizada...</option>
+              </select>
+            </div>
+            <div class="field" id="customNoteBox" hidden>
+              <label for="r-note">Nota personalizada</label>
+              <input id="r-note" maxlength="120" placeholder="Escribe tu nota aquí">
+            </div>
+          </div>
+          <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar lectura</button></div>
+
+          <!-- Bloque dinámico para bolo de corrección -->
+          <div id="correctionBox" hidden style="margin-top:16px; background:rgba(111,207,191,.12); border:1px solid rgba(111,207,191,.3); border-radius:16px; padding:16px;">
+            <div style="font-family:var(--display); font-weight:700; font-size:1.1rem; color:#2E8B7A;">Bolo de corrección recomendado</div>
+            <p class="sub" style="margin:2px 0 10px">Superas tu glucemia objetivo. Puedes aplicarte esta corrección de Fiasp sin comida.</p>
+            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:12px;">
+              <span id="corrDoseNum" style="font-family:var(--display); font-size:2.4rem; font-weight:800; color:#2E8B7A;">0</span>
+              <span style="color:var(--muted)">unidades</span>
+            </div>
+            <button class="btn small" id="saveCorrectionBtn" type="button">Guardar y registrar bolo de corrección</button>
+          </div>
+        </div>
 
   <!-- Bloque dinámico para bolo de corrección de insulina -->
   <div id="correctionBox" hidden style="margin-top:16px; background:rgba(111,207,191,.12); border:1px solid rgba(111,207,191,.3); border-radius:16px; padding:16px;">
@@ -1009,6 +1013,55 @@ ul.plain li{margin:5px 0}
       toast(err.message, 'err'); 
     }
   });
+
+/* ---------- Fecha y Hora por defecto ---------- */
+  function setDefaultTime() {
+    const timeInput = $('#r-time');
+    if (timeInput) timeInput.value = toLocalInput(Date.now());
+  }
+  setDefaultTime();
+
+  /* ---------- Desplegable de notas ---------- */
+  const preset = $('#r-preset');
+  if (preset) {
+    preset.addEventListener('change', e => {
+      const val = e.target.value;
+      const box = $('#customNoteBox');
+      if (val === 'custom') {
+        box.hidden = false;
+        $('#r-note').value = '';
+        $('#r-note'].focus();
+      } else {
+        box.hidden = true;
+        $('#r-note').value = val;
+      }
+    });
+  }
+
+  const saveReadingBtn = $('#saveReading');
+  if (saveReadingBtn) {
+    saveReadingBtn.addEventListener('click', async () => {
+      const mgdl = numOrNull($('#r-val').value);
+      if (!(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
+      
+      const timeVal = $('#r-time').value;
+      const ts = timeVal ? new Date(timeVal).getTime() : Date.now();
+      const note = $('#r-note').value;
+
+      try {
+        await addEntry({ type:'reading', mgdl, ts, note, gym: gymToday() });
+        $('#r-val').value = ''; 
+        $('#r-note').value = '';
+        if (preset) preset.value = '';
+        $('#customNoteBox').hidden = true;
+        setDefaultTime();
+        $('#correctionBox').hidden = true;
+        toast(mgdl < 70 ? 'Guardada. Glucosa baja: trátala según tu pauta' : 'Lectura guardada: ' + fmt(mgdl) + ' mg/dL', mgdl < 70 ? 'err' : 'ok');
+      } catch (err) { toast(err.message, 'err'); }
+    });
+  }
+  const rValInput = $('#r-val');
+  if (rValInput) rValInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
 
   /* ---------- Gráfica ---------- */
   function drawChart(el, days, anim) {

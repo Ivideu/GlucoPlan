@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { checkAuth, loadEntries, monthKey, preflight, reply, store } from "../lib/shared.mjs";
 
-const TYPES = ["meal", "reading", "chart", "day", "basal"];
+const TYPES = ["meal", "reading", "chart", "day", "basal", "correction"];
 const CONTEXTS = ["ayunas", "pre_comida", "post2h", "pre_gym", "post_gym", "noche", "otro"];
 
 const num = (v, min, max) => {
@@ -27,6 +27,11 @@ function cleanEntry(e) {
     out.dose = num(e.dose, 0, 100);
     out.calculatedDose = num(e.calculatedDose, 0, 100);
     if (out.carbs === null || out.dose === null) return null;
+  }
+  if (e.type === "correction") {
+    out.bg = num(e.bg, 20, 600);
+    out.dose = num(e.dose, 0, 100);
+    if (out.bg === null || out.dose === null) return null;
   }
   if (e.type === "basal") {
     out.units = num(e.units, 0, 200);

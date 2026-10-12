@@ -183,7 +183,7 @@ select option{background:#fff;color:var(--ink)}
 .log{display:grid;gap:8px}
 .log .row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:rgba(40,70,95,.05);border-radius:14px;padding:10px 12px;animation:rise .4s both}
 .log .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:1.05rem}
-.ic.reading{background:rgba(111,207,191,.15)} .ic.meal{background:rgba(224,180,115,.16)} .ic.basal{background:rgba(157,149,224,.2)} .ic.day{background:rgba(123,184,222,.16)} .ic.chart{background:rgba(40,70,95,.1)}
+.ic.reading{background:rgba(111,207,191,.15)} .ic.meal{background:rgba(224,180,115,.16)} .ic.correction{background:rgba(111,207,191,.25)} .ic.basal{background:rgba(157,149,224,.2)} .ic.day{background:rgba(123,184,222,.16)} .ic.chart{background:rgba(40,70,95,.1)}
 .log small{display:block;color:var(--muted)}
 .log .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.25rem;border-radius:10px;padding:2px 9px}
 .log .x:hover{background:rgba(224,138,154,.18);color:#B83A52}
@@ -300,7 +300,7 @@ ul.plain li{margin:5px 0}
       <div class="stack">
         <div class="card">
           <h2>Anotar glucosa</h2>
-          <p class="sub">La lectura de 2 horas después de comer es la que más enseña al coach.</p>
+          <p class="sub">La lectura de 2 horas después de comer es la que más enseña al coach. Si estás alto sin comer, calcula tu corrección abajo.</p>
           <div class="fgrid">
             <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
             <div class="field"><label for="r-ctx">Momento</label>
@@ -316,6 +316,17 @@ ul.plain li{margin:5px 0}
           </div>
           <div class="field" style="margin-top:12px"><label for="r-note">Nota (opcional)</label><input id="r-note" maxlength="120"></div>
           <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar lectura</button></div>
+
+          <!-- Bloque dinámico para bolo de corrección -->
+          <div id="correctionBox" hidden style="margin-top:16px; background:rgba(111,207,191,.12); border:1px solid rgba(111,207,191,.3); border-radius:16px; padding:16px;">
+            <div style="font-family:var(--display); font-weight:700; font-size:1.1rem; color:#2E8B7A;">Bolo de corrección recomendado</div>
+            <p class="sub" style="margin:2px 0 10px">Superas tu glucemia objetivo. Puedes aplicarte esta corrección de Fiasp sin comida.</p>
+            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:12px;">
+              <span id="corrDoseNum" style="font-family:var(--display); font-size:2.4rem; font-weight:800; color:#2E8B7A;">0</span>
+              <span style="color:var(--muted)">unidades</span>
+            </div>
+            <button class="btn small" id="saveCorrectionBtn" type="button">Guardar y registrar bolo de corrección</button>
+          </div>
         </div>
         <div class="card">
           <div class="head"><h2>Últimas 24 horas</h2><button class="btn ghost small" type="button" id="toGlucosa">Ver más</button></div>
@@ -466,7 +477,7 @@ ul.plain li{margin:5px 0}
   <section id="tab-coach" class="tabpanel" role="tabpanel" hidden>
     <div class="card">
       <h2>Coach de datos</h2>
-      <p class="sub">Analiza tus últimos 28 días: lecturas, comidas, gym, Toujeo y gráficas. Detecta patrones y te prepara preguntas para tu endocrino. Aprende de tus correcciones automáticas.</p>
+      <p class="sub">Analiza tus últimos 28 días: lecturas, comidas, bolos de corrección, gym, Toujeo y gráficas. Detecta patrones y te prepara preguntas para tu endocrino.</p>
       <div class="actions"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button></div>
       <div id="coachStatus"></div>
     </div>
@@ -664,7 +675,7 @@ ul.plain li{margin:5px 0}
   const lastBasal = () => entries.find(e => e.type === 'basal');
 
   function renderAll() {
-    renderHero(); renderToujeo(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc();
+    renderHero(); renderToujeo(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc(); updateCorrectionCalc();
   }
   async function loadEntries(silent) {
     if (isCloud()) {
@@ -802,6 +813,7 @@ ul.plain li{margin:5px 0}
   function describe(e) {
     const tags = e.gym ? '<span class="tag">gym</span>' : '';
     if (e.type === 'meal') return [ '🍽️', `<b>Comida</b>: ${fmt(e.carbs)} g de hidratos, Fiasp ${fmt(e.dose)} U${e.calculatedDose && e.dose !== e.calculatedDose ? ' (calc: ' + fmt(e.calculatedDose) + ' U)' : ''}${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}` ];
+    if (e.type === 'correction') return [ '💉', `<b>Bolo de corrección: ${fmt(e.dose)} U</b> (Glucemia: ${fmt(e.bg)} mg/dL)${e.note ? '<small>' + esc(e.note) + '</small>' : ''}${tags}` ];
     if (e.type === 'reading') return [ '🩸', `<b>${fmt(e.mgdl)} mg/dL</b> ${CTX[e.context] || ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
     if (e.type === 'basal') return [ '💉', `<b>Toujeo ${fmt(e.units)} U</b>` ];
     if (e.type === 'chart') {
@@ -847,10 +859,59 @@ ul.plain li{margin:5px 0}
     try {
       await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note: $('#r-note').value, gym: gymToday() });
       $('#r-val').value = ''; $('#r-note').value = '';
+      $('#correctionBox').hidden = true;
       toast(mgdl < 70 ? 'Guardada. Glucosa baja: trátala según tu pauta' : 'Lectura guardada: ' + fmt(mgdl) + ' mg/dL', mgdl < 70 ? 'err' : 'ok');
     } catch (err) { toast(err.message, 'err'); }
   });
   $('#r-val').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
+
+  /* ---------- Cálculo y guardado de Bolo de Corrección ---------- */
+  function updateCorrectionCalc() {
+    const mgdl = numOrNull($('#r-val').value);
+    const isf = parseFloat(store.settings.isf);
+    const target = parseFloat(store.settings.target);
+    const step = parseFloat(store.settings.step) || 0.5;
+    const box = $('#correctionBox');
+
+    if (mgdl && target && isf > 0 && mgdl > target) {
+      const raw = (mgdl - target) / isf;
+      const dose = Math.round(raw / step) * step;
+      if (dose > 0) {
+        $('#corrDoseNum').textContent = fmt(dose);
+        box.hidden = false;
+        return;
+      }
+    }
+    box.hidden = true;
+  }
+  $('#r-val').addEventListener('input', updateCorrectionCalc);
+
+  $('#saveCorrectionBtn').addEventListener('click', async () => {
+    const mgdl = numOrNull($('#r-val').value);
+    const isf = parseFloat(store.settings.isf);
+    const target = parseFloat(store.settings.target);
+    const step = parseFloat(store.settings.step) || 0.5;
+    const raw = (mgdl - target) / isf;
+    const dose = Math.round(raw / step) * step;
+
+    if (!(dose > 0)) { toast('No hay unidades de corrección necesarias', 'err'); return; }
+
+    try {
+      await addEntry({ 
+        type: 'correction', 
+        bg: mgdl, 
+        dose, 
+        note: $('#r-note').value, 
+        gym: gymToday() 
+      });
+      $('#r-val').value = ''; 
+      $('#r-note').value = '';
+      $('#correctionBox').hidden = true;
+      toast('Bolo de corrección guardado: ' + fmt(dose) + ' U');
+    } catch (err) { 
+      toast(err.message, 'err'); 
+    }
+  });
 
   /* ---------- Gráfica ---------- */
   function drawChart(el, days, anim) {
@@ -879,7 +940,7 @@ ul.plain li{margin:5px 0}
       const lab = stepMs < DAY ? pad(new Date(t).getHours()) + ':00' : days <= 8 ? new Date(t).toLocaleDateString('es-ES', { weekday:'short' }) : new Date(t).toLocaleDateString('es-ES', { day:'numeric', month:'short' });
       ticks += `<text class="axis" x="${x(t)}" y="${H - 8}" text-anchor="middle">${lab}</text>`;
     }
-    const grid = [70, 180].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(40,70,95,.18)" stroke-dasharray="4 5"/><text class="axis" x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join('');
+    const grid = [70, 180].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(40,70,95,.18)" stroke-dasharray="4 5"/><text class="axis" x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${v}.</text>`).join('');
 
     const segs = []; let cur = [];
     rs.forEach((r, i) => { if (i && r.ts - rs[i - 1].ts > 9 * 36e5) { segs.push(cur); cur = []; } cur.push(r); });
@@ -902,9 +963,10 @@ ul.plain li{margin:5px 0}
 
     const hits = rs.map(r => ({ ts: r.ts, px: x(r.ts), py: y(r.mgdl), html: `<b style="color:${gText(r.mgdl)}">${fmt(r.mgdl)} mg/dL</b><br>${CTX[r.context] || ''} · ${whenLabel(r.ts)}` }));
     let marks = '';
-    entries.filter(e => (e.type === 'basal' || e.type === 'meal') && e.ts >= from).forEach(e => {
+    entries.filter(e => (e.type === 'basal' || e.type === 'meal' || e.type === 'correction') && e.ts >= from).forEach(e => {
       const px = x(e.ts), py = H - pb - 8;
       if (e.type === 'basal') { marks += `<rect x="${px - 5}" y="${py - 5}" width="10" height="10" fill="#9D95E0" transform="rotate(45 ${px} ${py})"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#6A62B8">Toujeo ${fmt(e.units)} U</b><br>${whenLabel(e.ts)}` }); }
+      else if (e.type === 'correction') { marks += `<circle cx="${px}" cy="${py}" r="5" fill="#74CDBF"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#2E8B7A">Corrección ${fmt(e.dose)} U</b><br>${whenLabel(e.ts)}` }); }
       else { marks += `<circle cx="${px}" cy="${py}" r="5" fill="#E0B473"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#A8741A">Comida ${fmt(e.carbs)} g · Fiasp ${fmt(e.dose)} U</b><br>${whenLabel(e.ts)}` }); }
     });
     const dots = rs.map(r => `<circle class="pt" cx="${x(r.ts)}" cy="${y(r.mgdl)}" r="${rs.length > 60 ? 2.5 : 4.5}" fill="${gColor(r.mgdl)}" stroke="#fff" stroke-width="2"/>`).join('');
@@ -1080,12 +1142,11 @@ ul.plain li{margin:5px 0}
     let corrU = 0;
     if (bg > 0 && isf > 0 && target > 0) corrU = (bg - target) / isf;
 
-    // Motor de autoaprendizaje: calcular sesgo en base a tus puestas anteriores reales vs calculadas
     let adaptiveBias = 0;
     const pastMeals = entries.filter(e => e.type === 'meal' && e.calculatedDose && e.dose > e.calculatedDose);
     if (pastMeals.length >= 3) {
       const avgUnderestimation = pastMeals.reduce((acc, m) => acc + (m.dose - m.calculatedDose), 0) / pastMeals.length;
-      adaptiveBias = Math.round(avgUnderestimation * 2) / 2; // Redondeo a medios puntos
+      adaptiveBias = Math.round(avgUnderestimation * 2) / 2;
       if (adaptiveBias > 0) {
         warns.push(['', `🧠 Autoaprendizaje activo: la IA ha detectado que sueles corregir al alza. Se aplica un sesgo automático de +${fmt(adaptiveBias)} U basado en tus puestas reales anteriores.`]);
       }
@@ -1136,8 +1197,7 @@ ul.plain li{margin:5px 0}
       <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 ? 'disabled' : ''}>Guardar esta comida</button>
       <p class="fine">Puedes cambiar la dosis arriba si consideras ponerte más o menos. La app aprenderá de tu elección. Fiasp: pínchate unos 2 min antes o hasta 20 min después de empezar.</p>`;
     
-    const realInput = $('#realDoseInput');
-    if (realInput && shownDose !== r.dose) {
+    if (shownDose !== r.dose) {
       shownDose = r.dose;
     }
 
@@ -1149,8 +1209,8 @@ ul.plain li{margin:5px 0}
           type:'meal', 
           carbs: Math.round(r.carbs), 
           bg: r.bg > 0 ? r.bg : null, 
-          dose: finalRealDose,            // Dosis real introducida por ti
-          calculatedDose: r.calculatedDose, // Dosis que sugirió la app inicialmente
+          dose: finalRealDose,
+          calculatedDose: r.calculatedDose,
           gym: gymToday() 
         });
         toast('Comida guardada con ' + fmt(finalRealDose) + ' U reales. Mide tu glucosa a las 2 horas');
@@ -1179,7 +1239,7 @@ ul.plain li{margin:5px 0}
     
     if (s.aprendizaje) {
       h += `<div class="card"><h3>Autoaprendizaje de Dosis</h3><ul class="plain">
-        <li>Comidas analizadas con override manual: <b>${s.aprendizaje.comidas_con_ajuste || 0}</b></li>
+        <li>Comidas analizadas con ajuste manual: <b>${s.aprendizaje.comidas_con_ajuste || 0}</b></li>
         <li>Aumento medio aplicado por ti sobre el cálculo: <b>${s.aprendizaje.sesgo_medio_unidades > 0 ? '+' : ''}${s.aprendizaje.sesgo_medio_unidades || 0} U</b></li>
         <li>Estado del modelo: <b>${s.aprendizaje.estado || 'Activo y adaptándose'}</b></li>
       </ul></div>`;
@@ -1214,13 +1274,13 @@ ul.plain li{margin:5px 0}
     const d = await api('/api/data?what=settings');
     if (d.settings) {
       SYNCED.forEach(k => { if (d.settings[k] !== undefined && d.settings[k] !== '') store.settings[k] = d.settings[k]; });
-      save(); fillSettings(); renderToujeo(); calc();
+      save(); fillSettings(); renderToujeo(); calc(); updateCorrectionCalc();
     } else { await pushSettings(); }
   }
   $('#saveSet').addEventListener('click', async () => {
     Object.entries(map).forEach(([k, sel]) => { store.settings[k] = $(sel).value.trim(); });
     if (!store.settings.basal) store.settings.basal = '28';
-    save(); renderToujeo(); calc();
+    save(); renderToujeo(); calc(); updateCorrectionCalc();
     if (isCloud()) {
       try { await pushSettings(); setStatus('#setStatus', 'ok', 'Ajustes guardados y sincronizados.'); toast('Ajustes sincronizados'); }
       catch (err) { setStatus('#setStatus', 'err', 'Guardados en este dispositivo, pero no se pudieron sincronizar: ' + esc(err.message)); }

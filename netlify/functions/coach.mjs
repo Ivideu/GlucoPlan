@@ -10,9 +10,9 @@ function computeStats(entries) {
   const E = entries.filter((e) => e.ts >= since);
   const readings = E.filter((e) => e.type === "reading");
   const meals = E.filter((e) => e.type === "meal");
+  const corrections = E.filter((e) => e.type === "correction");
   const charts = E.filter((e) => e.type === "chart");
 
-  // Análisis de autoaprendizaje (dosis real vs calculada)
   const mealsWithOverride = meals.filter((m) => m.calculatedDose != null && m.dose > m.calculatedDose);
   const diffs = mealsWithOverride.map((m) => m.dose - m.calculatedDose);
   const sesgoMedio = diffs.length ? Math.round((diffs.reduce((a, b) => a + b, 0) / diffs.length) * 10) / 10 : 0;
@@ -65,6 +65,7 @@ function computeStats(entries) {
       sesgo_medio_unidades: sesgoMedio,
       estado: mealsWithOverride.length >= 3 ? "Adaptación activa por refuerzo" : "Aprendiendo (necesita más puestas reales)",
     },
+    bolos_correccion: corrections.length,
     gym_antes_despues: { n: gymPairs.length, suben: gymRises, cambio_medio: avg(gymPairs.map((p) => p.cambio)), ejemplos: gymPairs.slice(0, 6) },
     dias_analizados: 28,
     lecturas: readings.length,
@@ -90,6 +91,9 @@ function computeStats(entries) {
   if (sesgoMedio > 0.5) {
     senales.push(`Autoaprendizaje: Sueles añadir una media de +${sesgoMedio} U por encima de la recomendación de la app en tus comidas, lo cual indica que las sugerencias iniciales tendían a la baja.`);
   }
+  if (corrections.length > 0) {
+    senales.push(`Has registrado ${corrections.length} bolos de corrección aislados en los últimos 28 días.`);
+  }
   if (readings.length < 10 && charts.length < 2) {
     senales.push("Todavía hay pocos datos: apunta lecturas (sobre todo 2 h después de comer) y sube una gráfica por semana.");
   }
@@ -100,7 +104,7 @@ function computeStats(entries) {
 }
 
 const COACH_SYSTEM = `Eres un asistente experto en análisis de datos para una persona adulta con diabetes tipo 1 (insulina rápida Fiasp y basal Toujeo).
-Recibes estadísticas de los últimos 28 días, incluyendo el módulo de autoaprendizaje (dosis reales inyectadas frente a las calculadas por la app).
+Recibes estadísticas de los últimos 28 días, incluyendo el módulo de autoaprendizaje y bolos de corrección aislados.
 Tu trabajo es analizar si la app se quedaba corta, cómo has ajustado las dosis y proponer hipótesis que la persona pueda comentar con su endocrino.
 Reglas estrictas:
 - No eres médico y no tomas decisiones de dosis. Nunca des una dosis concreta para una comida.
@@ -114,7 +118,6 @@ Usa "" en "alerta" si no hay ninguna.`;
 export default async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
-  if (req.method !== "POST") return reply(405, { error: "Método no permitido" });
   const bad = checkAuth(req);
   if (bad) return bad;
 

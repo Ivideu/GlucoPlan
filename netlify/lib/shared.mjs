@@ -115,10 +115,12 @@ export async function askGemini({ system, parts, text }) {
           lastStatus = res.status;
           if (res.status === 404) break; // modelo retirado o mal escrito: probar el siguiente
           if (!RETRYABLE.has(res.status)) {
-            const detail = await res.text().catch(() => "");
-            console.error("Gemini", model, res.status, detail.slice(0, 300));
-            throw Object.assign(new Error(`Gemini devolvió un error (${res.status})`), { status: 502 });
-          }
+            const raw = await res.text().catch(() => "");
+            let msg = raw.slice(0, 200);
+            try { msg = JSON.parse(raw).error?.message || msg; } catch {}
+            console.error("Gemini", model, res.status, raw.slice(0, 500));
+            throw Object.assign(new Error(`Gemini devolvió un error (${res.status}): ${msg.slice(0, 160)}`), { status: 502 });
+           }
         }
       } catch (err) {
         clearTimeout(timer);

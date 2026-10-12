@@ -1,90 +1,135 @@
 // Utilidades compartidas por las funciones de Netlify.
-import { timingSafeEqual } from "node:crypto";
+// Variables de entorno: APP_PASSWORD, GEMINI_API_KEY (obligatorias); GEMINI_MODEL, ALLOWED_ORIGIN (opcionales).
 import { getStore } from "@netlify/blobs";
+import { timingSafeEqual } from "node:crypto";
 
-export const STORE_NAME = "glucoplan";
-
-export function cors() {
-  return {
-    "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
-    "Access-Control-Allow-Headers": "Content-Type, x-app-key",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+// ---------- Respuestas y CORS ----------
+function corsHeaders() {
+  const h = {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
   };
+  const origin = process.env.ALLOWED_ORIGIN;
+  if (origin) {
+    h["Access-Control-Allow-Origin"] = origin;
+    h["Access-Control-Allow-Headers"] = "Content-Type, x-app-key";
+    h["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS";
+  }
+  return h;
 }
 
-export function reply(status, body) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...cors() },
-  });
-}
+export const reply = (status, data) =>
+  new Response(JSON.stringify(data), { status, headers: corsHeaders() });
 
-export function preflight(req) {
-  return req.method === "OPTIONS" ? new Response(null, { status: 204, headers: cors() }) : null;
-}
+// Responde a las peticiones OPTIONS; si no es OPTIONS devuelve null.
+export const preflight = (req) =>
+  req.method === "OPTIONS" ? new Response(null, { status: 204, headers: corsHeaders() }) : null;
 
-// Protege toda la API con la clave APP_PASSWORD (enviada en la cabecera x-app-key).
+// ---------- Acceso con clave ----------
+// Devuelve una respuesta de error si la clave no es correcta; si lo es, devuelve null.
 export function checkAuth(req) {
-  const pass = process.env.APP_PASSWORD;
-  if (!pass) return reply(500, { error: "Falta la variable APP_PASSWORD en Netlify" });
-  const got = Buffer.from(req.headers.get("x-app-key") || "");
-  const want = Buffer.from(pass);
-  if (got.length !== want.length || !timingSafeEqual(got, want)) {
-    return reply(401, { error: "Clave incorrecta" });
-  }
-  return null;
+  const expected = process.env.APP_PASSWORD;
+  if (!expected) return reply(500, { error: "Falta APP_PASSWORD en Netlify" });
+  const given = req.headers.get("x-app-key") || "";
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  const ok = a.length === b.length && timingSafeEqual(a, b);
+  return ok ? null : reply(401, { error: "Clave incorrecta" });
 }
 
-// Llamada a Gemini (plan gratuito de Google AI Studio). Devuelve el JSON ya interpretado.
-export async function askGemini({ system, parts, maxTokens = 4096 }) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw Object.assign(new Error("Falta GEMINI_API_KEY en Netlify"), { status: 500 });
-  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+// ---------- Base de datos (Netlify Blobs) ----------
+export const store = () => getStore("glucoplan");
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: "user", parts }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens, responseMimeType: "application/json" },
-    }),
-  });
+// Clave de mes en formato AAAA-MM (UTC).
+export const monthKey = (ts) => {
+  const d = new Date(Number(ts));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+};
 
-  if (res.status === 429) {
-    throw Object.assign(new Error("Has alcanzado el límite gratuito de Gemini. Espera un minuto e inténtalo de nuevo."), { status: 429 });
-  }
-  if (!res.ok) {
-    console.error("Gemini error", res.status, await res.text());
-    throw Object.assign(new Error("Gemini no respondió (" + res.status + ")"), { status: 502 });
-  }
-  const data = await res.json();
-  const text = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
-  try {
-    return JSON.parse(text.replace(/```json|```/g, "").trim());
-  } catch {
-    throw Object.assign(new Error("No se pudo interpretar la respuesta de la IA"), { status: 502 });
-  }
-}
-
-export const store = () => getStore(STORE_NAME);
-
-export const monthKey = (ts) => new Date(ts).toISOString().slice(0, 7);
-
-export function lastMonths(n) {
-  const out = [];
-  const d = new Date();
-  d.setUTCDate(1);
-  for (let i = 0; i < n; i++) {
-    out.push(d.toISOString().slice(0, 7));
-    d.setUTCMonth(d.getUTCMonth() - 1);
-  }
-  return out;
-}
-
-// Los registros se guardan en un documento JSON por mes: entries/2026-10
+// Registros de los últimos N meses, del más reciente al más antiguo.
 export async function loadEntries(months = 2) {
   const s = store();
-  const docs = await Promise.all(lastMonths(months).map((m) => s.get(`entries/${m}`, { type: "json" })));
-  return docs.flat().filter(Boolean).sort((a, b) => b.ts - a.ts);
+  const now = new Date();
+  const keys = [];
+  for (let i = 0; i < months; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    keys.push(`entries/${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  const lists = await Promise.all(keys.map((k) => s.get(k, { type: "json" }).catch(() => null)));
+  return lists
+    .flatMap((l) => (Array.isArray(l) ? l : []))
+    .sort((a, b) => b.ts - a.ts);
+}
+
+// ---------- Gemini con reintentos y modelos de respaldo ----------
+// Se prueba primero GEMINI_MODEL (si existe) y después estos modelos.
+// Si un modelo da 404 (retirado o mal escrito), se pasa al siguiente.
+const FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+const DEADLINE_MS = 9000; // Netlify corta las funciones a los ~10 s por defecto
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// askGemini({ system, parts })  o  askGemini({ system, text })  ->  objeto JSON
+export async function askGemini({ system, parts, text }) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw Object.assign(new Error("Falta GEMINI_API_KEY en Netlify"), { status: 500 });
+
+  const userParts = parts || [{ text: String(text ?? "") }];
+  const models = [...new Set([process.env.GEMINI_MODEL, ...FALLBACK_MODELS].filter(Boolean))];
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: "user", parts: userParts }],
+    generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+  });
+
+  const t0 = Date.now();
+  let lastStatus = 0;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const left = DEADLINE_MS - (Date.now() - t0);
+      if (left < 1500) break;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), Math.min(left, 6500));
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+            body,
+            signal: ctrl.signal,
+          }
+        );
+        clearTimeout(timer);
+        if (res.ok) {
+          const data = await res.json();
+          const out = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
+          const clean = out.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+          try {
+            return JSON.parse(clean);
+          } catch {
+            lastStatus = 502; // respuesta que no es JSON: se trata como fallo temporal
+          }
+        } else {
+          lastStatus = res.status;
+          if (res.status === 404) break; // modelo retirado o mal escrito: probar el siguiente
+          if (!RETRYABLE.has(res.status)) {
+            const detail = await res.text().catch(() => "");
+            console.error("Gemini", model, res.status, detail.slice(0, 300));
+            throw Object.assign(new Error(`Gemini devolvió un error (${res.status})`), { status: 502 });
+          }
+        }
+      } catch (err) {
+        clearTimeout(timer);
+        if (err.status) throw err;
+        lastStatus = lastStatus || 504; // tiempo agotado o fallo de red
+      }
+      await sleep(500 * (attempt + 1));
+    }
+  }
+  throw Object.assign(
+    new Error(`Gemini no está disponible ahora mismo (${lastStatus || 503}). Inténtalo de nuevo en un minuto`),
+    { status: 503 }
+  );
 }

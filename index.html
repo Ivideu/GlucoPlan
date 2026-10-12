@@ -183,7 +183,7 @@ select option{background:#fff;color:var(--ink)}
 .log{display:grid;gap:8px}
 .log .row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:rgba(40,70,95,.05);border-radius:14px;padding:10px 12px;animation:rise .4s both}
 .log .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:1.05rem}
-.ic.reading{background:rgba(111,207,191,.15)} .ic.meal{background:rgba(224,180,115,.16)} .ic.correction{background:rgba(111,207,191,.25)} .ic.basal{background:rgba(157,149,224,.2)} .ic.day{background:rgba(123,184,222,.16)} .ic.chart{background:rgba(40,70,95,.1)}
+.ic.reading{background:rgba(111,207,191,.15)} .ic.meal{background:rgba(224,180,115,.16)} .ic.basal{background:rgba(157,149,224,.2)} .ic.day{background:rgba(123,184,222,.16)} .ic.chart{background:rgba(40,70,95,.1)}
 .log small{display:block;color:var(--muted)}
 .log .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.25rem;border-radius:10px;padding:2px 9px}
 .log .x:hover{background:rgba(224,138,154,.18);color:#B83A52}
@@ -210,10 +210,8 @@ select option{background:#fff;color:var(--ink)}
 @media(max-width:480px){.add{grid-template-columns:1fr 80px}.add .btn{grid-column:1/-1}.item{grid-template-columns:1fr 78px 54px 28px}}
 .dose{background:linear-gradient(160deg,rgba(111,207,191,.09),rgba(123,184,222,.05)),var(--glass);border-color:rgba(111,207,191,.3);position:sticky;top:84px}
 @media(max-width:860px){.dose{position:static}}
-.dose .big{font-family:var(--display);font-weight:800;font-size:3.8rem;line-height:1;margin:8px 0 2px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.dose .big input{font-family:var(--display);font-weight:800;font-size:3.5rem;width:170px;background:transparent;border:2px dashed rgba(46,139,122,.3);border-radius:16px;padding:2px 8px;color:#2E8B7A;text-align:center}
-.dose .big input:focus{background:#fff;border-style:solid}
-.dose .big small{font-size:1.2rem;font-weight:500;-webkit-text-fill-color:var(--muted)}
+.dose .big{font-family:var(--display);font-weight:800;font-size:5.4rem;line-height:1;margin:8px 0 2px;background:linear-gradient(135deg,#2E8B7A,#3B80AE);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dose .big small{font-size:1.4rem;font-weight:500;margin-left:8px;-webkit-text-fill-color:var(--muted)}
 .break{display:grid;gap:6px;margin:14px 0;font-size:.95rem}
 .break div{display:flex;justify-content:space-between;border-bottom:1px dashed rgba(40,70,95,.15);padding-bottom:5px}
 .warns{display:grid;gap:8px;margin:12px 0}
@@ -300,7 +298,7 @@ ul.plain li{margin:5px 0}
       <div class="stack">
         <div class="card">
           <h2>Anotar glucosa</h2>
-          <p class="sub">La lectura de 2 horas después de comer es la que más enseña al coach. Si estás alto sin comer, calcula tu corrección abajo.</p>
+          <p class="sub">La lectura de 2 horas después de comer es la que más enseña al coach.</p>
           <div class="fgrid">
             <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
             <div class="field"><label for="r-ctx">Momento</label>
@@ -316,17 +314,6 @@ ul.plain li{margin:5px 0}
           </div>
           <div class="field" style="margin-top:12px"><label for="r-note">Nota (opcional)</label><input id="r-note" maxlength="120"></div>
           <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar lectura</button></div>
-
-          <!-- Bloque dinámico para bolo de corrección -->
-          <div id="correctionBox" hidden style="margin-top:16px; background:rgba(111,207,191,.12); border:1px solid rgba(111,207,191,.3); border-radius:16px; padding:16px;">
-            <div style="font-family:var(--display); font-weight:700; font-size:1.1rem; color:#2E8B7A;">Bolo de corrección recomendado</div>
-            <p class="sub" style="margin:2px 0 10px">Superas tu glucemia objetivo. Puedes aplicarte esta corrección de Fiasp sin comida.</p>
-            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:12px;">
-              <span id="corrDoseNum" style="font-family:var(--display); font-size:2.4rem; font-weight:800; color:#2E8B7A;">0</span>
-              <span style="color:var(--muted)">unidades</span>
-            </div>
-            <button class="btn small" id="saveCorrectionBtn" type="button">Guardar y registrar bolo de corrección</button>
-          </div>
         </div>
         <div class="card">
           <div class="head"><h2>Últimas 24 horas</h2><button class="btn ghost small" type="button" id="toGlucosa">Ver más</button></div>
@@ -475,9 +462,10 @@ ul.plain li{margin:5px 0}
 
   <!-- COACH -->
   <section id="tab-coach" class="tabpanel" role="tabpanel" hidden>
+    <div class="card" id="learnCard"></div>
     <div class="card">
       <h2>Coach de datos</h2>
-      <p class="sub">Analiza tus últimos 28 días: lecturas, comidas, bolos de corrección, gym, Toujeo y gráficas. Detecta patrones y te prepara preguntas para tu endocrino.</p>
+      <p class="sub">Analiza tus últimos 28 días: lecturas, comidas, gym, Toujeo y gráficas. Detecta patrones y te prepara preguntas para tu endocrino. No cambia tus ajustes ni tu dosis por sí solo.</p>
       <div class="actions"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button></div>
       <div id="coachStatus"></div>
     </div>
@@ -491,7 +479,7 @@ ul.plain li{margin:5px 0}
       <p class="sub">Pon aquí los valores que te haya indicado tu endocrino. Se sincronizan entre tus dispositivos.</p>
       <div class="field">
         <label for="s-icr">Ratio insulina/hidratos: 1 unidad cubre cuántos gramos</label>
-        <input id="s-icr" type="number" step="0.1" min="1" inputmode="decimal" placeholder="Ej.: 10">
+        <input id="s-icr" type="number" step="0.1" min="1" inputmode="decimal" placeholder="Ej.: 10 (pregunta a tu endocrino)">
       </div>
       <div class="field">
         <label for="s-isf">Factor de sensibilidad: 1 unidad baja cuántos mg/dL</label>
@@ -610,7 +598,7 @@ ul.plain li{margin:5px 0}
     ['Cereales de desayuno',75],['Galletas tipo María',75],['Yogur natural',5],['Yogur griego natural',4],
     ['Leche',5],['Plátano',21],['Manzana',12],['Naranja',9],['Kiwi',11],['Fresas y frutos rojos',7],['Uvas',17],
     ['Pizza',33],['Hummus',14],['Wrap de trigo',48],['Zumo de naranja',10],['Refresco de cola',11],
-    ['Chocolate negro 70 %',30],['Aguacate',2],['Huevo',1],['Pechuga de pollo',0]
+    ['Café con leche',4],['Chocolate negro 70 %',30],['Aguacate',2],['Huevo',1],['Pechuga de pollo',0]
   ];
   const CTX = { post2h:'2 h después de comer', pre_comida:'antes de comer', ayunas:'en ayunas', pre_gym:'antes del gym', post_gym:'después del gym', noche:'noche o madrugada', otro:'otro momento' };
 
@@ -675,7 +663,7 @@ ul.plain li{margin:5px 0}
   const lastBasal = () => entries.find(e => e.type === 'basal');
 
   function renderAll() {
-    renderHero(); renderToujeo(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc(); updateCorrectionCalc();
+    renderHero(); renderToujeo(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc(); renderLearn();
   }
   async function loadEntries(silent) {
     if (isCloud()) {
@@ -812,8 +800,11 @@ ul.plain li{margin:5px 0}
   /* ---------- Registro ---------- */
   function describe(e) {
     const tags = e.gym ? '<span class="tag">gym</span>' : '';
-    if (e.type === 'meal') return [ '🍽️', `<b>Comida</b>: ${fmt(e.carbs)} g de hidratos, Fiasp ${fmt(e.dose)} U${e.calculatedDose && e.dose !== e.calculatedDose ? ' (calc: ' + fmt(e.calculatedDose) + ' U)' : ''}${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}` ];
-    if (e.type === 'correction') return [ '💉', `<b>Bolo de corrección: ${fmt(e.dose)} U</b> (Glucemia: ${fmt(e.bg)} mg/dL)${e.note ? '<small>' + esc(e.note) + '</small>' : ''}${tags}` ];
+    if (e.type === 'meal') {
+      const lab = e.kind === 'cafe' ? 'Café / snack' : e.kind === 'correccion' ? 'Corrección' : 'Comida';
+      const sug = e.suggested != null && e.suggested !== e.dose ? ` (la app sugería ${fmt(e.suggested)})` : '';
+      return [ '🍽️', `<b>${lab}</b>: ${e.carbs ? fmt(e.carbs) + ' g de hidratos, ' : ''}Fiasp ${fmt(e.dose)} U${sug}${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}` ];
+    }
     if (e.type === 'reading') return [ '🩸', `<b>${fmt(e.mgdl)} mg/dL</b> ${CTX[e.context] || ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
     if (e.type === 'basal') return [ '💉', `<b>Toujeo ${fmt(e.units)} U</b>` ];
     if (e.type === 'chart') {
@@ -842,12 +833,12 @@ ul.plain li{margin:5px 0}
     const meals = entries.filter(e => e.type === 'meal').slice(0, 12);
     const box = $('#histBox');
     if (!meals.length) { box.innerHTML = '<p class="empty">Todavía no has guardado comidas.</p>'; return; }
-    box.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hidratos</th><th>Glucemia</th><th>Fiasp real</th></tr></thead><tbody>` +
-      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td><b>${fmt(h.dose)} U</b>${h.calculatedDose && h.dose !== h.calculatedDose ? ' <small>(sugerida ' + fmt(h.calculatedDose) + ')</small>' : ''}</td></tr>`).join('') + '</tbody></table>';
+    box.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hidratos</th><th>Glucemia</th><th>Fiasp</th></tr></thead><tbody>` +
+      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
   }
   $('#csvBtn').addEventListener('click', () => {
-    const rows = ['fecha,tipo,hidratos_g,glucemia_mgdl,insulina_real_u,insulina_calculada_u,gym,nota',
-      ...entries.map(e => [new Date(e.ts).toISOString(), e.type, e.carbs ?? '', e.mgdl ?? e.bg ?? '', e.dose ?? e.units ?? '', e.calculatedDose ?? '', e.gym ? 1 : 0, '"' + String(e.note || '').replace(/"/g, '""') + '"'].join(','))];
+    const rows = ['fecha,tipo,hidratos_g,glucemia_mgdl,insulina_u,gym,nota',
+      ...entries.map(e => [new Date(e.ts).toISOString(), e.type, e.carbs ?? '', e.mgdl ?? e.bg ?? '', e.dose ?? e.units ?? '', e.gym ? 1 : 0, '"' + String(e.note || '').replace(/"/g, '""') + '"'].join(','))];
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type:'text/csv' }));
     a.download = 'glucoplan-historial.csv'; a.click();
@@ -859,59 +850,10 @@ ul.plain li{margin:5px 0}
     try {
       await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note: $('#r-note').value, gym: gymToday() });
       $('#r-val').value = ''; $('#r-note').value = '';
-      $('#correctionBox').hidden = true;
       toast(mgdl < 70 ? 'Guardada. Glucosa baja: trátala según tu pauta' : 'Lectura guardada: ' + fmt(mgdl) + ' mg/dL', mgdl < 70 ? 'err' : 'ok');
     } catch (err) { toast(err.message, 'err'); }
   });
   $('#r-val').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
-
-  /* ---------- Cálculo y guardado de Bolo de Corrección ---------- */
-  function updateCorrectionCalc() {
-    const mgdl = numOrNull($('#r-val').value);
-    const isf = parseFloat(store.settings.isf);
-    const target = parseFloat(store.settings.target);
-    const step = parseFloat(store.settings.step) || 0.5;
-    const box = $('#correctionBox');
-
-    if (mgdl && target && isf > 0 && mgdl > target) {
-      const raw = (mgdl - target) / isf;
-      const dose = Math.round(raw / step) * step;
-      if (dose > 0) {
-        $('#corrDoseNum').textContent = fmt(dose);
-        box.hidden = false;
-        return;
-      }
-    }
-    box.hidden = true;
-  }
-  $('#r-val').addEventListener('input', updateCorrectionCalc);
-
-  $('#saveCorrectionBtn').addEventListener('click', async () => {
-    const mgdl = numOrNull($('#r-val').value);
-    const isf = parseFloat(store.settings.isf);
-    const target = parseFloat(store.settings.target);
-    const step = parseFloat(store.settings.step) || 0.5;
-    const raw = (mgdl - target) / isf;
-    const dose = Math.round(raw / step) * step;
-
-    if (!(dose > 0)) { toast('No hay unidades de corrección necesarias', 'err'); return; }
-
-    try {
-      await addEntry({ 
-        type: 'correction', 
-        bg: mgdl, 
-        dose, 
-        note: $('#r-note').value, 
-        gym: gymToday() 
-      });
-      $('#r-val').value = ''; 
-      $('#r-note').value = '';
-      $('#correctionBox').hidden = true;
-      toast('Bolo de corrección guardado: ' + fmt(dose) + ' U');
-    } catch (err) { 
-      toast(err.message, 'err'); 
-    }
-  });
 
   /* ---------- Gráfica ---------- */
   function drawChart(el, days, anim) {
@@ -924,6 +866,7 @@ ul.plain li{margin:5px 0}
     const x = t => pl + (t - from) / (to - from) * (W - pl - pr);
     const y = v => pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb);
 
+    // Bandas de días de gym
     const gymDays = [...new Set(entries.filter(e => e.type === 'day' && e.gym && e.ts >= from - DAY).map(e => dayStr(e.ts)))];
     const bands = gymDays.map(d => {
       const s = new Date(d + 'T00:00:00').getTime(), e = s + DAY;
@@ -931,6 +874,7 @@ ul.plain li{margin:5px 0}
       return x2 > x1 ? `<rect x="${x1}" y="${pt}" width="${x2 - x1}" height="${H - pt - pb}" fill="rgba(157,149,224,.13)" rx="6"/>` : '';
     }).join('');
 
+    // Ejes
     let ticks = '';
     const stepMs = days <= 1.5 ? 6 * 36e5 : days <= 8 ? DAY : 7 * DAY;
     const t0 = new Date(from);
@@ -940,8 +884,9 @@ ul.plain li{margin:5px 0}
       const lab = stepMs < DAY ? pad(new Date(t).getHours()) + ':00' : days <= 8 ? new Date(t).toLocaleDateString('es-ES', { weekday:'short' }) : new Date(t).toLocaleDateString('es-ES', { day:'numeric', month:'short' });
       ticks += `<text class="axis" x="${x(t)}" y="${H - 8}" text-anchor="middle">${lab}</text>`;
     }
-    const grid = [70, 180].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(40,70,95,.18)" stroke-dasharray="4 5"/><text class="axis" x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${v}.</text>`).join('');
+    const grid = [70, 180].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(40,70,95,.18)" stroke-dasharray="4 5"/><text class="axis" x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join('');
 
+    // Trazo en segmentos (corta si hay huecos grandes)
     const segs = []; let cur = [];
     rs.forEach((r, i) => { if (i && r.ts - rs[i - 1].ts > 9 * 36e5) { segs.push(cur); cur = []; } cur.push(r); });
     segs.push(cur);
@@ -961,13 +906,13 @@ ul.plain li{margin:5px 0}
       return `<path d="${area}" fill="url(#ga-${el.id})"/><path d="${d}" fill="none" stroke="url(#gl-${el.id})" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" ${anim ? 'class="draw" pathLength="1"' : ''}/>`;
     }).join('');
 
+    // Puntos y marcadores
     const hits = rs.map(r => ({ ts: r.ts, px: x(r.ts), py: y(r.mgdl), html: `<b style="color:${gText(r.mgdl)}">${fmt(r.mgdl)} mg/dL</b><br>${CTX[r.context] || ''} · ${whenLabel(r.ts)}` }));
     let marks = '';
-    entries.filter(e => (e.type === 'basal' || e.type === 'meal' || e.type === 'correction') && e.ts >= from).forEach(e => {
+    entries.filter(e => (e.type === 'basal' || e.type === 'meal') && e.ts >= from).forEach(e => {
       const px = x(e.ts), py = H - pb - 8;
       if (e.type === 'basal') { marks += `<rect x="${px - 5}" y="${py - 5}" width="10" height="10" fill="#9D95E0" transform="rotate(45 ${px} ${py})"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#6A62B8">Toujeo ${fmt(e.units)} U</b><br>${whenLabel(e.ts)}` }); }
-      else if (e.type === 'correction') { marks += `<circle cx="${px}" cy="${py}" r="5" fill="#74CDBF"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#2E8B7A">Corrección ${fmt(e.dose)} U</b><br>${whenLabel(e.ts)}` }); }
-      else { marks += `<circle cx="${px}" cy="${py}" r="5" fill="#E0B473"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#A8741A">Comida ${fmt(e.carbs)} g · Fiasp ${fmt(e.dose)} U</b><br>${whenLabel(e.ts)}` }); }
+      else { marks += `<circle cx="${px}" cy="${py}" r="5" fill="#E0B473"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#A8741A">Comida ${fmt(e.carbs)} g · ${fmt(e.dose)} U</b><br>${whenLabel(e.ts)}` }); }
     });
     const dots = rs.map(r => `<circle class="pt" cx="${x(r.ts)}" cy="${y(r.mgdl)}" r="${rs.length > 60 ? 2.5 : 4.5}" fill="${gColor(r.mgdl)}" stroke="#fff" stroke-width="2"/>`).join('');
 
@@ -1029,6 +974,7 @@ ul.plain li{margin:5px 0}
   }
   $$('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
+  // Brillo que sigue al puntero en las tarjetas
   document.addEventListener('pointermove', e => {
     const c = e.target.closest && e.target.closest('.card');
     if (!c) return;
@@ -1089,7 +1035,7 @@ ul.plain li{margin:5px 0}
       setStatus('#status', 'info', '<span class="spin"></span>Analizando el plato…');
       const data = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'food', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
       if (!Array.isArray(data.items) || !data.items.length) { setStatus('#status', 'err', 'No he reconocido comida en la foto. Prueba con otra o añade los alimentos a mano.'); return; }
-      items = data.items.map(i => ({ id: nextId++, name: String(i.nombre || 'Alimento').slice(0, 60), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), conf: i.confianza || '' }));
+      items = data.items.map(i => ({ id: nextId++, name: String(i.nombre || 'Alimento'), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), conf: i.confianza || '' }));
       setStatus('#status', 'ok', 'Estimación lista. Revisa los gramos de cada alimento antes de pinchar.' + (data.notas ? '<br>' + esc(data.notas) : ''));
       renderItems();
     } catch (err) { setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.'); }
@@ -1126,7 +1072,7 @@ ul.plain li{margin:5px 0}
     } catch (err) { setStatus('#chartStatus', 'err', esc(err.message)); }
   });
 
-  /* ---------- Cálculo de dosis con Autoaprendizaje ---------- */
+  /* ---------- Cálculo de dosis ---------- */
   function calcDose() {
     const s = store.settings;
     const icr = parseFloat(s.icr), isf = parseFloat(s.isf), target = parseFloat(s.target);
@@ -1141,18 +1087,7 @@ ul.plain li{margin:5px 0}
     const mealU = carbs / icr;
     let corrU = 0;
     if (bg > 0 && isf > 0 && target > 0) corrU = (bg - target) / isf;
-
-    let adaptiveBias = 0;
-    const pastMeals = entries.filter(e => e.type === 'meal' && e.calculatedDose && e.dose > e.calculatedDose);
-    if (pastMeals.length >= 3) {
-      const avgUnderestimation = pastMeals.reduce((acc, m) => acc + (m.dose - m.calculatedDose), 0) / pastMeals.length;
-      adaptiveBias = Math.round(avgUnderestimation * 2) / 2;
-      if (adaptiveBias > 0) {
-        warns.push(['', `🧠 Autoaprendizaje activo: la IA ha detectado que sueles corregir al alza. Se aplica un sesgo automático de +${fmt(adaptiveBias)} U basado en tus puestas reales anteriores.`]);
-      }
-    }
-
-    const raw = Math.max(0, mealU + corrU + adaptiveBias);
+    const raw = Math.max(0, mealU + corrU);
     let dose = Math.round(raw * (1 + gymAdj / 100) / step) * step;
 
     if (bg > 0 && bg < 70) { dose = 0; warns.push(['danger', 'Glucemia baja. No te pongas insulina para comer ahora: toma unos 15 g de hidratos rápidos, vuelve a medir a los 15 minutos y repite si sigue por debajo de 70.']); }
@@ -1168,10 +1103,12 @@ ul.plain li{margin:5px 0}
         ? `Hoy has hecho gym: se aplica tu ajuste de ${gymAdj > 0 ? '+' : ''}${fmt(gymAdj)} %. Mide a las 2 h y de nuevo unas 3 a 6 h después por si hay bajada tardía.`
         : 'Hoy has hecho gym (musculación y cardio). La musculación suele subirte la glucosa, así que no se reduce la dosis. Mide a las 2 h y de nuevo unas 3 a 6 h después por si hay bajada tardía. Si necesitas un ajuste fijo, coméntalo con tu endocrino y ponlo en Ajustes.']);
     }
-    return { carbs, mealU, corrU: bg > 0 ? corrU : 0, gymAdj, dose, calculatedDose: dose, warns, bg, gym };
+    return { carbs, mealU, corrU: bg > 0 ? corrU : 0, gymAdj, dose, warns, bg, gym };
   }
 
   let shownDose = 0;
+  let realDoseStr = null;   // dosis que escribe la persona (null = sigue la sugerencia)
+  let mealKind = 'comida';  // comida | cafe | correccion
   function calc() {
     const r = calcDose();
     const box = $('#doseBox');
@@ -1184,44 +1121,132 @@ ul.plain li{margin:5px 0}
     }
     box.innerHTML = `
       <p class="sub" style="margin:4px 0 0">Hidratos totales: <strong>${fmt(r.carbs)} g</strong></p>
-      <div class="big">
-        <input id="realDoseInput" type="number" step="0.5" min="0" inputmode="decimal" value="${fmt(r.dose)}">
-        <small>unidades reales</small>
-      </div>
+      <div class="big"><span id="doseNum">${fmt(r.dose)}</span><small>unidades</small></div>
       <div class="break">
         <div><span>Por los hidratos</span><span>${fmt(r.mealU)} U</span></div>
         <div><span>Corrección por glucemia</span><span>${r.corrU >= 0 ? '+' : ''}${fmt(r.corrU)} U</span></div>
         ${r.gym && r.gymAdj ? `<div><span>Ajuste por gym</span><span>${r.gymAdj > 0 ? '+' : ''}${fmt(r.gymAdj)} %</span></div>` : ''}
       </div>
       <div class="warns">${r.warns.map(w => `<div class="warn ${w[0]}">${esc(w[1])}</div>`).join('')}</div>
-      <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 ? 'disabled' : ''}>Guardar esta comida</button>
-      <p class="fine">Puedes cambiar la dosis arriba si consideras ponerte más o menos. La app aprenderá de tu elección. Fiasp: pínchate unos 2 min antes o hasta 20 min después de empezar.</p>`;
-    
-    if (shownDose !== r.dose) {
-      shownDose = r.dose;
-    }
-
+      <div class="field" style="margin:12px 0 4px">
+        <label for="realDose">Insulina que me pongo (U)</label>
+        <input id="realDose" type="number" step="${parseFloat(store.settings.step) || 0.5}" min="0" inputmode="decimal" value="${realDoseStr ?? r.dose}">
+        <span class="hint">Pon la dosis real. La app aprende de lo que te pones, no de lo que sugiere.</span>
+      </div>
+      <div class="field" style="margin:10px 0 12px">
+        <label for="mealKind">Qué es</label>
+        <select id="mealKind">
+          <option value="comida" ${mealKind === 'comida' ? 'selected' : ''}>Comida</option>
+          <option value="cafe" ${mealKind === 'cafe' ? 'selected' : ''}>Café con leche u otro snack</option>
+          <option value="correccion" ${mealKind === 'correccion' ? 'selected' : ''}>Corrección de hiperglucemia (sin comer)</option>
+        </select>
+        ${mealKind === 'correccion' && !(r.bg > 0) ? '<span class="hint">Para que aprenda tu sensibilidad, apunta la glucemia actual arriba.</span>' : ''}
+      </div>
+      <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 && mealKind !== 'correccion' ? 'disabled' : ''}>Guardar esta toma de insulina</button>
+      <p class="fine">Fiasp: pínchate unos 2 minutos antes de comer, o hasta 20 minutos después de empezar. Redondeado a saltos de ${fmt(parseFloat(store.settings.step))} U.</p>`;
+    animateNum($('#doseNum'), r.dose, { from: shownDose, dec: r.dose % 1 ? 1 : 0, ms: 450 });
+    shownDose = r.dose;
+    $('#realDose').addEventListener('input', e => { realDoseStr = e.target.value; });
+    $('#mealKind').addEventListener('change', e => { mealKind = e.target.value; calc(); });
     const b = $('#saveMeal');
     if (b) b.addEventListener('click', async () => {
-      const finalRealDose = parseFloat($('#realDoseInput').value) || r.dose;
+      const typed = numOrNull($('#realDose').value);
+      const dose = typed == null ? r.dose : typed;
+      if (!(dose >= 0 && dose <= 100)) { toast('Revisa la dosis que te pones', 'err'); return; }
       try {
-        await addEntry({ 
-          type:'meal', 
-          carbs: Math.round(r.carbs), 
-          bg: r.bg > 0 ? r.bg : null, 
-          dose: finalRealDose,
-          calculatedDose: r.calculatedDose,
-          gym: gymToday() 
-        });
-        toast('Comida guardada con ' + fmt(finalRealDose) + ' U reales. Mide tu glucosa a las 2 horas');
+        await addEntry({ type:'meal', kind: mealKind, carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose, suggested: r.dose, gym: gymToday() });
+        const wasCorr = mealKind === 'correccion';
+        realDoseStr = null; mealKind = 'comida'; calc();
+        toast(wasCorr ? 'Corrección guardada. Mide a las 3 o 4 horas' : 'Guardado. Mide tu glucosa a las 2 horas');
       } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
     });
   }
 
+  /* ---------- Aprendizaje de ratio y sensibilidad ---------- */
+  // La app calcula con tus datos reales qué ratio y qué factor te habrían ido mejor y te lo PROPONE.
+  // Nunca cambia tus ajustes sola: tú lo aplicas con un toque. Cambios limitados al 10 % cada vez.
+  const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const MIN_MEALS = 5, MIN_CORRS = 4, MAX_STEP = 0.10, POST_MARGIN = 20;
+
+  function learnData() {
+    const s = store.settings;
+    const icr = parseFloat(s.icr), isf = parseFloat(s.isf), target = parseFloat(s.target);
+    const E = entries.filter(e => e.ts >= Date.now() - 60 * DAY).slice().sort((a, b) => a.ts - b.ts);
+    const rs = E.filter(e => e.type === 'reading');
+    const bol = E.filter(e => e.type === 'meal');
+    const gymDays = new Set(E.filter(e => e.gym).map(e => dayStr(e.ts)));
+    const L = { icr, isf, target, meals: [], gymMeals: [], corrs: [], bias: null,
+      lows14: rs.filter(r => r.mgdl < 70 && r.ts >= Date.now() - 14 * DAY).length };
+
+    const withSug = bol.filter(m => (m.kind || 'comida') === 'comida' && m.suggested > 0 && m.dose != null && m.carbs > 0);
+    if (withSug.length) L.bias = { n: withSug.length, pct: Math.round(median(withSug.map(m => (m.dose - m.suggested) / m.suggested * 100))) };
+
+    bol.forEach((m, i) => {
+      const kind = m.kind || 'comida', next = bol[i + 1];
+      if (kind === 'comida' && m.carbs >= 10 && icr > 0 && isf > 0 && target > 0) {
+        const r = rs.find(x => x.context === 'post2h' && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4);
+        if (!r || (next && next.ts < r.ts)) return; // otra insulina de por medio: no sirve para aprender
+        const corr = m.bg > 0 ? Math.max(0, (m.bg - target) / isf) : 0;
+        const ideal = Math.max(0, m.dose - corr) + (r.mgdl - (target + POST_MARGIN)) / isf;
+        if (ideal < 0.3) return;
+        (gymDays.has(dayStr(m.ts)) ? L.gymMeals : L.meals).push(m.carbs / ideal);
+      }
+      if (kind === 'correccion' && m.dose > 0 && m.bg > 0) {
+        const r = rs.find(x => x.ts - m.ts >= 150 * 6e4 && x.ts - m.ts <= 300 * 6e4);
+        if (!r || (next && next.ts < r.ts)) return;
+        const drop = m.bg - r.mgdl;
+        if (drop > 0) L.corrs.push(drop / m.dose);
+      }
+    });
+    return L;
+  }
+  // Propone un valor nuevo moviéndose como máximo un 10 % hacia lo que dicen los datos.
+  function propose(cur, vals, min, dec, lows14) {
+    if (!(cur > 0) || vals.length < min) return null;
+    const med = median(vals);
+    const agree = vals.filter(v => (v < cur) === (med < cur)).length / vals.length;
+    const next = Math.round(cur * Math.min(1 + MAX_STEP, Math.max(1 - MAX_STEP, med / cur)) * 10 ** dec) / 10 ** dec;
+    const moreInsulin = next < cur;
+    return { cur, med, next, n: vals.length, agree, same: next === cur,
+      blocked: moreInsulin && lows14 > 0 ? 'Has tenido glucosas bajas (< 70) en los últimos 14 días: no se propone más insulina.' :
+               agree < 0.6 ? 'Tus datos son contradictorios entre sí: hace falta más información.' : '' };
+  }
+  function renderLearn() {
+    const box = $('#learnCard'); if (!box) return;
+    const L = learnData();
+    let h = `<div class="eyebrow">Aprendizaje</div><h2>Lo que la app ha aprendido de ti</h2>`;
+    if (!(L.icr > 0)) { box.innerHTML = h + '<p class="sub">Pon tu ratio insulina/hidratos, tu factor de sensibilidad y tu glucemia objetivo en Ajustes para empezar a aprender.</p>'; return; }
+    h += `<p class="sub">Compara lo que te pones con cómo acabas 2 horas después. Te propone ajustes pequeños (máximo 10 % cada vez) y los aplicas tú con un toque.</p>`;
+    if (L.bias) h += `<p class="tjnote">Últimas ${L.bias.n} comidas: te pones de media un <b>${L.bias.pct > 0 ? '+' : ''}${L.bias.pct} %</b> respecto a lo que sugería la app.</p>`;
+    const pr = propose(L.icr, L.meals, MIN_MEALS, 1, L.lows14);
+    const pf = propose(L.isf, L.corrs, MIN_CORRS, 0, L.lows14);
+    const card = (name, unit, p, key, need, have, extra) => {
+      if (!p) return `<div class="sug"><b>${name}</b><small>Todavía faltan datos: ${have} de ${need} registros válidos.${extra}</small></div>`;
+      if (p.blocked) return `<div class="sug alta"><b>${name}: se queda en ${fmt(p.cur)} ${unit}</b><small>${p.blocked}</small></div>`;
+      if (p.same) return `<div class="sug"><b>${name}: ${fmt(p.cur)} ${unit} encaja bien con tus datos</b><small>${p.n} registros analizados.</small></div>`;
+      return `<div class="sug media"><b>${name}: ${fmt(p.cur)} → ${fmt(p.next)} ${unit}</b>
+        <small>Con ${p.n} registros, tus datos apuntan a ${fmt(Math.round(p.med * 10) / 10)} ${unit}; se propone un paso del 10 % como máximo (${Math.round(p.agree * 100)} % de acuerdo entre registros).</small>
+        <div class="actions" style="margin-top:8px"><button class="btn small violet" type="button" data-apply="${key}" data-val="${p.next}">Aplicar ${fmt(p.next)}</button></div></div>`;
+    };
+    h += card('Ratio insulina/hidratos', 'g/U', pr, 'icr', MIN_MEALS, L.meals.length, ' Cada comida necesita glucemia "2 h después" sin otra insulina entre medias.');
+    h += card('Factor de sensibilidad', 'mg/dL por U', pf, 'isf', MIN_CORRS, L.corrs.length, ' Registra correcciones (sin comer) con glucemia y mide a las 3 o 4 horas.');
+    if (L.gymMeals.length >= 3) h += `<p class="hint" style="margin-top:10px">Días de gym (${L.gymMeals.length} comidas): tu ratio efectivo sale en torno a ${fmt(Math.round(median(L.gymMeals) * 10) / 10)} g/U. No se aplica solo: coméntalo con tu endocrino si quieres un ajuste fijo.</p>`;
+    h += `<p class="fine">Son sugerencias estadísticas con pocos datos, no una pauta médica. Revísalas con tu endocrino, sobre todo si cambian mucho.</p>`;
+    box.innerHTML = h;
+  }
+  $('#learnCard').addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-apply]'); if (!b) return;
+    const k = b.dataset.apply, v = b.dataset.val;
+    if (!confirm(`¿Cambiar ${k === 'icr' ? 'tu ratio' : 'tu factor de sensibilidad'} a ${fmt(v)}?`)) return;
+    store.settings[k] = v; save(); fillSettings();
+    if (isCloud()) { try { await pushSettings(); } catch (err) { toast('Guardado aquí, pero no sincronizado: ' + err.message, 'err'); } }
+    calc(); renderLearn(); toast('Ajuste aplicado: ' + fmt(v));
+  });
+
   /* ---------- Coach ---------- */
   $('#coachBtn').addEventListener('click', async () => {
     if (!isCloud()) { setStatus('#coachStatus', 'err', 'El coach necesita la sincronización. Cierra sesión en Ajustes y entra con tu clave.'); return; }
-    setStatus('#coachStatus', 'info', '<span class="spin"></span>Analizando tus datos y puestas reales…');
+    setStatus('#coachStatus', 'info', '<span class="spin"></span>Analizando tus datos…');
     $('#coachOut').innerHTML = '';
     try {
       const d = await api('/api/coach', { method:'POST', body: JSON.stringify({ settings: { icr: store.settings.icr, isf: store.settings.isf, target: store.settings.target } }) });
@@ -1232,19 +1257,10 @@ ul.plain li{margin:5px 0}
   function renderCoach(d) {
     const s = d.stats || {};
     const stat = (v, l) => `<div class="stat"><b>${v ?? '—'}</b><span>${l}</span></div>`;
-    let h = `<div class="card"><h2>Resumen de 28 días y Aprendizaje</h2>`;
+    let h = `<div class="card"><h2>Resumen de 28 días</h2>`;
     if (d.alerta) h += `<div class="status err" style="margin-bottom:10px">${esc(d.alerta)}</div>`;
     if (d.resumen) h += `<p style="margin-top:10px">${esc(d.resumen)}</p>`;
     h += `<div class="stats">${stat(s.lecturas, 'lecturas')}${stat(s.comidas, 'comidas guardadas')}${stat(s.media_lecturas != null ? s.media_lecturas + ' mg/dL' : null, 'media de lecturas')}${stat(s.bajas_menos_70, 'lecturas bajo 70')}${stat(s.dias_gym, 'días de gym')}${stat(s.tras_comida && s.tras_comida.subida_media != null ? (s.tras_comida.subida_media > 0 ? '+' : '') + s.tras_comida.subida_media : null, 'cambio medio tras comer')}</div></div>`;
-    
-    if (s.aprendizaje) {
-      h += `<div class="card"><h3>Autoaprendizaje de Dosis</h3><ul class="plain">
-        <li>Comidas analizadas con ajuste manual: <b>${s.aprendizaje.comidas_con_ajuste || 0}</b></li>
-        <li>Aumento medio aplicado por ti sobre el cálculo: <b>${s.aprendizaje.sesgo_medio_unidades > 0 ? '+' : ''}${s.aprendizaje.sesgo_medio_unidades || 0} U</b></li>
-        <li>Estado del modelo: <b>${s.aprendizaje.estado || 'Activo y adaptándose'}</b></li>
-      </ul></div>`;
-    }
-
     const g = s.gym_antes_despues, t = s.toujeo;
     if (g || t) {
       h += `<div class="card"><h3>Gym y Toujeo</h3><ul class="plain">`;
@@ -1274,13 +1290,13 @@ ul.plain li{margin:5px 0}
     const d = await api('/api/data?what=settings');
     if (d.settings) {
       SYNCED.forEach(k => { if (d.settings[k] !== undefined && d.settings[k] !== '') store.settings[k] = d.settings[k]; });
-      save(); fillSettings(); renderToujeo(); calc(); updateCorrectionCalc();
+      save(); fillSettings(); renderToujeo(); calc();
     } else { await pushSettings(); }
   }
   $('#saveSet').addEventListener('click', async () => {
     Object.entries(map).forEach(([k, sel]) => { store.settings[k] = $(sel).value.trim(); });
     if (!store.settings.basal) store.settings.basal = '28';
-    save(); renderToujeo(); calc(); updateCorrectionCalc();
+    save(); renderToujeo(); calc();
     if (isCloud()) {
       try { await pushSettings(); setStatus('#setStatus', 'ok', 'Ajustes guardados y sincronizados.'); toast('Ajustes sincronizados'); }
       catch (err) { setStatus('#setStatus', 'err', 'Guardados en este dispositivo, pero no se pudieron sincronizar: ' + esc(err.message)); }
@@ -1325,6 +1341,7 @@ ul.plain li{margin:5px 0}
     } else if (isLocalMode()) await loadEntries();
     else openLogin();
   })();
+  // Cada minuto se actualizan los tiempos; cada 2 minutos y al volver a la pestaña se traen los datos de otros dispositivos.
   setInterval(() => { renderToujeo(); renderHero(); renderCharts(false); }, 60000);
   setInterval(() => { if (isCloud() && !document.hidden) loadEntries(true); }, 120000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) loadEntries(true); });

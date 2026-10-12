@@ -1,119 +1,67 @@
-// POST /api/coach  { settings: { icr, isf, target } }
-import { askGemini, checkAuth, loadEntries, preflight, reply } from "../lib/shared.mjs";
+// API del historial (Netlify Blobs, incluido en el plan gratuito).
+//   GET    /api/data?months=2          -> { entries: [...] }
+//   GET    /api/data?what=settings     -> { settings: {...} | null }
+//   POST   /api/data  { entry }        -> { entry }   (añade un registro)
+//   POST   /api/data  { settings }     -> { ok: true } (guarda ajustes)
+//   DELETE /api/data?id=...&ts=...     -> { ok: true }
+import { randomUUID } from "node:crypto";
+import { checkAuth, loadEntries, monthKey, preflight, reply, store } from "../lib/shared.mjs";
 
-const TZ = "Europe/Madrid";
-const dayOf = (ts) => new Date(ts).toLocaleDateString("sv-SE", { timeZone: TZ });
-const avg = (a) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null);
+const TYPES = ["meal", "reading", "chart", "day", "basal"];
+const CONTEXTS = ["ayunas", "pre_comida", "post2h", "pre_gym", "post_gym", "noche", "otro"];
 
-function computeStats(entries) {
-  const since = Date.now() - 28 * 864e5;
-  const E = entries.filter((e) => e.ts >= since);
-  const readings = E.filter((e) => e.type === "reading");
-  const meals = E.filter((e) => e.type === "meal");
-  const corrections = E.filter((e) => e.type === "correction");
-  const charts = E.filter((e) => e.type === "chart");
+const num = (v, min, max) => {
+  const x = Number(v);
+  return v === null || v === undefined || v === "" || !Number.isFinite(x) ? null : Math.min(max, Math.max(min, x));
+};
+const txt = (v, len) => String(v ?? "").slice(0, len);
 
-  const mealsWithOverride = meals.filter((m) => m.calculatedDose != null && m.dose > m.calculatedDose);
-  const diffs = mealsWithOverride.map((m) => m.dose - m.calculatedDose);
-  const sesgoMedio = diffs.length ? Math.round((diffs.reduce((a, b) => a + b, 0) / diffs.length) * 10) / 10 : 0;
-
-  const gymDays = new Set(E.filter((e) => e.gym).map((e) => dayOf(e.ts)));
-  const carbDays = new Set(E.filter((e) => e.highCarb).map((e) => dayOf(e.ts)));
-  const onGym = readings.filter((r) => gymDays.has(dayOf(r.ts)));
-  const offGym = readings.filter((r) => !gymDays.has(dayOf(r.ts)));
-  const onCarb = readings.filter((r) => carbDays.has(dayOf(r.ts)));
-  const offCarb = readings.filter((r) => !carbDays.has(dayOf(r.ts)));
-
-  const byContext = {};
-  for (const r of readings) (byContext[r.context] ||= []).push(r.mgdl);
-  const contexts = Object.fromEntries(Object.entries(byContext).map(([k, v]) => [k, { n: v.length, media: avg(v) }]));
-
-  const post = [];
-  for (const m of meals) {
-    const r = readings.find((x) => x.context === "post2h" && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4);
-    if (r) post.push({ carbs: m.carbs, dosisReal: m.dose, dosisCalc: m.calculatedDose, antes: m.bg, despues: r.mgdl, gym: gymDays.has(dayOf(m.ts)) });
-  }
-  const deltas = post.filter((p) => p.antes != null).map((p) => p.despues - p.antes);
-
-  const gymPairs = [];
-  for (const d of gymDays) {
-    const dayR = readings.filter((r) => dayOf(r.ts) === d);
-    const pre = dayR.filter((r) => r.context === "pre_gym").sort((a, b) => a.ts - b.ts)[0];
-    const postG = dayR.filter((r) => r.context === "post_gym").sort((a, b) => a.ts - b.ts)[0];
-    if (pre && postG && postG.ts > pre.ts) gymPairs.push({ antes: pre.mgdl, despues: postG.mgdl, cambio: postG.mgdl - pre.mgdl });
-  }
-  const gymRises = gymPairs.filter((p) => p.cambio > 0).length;
-
-  const basals = E.filter((e) => e.type === "basal");
-  const minutesOf = (ts) => {
-    const [h, m] = new Date(ts).toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }).split(":").map(Number);
-    return h * 60 + m;
+function cleanEntry(e) {
+  if (!e || !TYPES.includes(e.type)) return null;
+  const out = {
+    id: randomUUID(),
+    ts: num(e.ts, 0, 4e12) ?? Date.now(),
+    type: e.type,
+    gym: !!e.gym,
+    highCarb: !!e.highCarb,
+    note: txt(e.note, 300),
   };
-  const mins = basals.map((b) => minutesOf(b.ts));
-  const basal = {
-    registros: basals.length,
-    dosis_media: basals.length ? Math.round((basals.reduce((a, b) => a + (b.units || 0), 0) / basals.length) * 10) / 10 : null,
-    hora_media: mins.length ? `${String(Math.floor(avg(mins) / 60)).padStart(2, "0")}:${String(avg(mins) % 60).padStart(2, "0")}` : null,
-    variacion_horaria_min: mins.length ? Math.max(...mins) - Math.min(...mins) : null,
-  };
-
-  const lows = (a) => a.filter((r) => r.mgdl < 70).length;
-  const stats = {
-    toujeo: basal,
-    aprendizaje: {
-      comidas_con_ajuste: mealsWithOverride.length,
-      sesgo_medio_unidades: sesgoMedio,
-      estado: mealsWithOverride.length >= 3 ? "Adaptación activa por refuerzo" : "Aprendiendo (necesita más puestas reales)",
-    },
-    bolos_correccion: corrections.length,
-    gym_antes_despues: { n: gymPairs.length, suben: gymRises, cambio_medio: avg(gymPairs.map((p) => p.cambio)), ejemplos: gymPairs.slice(0, 6) },
-    dias_analizados: 28,
-    lecturas: readings.length,
-    comidas: meals.length,
-    graficas: charts.length,
-    media_lecturas: avg(readings.map((r) => r.mgdl)),
-    bajas_menos_70: lows(readings),
-    altas_mas_180: readings.filter((r) => r.mgdl > 180).length,
-    por_contexto: contexts,
-    dias_gym: gymDays.size,
-    con_gym: { lecturas: onGym.length, media: avg(onGym.map((r) => r.mgdl)), bajas: lows(onGym) },
-    sin_gym: { lecturas: offGym.length, media: avg(offGym.map((r) => r.mgdl)), bajas: lows(offGym) },
-    tras_comida: {
-      n: post.length,
-      media_despues: avg(post.map((p) => p.despues)),
-      subida_media: avg(deltas),
-      ejemplos: post.slice(0, 8),
-    },
-    graficas_resumen: charts.slice(0, 6).map((c) => ({ fecha: dayOf(c.ts), ...c.summary })),
-  };
-
-  const senales = [];
-  if (sesgoMedio > 0.5) {
-    senales.push(`Autoaprendizaje: Sueles añadir una media de +${sesgoMedio} U por encima de la recomendación de la app en tus comidas, lo cual indica que las sugerencias iniciales tendían a la baja.`);
+  if (e.type === "meal") {
+    out.carbs = num(e.carbs, 0, 500);
+    out.bg = num(e.bg, 20, 600);
+    out.dose = num(e.dose, 0, 100); // dosis REAL que se pinchó la persona
+    out.suggested = num(e.suggested, 0, 100); // dosis que propuso la app
+    out.kind = ["comida", "cafe", "correccion"].includes(e.kind) ? e.kind : "comida";
+    if (out.carbs === null || out.dose === null) return null;
   }
-  if (corrections.length > 0) {
-    senales.push(`Has registrado ${corrections.length} bolos de corrección aislados en los últimos 28 días.`);
+  if (e.type === "basal") {
+    // Toujeo: unidades y hora real de la puesta (ts), que puede ser anterior a ahora.
+    out.units = num(e.units, 0, 200);
+    if (out.units === null) return null;
   }
-  if (readings.length < 10 && charts.length < 2) {
-    senales.push("Todavía hay pocos datos: apunta lecturas (sobre todo 2 h después de comer) y sube una gráfica por semana.");
+  if (e.type === "reading") {
+    out.mgdl = num(e.mgdl, 20, 600);
+    out.context = CONTEXTS.includes(e.context) ? e.context : "otro";
+    if (out.mgdl === null) return null;
   }
-  if (stats.bajas_menos_70 >= 2) {
-    senales.push(`Hay ${stats.bajas_menos_70} lecturas por debajo de 70 mg/dL en 28 días. Antes de tocar nada, coméntalo con tu endocrino.`);
+  if (e.type === "chart") {
+    const s = e.summary || {};
+    out.summary = {
+      periodo: txt(s.periodo, 60),
+      media_mgdl: num(s.media_mgdl, 20, 600),
+      tir_pct: num(s.tir_pct, 0, 100),
+      bajo_pct: num(s.bajo_pct, 0, 100),
+      alto_pct: num(s.alto_pct, 0, 100),
+      hipos: num(s.hipos, 0, 200),
+      min_mgdl: num(s.min_mgdl, 20, 600),
+      max_mgdl: num(s.max_mgdl, 20, 600),
+      patrones: (Array.isArray(s.patrones) ? s.patrones : []).slice(0, 3).map((p) => txt(p, 160)),
+    };
   }
-  return { stats, senales };
+  return out;
 }
 
-const COACH_SYSTEM = `Eres un asistente experto en análisis de datos para una persona adulta con diabetes tipo 1 (insulina rápida Fiasp y basal Toujeo).
-Recibes estadísticas de los últimos 28 días, incluyendo el módulo de autoaprendizaje y bolos de corrección aislados.
-Tu trabajo es analizar si la app se quedaba corta, cómo has ajustado las dosis y proponer hipótesis que la persona pueda comentar con su endocrino.
-Reglas estrictas:
-- No eres médico y no tomas decisiones de dosis. Nunca des una dosis concreta para una comida.
-- Nunca recomiendes cambiar la dosis de la insulina basal (Toujeo).
-- Valora si el sesgo de autoaprendizaje (+U añadidas por el usuario) ha mejorado las glucemias post-comida.
-- Escribe en español, claro y breve, sin alarmismo.
-Devuelve SOLO un objeto JSON con este formato:
-{"resumen":"","alerta":"","patrones":[{"titulo":"","detalle":""}],"sugerencias":[{"texto":"","prioridad":"alta|media|baja","requiere_endocrino":true}],"preguntas_endocrino":[""]}
-Usa "" en "alerta" si no hay ninguna.`;
+const SETTING_KEYS = ["icr", "isf", "target", "step", "maxDose", "gymAdj", "basal"];
 
 export default async (req) => {
   const pre = preflight(req);
@@ -121,45 +69,53 @@ export default async (req) => {
   const bad = checkAuth(req);
   if (bad) return bad;
 
-  const body = await req.json().catch(() => ({}));
-  const settings = {
-    ratio_insulina_hidratos: String(body.settings?.icr ?? "").slice(0, 10),
-    factor_sensibilidad: String(body.settings?.isf ?? "").slice(0, 10),
-    glucemia_objetivo: String(body.settings?.target ?? "").slice(0, 10),
-  };
-
-  let entries;
-  try {
-    entries = await loadEntries(2);
-  } catch (err) {
-    console.error(err);
-    return reply(500, { error: "No se pudo leer el historial" });
-  }
-
-  const { stats, senales } = computeStats(entries);
+  const s = store();
+  const url = new URL(req.url);
 
   try {
-    const ai = await askGemini({
-      system: COACH_SYSTEM,
-      parts: [{ text: JSON.stringify({ ajustes_actuales: settings, estadisticas: stats, senales_detectadas: senales }) }],
-    });
-    return reply(200, {
-      stats,
-      senales,
-      resumen: String(ai.resumen || "").slice(0, 600),
-      alerta: String(ai.alerta || "").slice(0, 400),
-      patrones: (Array.isArray(ai.patrones) ? ai.patrones : []).slice(0, 6).map((p) => ({ titulo: String(p.titulo || "").slice(0, 100), detalle: String(p.detalle || "").slice(0, 400) })),
-      sugerencias: (Array.isArray(ai.sugerencias) ? ai.sugerencias : []).slice(0, 6).map((s) => ({
-        texto: String(s.texto || "").slice(0, 400),
-        prioridad: ["alta", "media", "baja"].includes(s.prioridad) ? s.prioridad : "media",
-        requiere_endocrino: s.requiere_endocrino !== false,
-      })),
-      preguntas_endocrino: (Array.isArray(ai.preguntas_endocrino) ? ai.preguntas_endocrino : []).slice(0, 5).map((q) => String(q).slice(0, 200)),
-    });
+    if (req.method === "GET") {
+      if (url.searchParams.get("what") === "settings") {
+        const settings = await s.get("settings", { type: "json" });
+        return reply(200, { settings: settings || null });
+      }
+      const months = Math.min(12, Math.max(1, parseInt(url.searchParams.get("months") || "2", 10) || 2));
+      return reply(200, { entries: await loadEntries(months) });
+    }
+
+    if (req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+
+      if (body.settings) {
+        const clean = {};
+        for (const k of SETTING_KEYS) clean[k] = txt(body.settings[k], 20);
+        await s.setJSON("settings", clean);
+        return reply(200, { ok: true });
+      }
+
+      const entry = cleanEntry(body.entry);
+      if (!entry) return reply(400, { error: "Registro no válido" });
+      const key = `entries/${monthKey(entry.ts)}`;
+      const list = (await s.get(key, { type: "json" })) || [];
+      list.push(entry);
+      await s.setJSON(key, list);
+      return reply(200, { entry });
+    }
+
+    if (req.method === "DELETE") {
+      const id = url.searchParams.get("id");
+      const ts = Number(url.searchParams.get("ts"));
+      if (!id || !Number.isFinite(ts)) return reply(400, { error: "Faltan datos" });
+      const key = `entries/${monthKey(ts)}`;
+      const list = (await s.get(key, { type: "json" })) || [];
+      await s.setJSON(key, list.filter((e) => e.id !== id));
+      return reply(200, { ok: true });
+    }
+
+    return reply(405, { error: "Método no permitido" });
   } catch (err) {
     console.error(err);
-    return reply(200, { stats, senales, resumen: "", alerta: "", patrones: [], sugerencias: [], preguntas_endocrino: [], aviso_ia: err.message });
+    return reply(500, { error: "Error al acceder a la base de datos" });
   }
 };
 
-export const config = { path: "/api/coach" };
+export const config = { path: "/api/data" };

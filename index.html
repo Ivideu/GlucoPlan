@@ -298,44 +298,38 @@ ul.plain li{margin:5px 0}
 
     <div class="cols">
       <div class="stack">
-
-        <!--Nueva tarjeta de anotar glucosa -->
 <div class="card">
-          <h2>Anotar glucosa</h2>
-          <p class="sub">Registra tu glucemia con la fecha y hora exactas.</p>
-          <div class="fgrid">
-            <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
-            <div class="field"><label for="r-time">Momento (Hora y fecha)</label><input id="r-time" type="datetime-local"></div>
-          </div>
-          <div class="fgrid" style="margin-top:12px">
-            <div class="field">
-              <label for="r-preset">Nota rápida (opcional)</label>
-              <select id="r-preset">
-                <option value="">Selecciona una opción...</option>
-                <option value="Café con leche">Café con leche</option>
-                <option value="Merienda">Merienda</option>
-                <option value="Sobre azúcar">Sobre azúcar</option>
-                <option value="custom">Escribir nota personalizada...</option>
-              </select>
-            </div>
-            <div class="field" id="customNoteBox" hidden>
-              <label for="r-note">Nota personalizada</label>
-              <input id="r-note" maxlength="120" placeholder="Escribe tu nota aquí">
-            </div>
-          </div>
-          <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar lectura</button></div>
-
-          <!-- Bloque dinámico para bolo de corrección -->
-          <div id="correctionBox" hidden style="margin-top:16px; background:rgba(111,207,191,.12); border:1px solid rgba(111,207,191,.3); border-radius:16px; padding:16px;">
-            <div style="font-family:var(--display); font-weight:700; font-size:1.1rem; color:#2E8B7A;">Bolo de corrección recomendado</div>
-            <p class="sub" style="margin:2px 0 10px">Superas tu glucemia objetivo. Puedes aplicarte esta corrección de Fiasp sin comida.</p>
-            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:12px;">
-              <span id="corrDoseNum" style="font-family:var(--display); font-size:2.4rem; font-weight:800; color:#2E8B7A;">0</span>
-              <span style="color:var(--muted)">unidades</span>
-            </div>
-            <button class="btn small" id="saveCorrectionBtn" type="button">Guardar y registrar bolo de corrección</button>
-          </div>
-        </div>
+  <h2>Anotar glucosa</h2>
+  <p class="sub">Registra tu glucemia con la fecha y hora exactas.</p>
+  <div class="fgrid">
+    <div class="field">
+      <label for="r-val">Glucosa (mg/dL)</label>
+      <input id="r-val" type="number" inputmode="decimal" min="20" max="600">
+    </div>
+    <div class="field">
+      <label for="r-time">Momento (Hora y fecha)</label>
+      <input id="r-time" type="datetime-local">
+    </div>
+  </div>
+  <div class="fgrid" style="margin-top:12px">
+    <div class="field">
+      <label for="r-preset">Nota rápida (opcional)</label>
+      <select id="r-preset">
+        <option value="">Selecciona una opción...</option>
+        <option value="Café con leche">Café con leche</option>
+        <option value="Merienda">Merienda</option>
+        <option value="Sobre azúcar">Sobre azúcar</option>
+        <option value="custom">Escribir nota personalizada...</option>
+      </select>
+    </div>
+    <div class="field" id="customNoteBox" hidden>
+      <label for="r-note">Nota personalizada</label>
+      <input id="r-note" maxlength="120" placeholder="Escribe tu nota aquí">
+    </div>
+  </div>
+  <div class="actions" style="margin-top:14px">
+    <button class="btn" id="saveReading" type="button">Guardar lectura</button>
+  </div>
 
   <!-- Bloque dinámico para bolo de corrección de insulina -->
   <div id="correctionBox" hidden style="margin-top:16px; background:rgba(111,207,191,.12); border:1px solid rgba(111,207,191,.3); border-radius:16px; padding:16px;">
@@ -860,12 +854,12 @@ ul.plain li{margin:5px 0}
     } catch (err) { toast(err.message, 'err'); }
   });
 
-/* ---------- Registro ---------- */
+  /* ---------- Registro ---------- */
   function describe(e) {
     const tags = e.gym ? '<span class="tag">gym</span>' : '';
     if (e.type === 'meal') return [ '🍽️', `<b>Comida</b>: ${fmt(e.carbs)} g de hidratos, Fiasp ${fmt(e.dose)} U${e.calculatedDose && e.dose !== e.calculatedDose ? ' (calc: ' + fmt(e.calculatedDose) + ' U)' : ''}${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}` ];
-    if (e.type === 'correction') return [ '💉', `<b>Bolo de corrección: ${fmt(e.dose)} U</b> (Glucemia: ${fmt(e.bg)} mg/dL)${e.note ? ' <small>' + esc(e.note) + '</small>' : ''}${tags}` ];
-    if (e.type === 'reading') return [ '🩸', `<b>${fmt(e.mgdl)} mg/dL</b>${e.note ? ' <small>(' + esc(e.note) + ')</small>' : ''}${tags}` ];
+    if (e.type === 'correction') return [ '💉', `<b>Bolo de corrección: ${fmt(e.dose)} U</b> (Glucemia: ${fmt(e.bg)} mg/dL)${e.note ? '<small>' + esc(e.note) + '</small>' : ''}${tags}` ];
+    if (e.type === 'reading') return [ '🩸', `<b>${fmt(e.mgdl)} mg/dL</b> ${CTX[e.context] || ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
     if (e.type === 'basal') return [ '💉', `<b>Toujeo ${fmt(e.units)} U</b>` ];
     if (e.type === 'chart') {
       const s = e.summary || {};
@@ -879,28 +873,14 @@ ul.plain li{margin:5px 0}
     if (!entries.length) { box.innerHTML = '<p class="empty">Todavía no hay registros.</p>'; return; }
     box.innerHTML = entries.slice(0, n).map(e => {
       const [ic, html] = describe(e);
-      return `<div class="row" data-id="${e.id}">
-        <div class="ic ${e.type}" aria-hidden="true">${ic}</div>
-        <div>${html}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div>
-        <div class="row-btns">
-          <button class="btn-act edit" type="button" aria-label="Editar registro">✎</button>
-          <button class="btn-act x" type="button" aria-label="Borrar registro">×</button>
-        </div>
-      </div>`;
+      return `<div class="row" data-id="${e.id}"><div class="ic ${e.type}" aria-hidden="true">${ic}</div><div>${html}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div><button class="x" type="button" aria-label="Borrar registro">×</button></div>`;
     }).join('');
   }
   function renderEntries() { fillLog('#entryLogHoy', 6); fillLog('#entryLog', 30); }
   ['#entryLogHoy', '#entryLog'].forEach(sel => $(sel).addEventListener('click', async ev => {
-    const row = ev.target.closest('.row');
-    if (!row) return;
-    const e = entries.find(x => x.id === row.dataset.id);
-    if (!e) return;
-
-    if (ev.target.closest('.x')) {
-      if (confirm('¿Borrar este registro?')) { try { await removeEntry(e); toast('Registro borrado'); } catch (err) { toast(err.message, 'err'); } }
-    } else if (ev.target.closest('.edit')) {
-      openEditModal(e);
-    }
+    const btn = ev.target.closest('.x'); if (!btn) return;
+    const e = entries.find(x => x.id === btn.closest('.row').dataset.id);
+    if (e && confirm('¿Borrar este registro?')) { try { await removeEntry(e); toast('Registro borrado'); } catch (err) { toast(err.message, 'err'); } }
   }));
 
   function renderHist() {
@@ -918,41 +898,12 @@ ul.plain li{margin:5px 0}
     a.download = 'glucoplan-historial.csv'; a.click();
   });
 
-  /* ---------- Fecha y Hora por defecto ---------- */
-  function setDefaultTime() {
-    $('#r-time').value = toLocalInput(Date.now());
-  }
-  setDefaultTime();
-
-  /* ---------- Desplegable de notas ---------- */
-  $('#r-preset').addEventListener('change', e => {
-    const val = e.target.value;
-    const box = $('#customNoteBox');
-    if (val === 'custom') {
-      box.hidden = false;
-      $('#r-note').value = '';
-      $('#r-note').focus();
-    } else {
-      box.hidden = true;
-      $('#r-note').value = val;
-    }
-  });
-
   $('#saveReading').addEventListener('click', async () => {
     const mgdl = numOrNull($('#r-val').value);
     if (!(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
-    
-    const timeVal = $('#r-time').value;
-    const ts = timeVal ? new Date(timeVal).getTime() : Date.now();
-    const note = $('#r-note').value;
-
     try {
-      await addEntry({ type:'reading', mgdl, ts, note, gym: gymToday() });
-      $('#r-val').value = ''; 
-      $('#r-note').value = '';
-      $('#r-preset').value = '';
-      $('#customNoteBox').hidden = true;
-      setDefaultTime();
+      await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note: $('#r-note').value, gym: gymToday() });
+      $('#r-val').value = ''; $('#r-note').value = '';
       $('#correctionBox').hidden = true;
       toast(mgdl < 70 ? 'Guardada. Glucosa baja: trátala según tu pauta' : 'Lectura guardada: ' + fmt(mgdl) + ' mg/dL', mgdl < 70 ? 'err' : 'ok');
     } catch (err) { toast(err.message, 'err'); }
@@ -990,78 +941,22 @@ ul.plain li{margin:5px 0}
 
     if (!(dose > 0)) { toast('No hay unidades de corrección necesarias', 'err'); return; }
 
-    const timeVal = $('#r-time').value;
-    const ts = timeVal ? new Date(timeVal).getTime() : Date.now();
-
     try {
       await addEntry({ 
         type: 'correction', 
         bg: mgdl, 
         dose, 
-        ts,
         note: $('#r-note').value, 
         gym: gymToday() 
       });
       $('#r-val').value = ''; 
       $('#r-note').value = '';
-      $('#r-preset').value = '';
-      $('#customNoteBox').hidden = true;
-      setDefaultTime();
       $('#correctionBox').hidden = true;
       toast('Bolo de corrección guardado: ' + fmt(dose) + ' U');
     } catch (err) { 
       toast(err.message, 'err'); 
     }
   });
-
-/* ---------- Fecha y Hora por defecto ---------- */
-  function setDefaultTime() {
-    const timeInput = $('#r-time');
-    if (timeInput) timeInput.value = toLocalInput(Date.now());
-  }
-  setDefaultTime();
-
-  /* ---------- Desplegable de notas ---------- */
-  const preset = $('#r-preset');
-  if (preset) {
-    preset.addEventListener('change', e => {
-      const val = e.target.value;
-      const box = $('#customNoteBox');
-      if (val === 'custom') {
-        box.hidden = false;
-        $('#r-note').value = '';
-        $('#r-note'].focus();
-      } else {
-        box.hidden = true;
-        $('#r-note').value = val;
-      }
-    });
-  }
-
-  const saveReadingBtn = $('#saveReading');
-  if (saveReadingBtn) {
-    saveReadingBtn.addEventListener('click', async () => {
-      const mgdl = numOrNull($('#r-val').value);
-      if (!(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
-      
-      const timeVal = $('#r-time').value;
-      const ts = timeVal ? new Date(timeVal).getTime() : Date.now();
-      const note = $('#r-note').value;
-
-      try {
-        await addEntry({ type:'reading', mgdl, ts, note, gym: gymToday() });
-        $('#r-val').value = ''; 
-        $('#r-note').value = '';
-        if (preset) preset.value = '';
-        $('#customNoteBox').hidden = true;
-        setDefaultTime();
-        $('#correctionBox').hidden = true;
-        toast(mgdl < 70 ? 'Guardada. Glucosa baja: trátala según tu pauta' : 'Lectura guardada: ' + fmt(mgdl) + ' mg/dL', mgdl < 70 ? 'err' : 'ok');
-      } catch (err) { toast(err.message, 'err'); }
-    });
-  }
-  const rValInput = $('#r-val');
-  if (rValInput) rValInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
 
   /* ---------- Gráfica ---------- */
   function drawChart(el, days, anim) {

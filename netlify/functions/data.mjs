@@ -1,6 +1,7 @@
-// API del historial (Netlify Blobs, incluido en el plan gratuito).
+// API del historial (Netlify Blobs).
 //   GET    /api/data?months=2          -> { entries: [...] }
 //   GET    /api/data?what=settings     -> { settings: {...} | null }
+//   GET    /api/data?what=version      -> { version }  (sin clave, para comprobar el despliegue)
 //   POST   /api/data  { entry }        -> { entry }   (añade un registro)
 //   POST   /api/data  { update }       -> { entry }   (edita un registro)
 //   POST   /api/data  { settings }     -> { ok: true } (guarda ajustes)
@@ -67,11 +68,12 @@ const SETTING_KEYS = ["icr", "isf", "target", "step", "maxDose", "gymAdj", "basa
 export default async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
+  const url = new URL(req.url);
+  if (url.searchParams.get("what") === "version") return reply(200, { version: "edicion-v2" });
   const bad = checkAuth(req);
   if (bad) return bad;
 
   const s = store();
-  const url = new URL(req.url);
 
   try {
     if (req.method === "GET") {
@@ -96,8 +98,13 @@ export default async (req) => {
       if (body.update) {
         const { id, oldTs, entry: raw } = body.update;
         const old = Number(oldTs);
-        const entry = id && Number.isFinite(old) ? cleanEntry(raw, id) : null;
-        if (!entry) return reply(400, { error: "Registro no válido" });
+        if (!id || !Number.isFinite(old)) return reply(400, { error: "Edición: falta el id o la fecha original" });
+        const entry = cleanEntry(raw, id);
+        if (!entry) {
+          return reply(400, {
+            error: `Edición: datos no válidos (tipo ${raw?.type}, hidratos ${raw?.carbs}, dosis ${raw?.dose}, glucosa ${raw?.mgdl}, unidades ${raw?.units})`,
+          });
+        }
         const oldKey = `entries/${monthKey(old)}`, newKey = `entries/${monthKey(entry.ts)}`;
         const oldList = (await s.get(oldKey, { type: "json" })) || [];
         if (!oldList.some((x) => x.id === entry.id)) return reply(404, { error: "No se encontró el registro" });

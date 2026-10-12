@@ -38,6 +38,7 @@ export function checkAuth(req) {
 }
 
 // ---------- Base de datos (Netlify Blobs) ----------
+// Consistencia fuerte: una lectura siempre ve lo último que se guardó o borró.
 export const store = () => getStore({ name: "glucoplan", consistency: "strong" });
 
 // Clave de mes en formato AAAA-MM (UTC).
@@ -93,7 +94,6 @@ export async function askGemini({ system, parts, text }) {
 
   const deadline = Date.now() + DEADLINE_MS;
   let lastStatus = 0;
-  let lastMsg = "";
 
   for (const model of models) {
     const left = deadline - Date.now();
@@ -118,18 +118,18 @@ export async function askGemini({ system, parts, text }) {
           return JSON.parse(raw.slice(start, end + 1));
         } catch {
           lastStatus = 502;
-          lastMsg = "La respuesta no se entendió bien";
-          continue; // probar el siguiente modelo
+          continue; // respuesta que no es JSON: probar el siguiente modelo
         }
       }
 
       const detail = await res.text().catch(() => "");
       console.error("Gemini error", model, res.status, detail.slice(0, 500));
       lastStatus = res.status;
-      try { lastMsg = JSON.parse(detail)?.error?.message || ""; } catch { lastMsg = ""; }
+      let googleMsg = "";
+      try { googleMsg = JSON.parse(detail)?.error?.message || ""; } catch {}
       if (!NEXT_MODEL_ON.has(res.status)) {
         throw Object.assign(
-          new Error(`Gemini devolvió un error (${res.status}) con ${model}: ${lastMsg}`.slice(0, 300)),
+          new Error(`Gemini devolvió un error (${res.status}) con ${model}: ${googleMsg}`.slice(0, 300)),
           { status: 502 }
         );
       }

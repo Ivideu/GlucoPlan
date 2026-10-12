@@ -285,6 +285,7 @@ ul.plain li{margin:5px 0}
         <h2 id="greet">Hola</h2>
         <p class="date" id="dateLine"></p>
         <p class="meta" id="ringMeta">Anota tu primera lectura para empezar.</p>
+        <p class="hint" id="sensorLine" style="margin-top:4px"></p>
         <div class="mini">
           <div><b id="hs-media">—</b><span>media 7 días</span></div>
           <div><b id="hs-tir">—</b><span>en rango 7 días</span></div>
@@ -685,12 +686,43 @@ ul.plain li{margin:5px 0}
   }
 
   /* ---------- Registros ---------- */
-  const readings = () => entries.filter(e => e.type === 'reading');
+  /* ---------- Sensor Libre (vía LibreLinkUp) ---------- */
+  let sensor = [];          // lecturas del sensor, mezcladas con las manuales
+  let sensorTrend = null;   // 1 baja rápido, 2 baja, 3 estable, 4 sube, 5 sube rápido
+  let sensorInfo = { state: 'idle' };
+  let syncing = false;
+  const TREND = { 1: '↓↓', 2: '↘', 3: '→', 4: '↗', 5: '↑↑' };
+  const readings = () => entries.filter(e => e.type === 'reading').concat(sensor).sort((a, b) => b.ts - a.ts);
+
+  function renderSensorLine() {
+    const el = $('#sensorLine'); if (!el) return;
+    const i = sensorInfo;
+    if (i.state === 'off') { el.textContent = 'Sensor Libre sin conectar: faltan LIBRE_EMAIL y LIBRE_PASSWORD en Netlify.'; return; }
+    if (!i.lastTs) { el.textContent = i.msg ? 'Sensor Libre: ' + i.msg : ''; return; }
+    const min = Math.max(0, Math.round((Date.now() - i.lastTs) / 6e4));
+    el.textContent = `Sensor Libre ${TREND[sensorTrend] || ''} · lectura de hace ${min < 1 ? 'menos de 1 min' : min + ' min'}` +
+      (min > 20 ? '. Sin datos recientes: comprueba que LibreLink está subiendo lecturas.' : '') + (i.msg ? ' · ' + i.msg : '');
+  }
+  async function syncSensor() {
+    if (!isCloud() || syncing) return;
+    syncing = true;
+    try {
+      const d = await api('/api/libre?days=28');
+      if (d.configured === false) { sensor = []; sensorInfo = { state: 'off' }; }
+      else {
+        sensor = (d.points || []).map(([ts, mgdl]) => ({ id: 's' + ts, type: 'reading', ts, mgdl, context: 'sensor', sensor: true }));
+        sensorTrend = d.trend || null;
+        sensorInfo = { state: d.aviso ? 'error' : 'ok', lastTs: d.lastTs, msg: d.aviso || '' };
+      }
+    } catch (err) { sensorInfo = { ...sensorInfo, state: 'error', msg: err.message }; }
+    syncing = false;
+    renderHero(); renderCorr(); renderCharts(false); renderSensorLine();
+  }
   const gymToday = () => entries.some(e => e.type === 'day' && e.gym && dayStr(e.ts) === todayKey());
   const lastBasal = () => entries.find(e => e.type === 'basal');
 
   function renderAll() {
-    renderHero(); renderToujeo(); renderCorr(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc(); renderLearn();
+    renderHero(); renderSensorLine(); renderToujeo(); renderCorr(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc(); renderLearn();
   }
   async function loadEntries(silent) {
     if (isCloud()) {
@@ -753,7 +785,7 @@ ul.plain li{margin:5px 0}
       animateNum($('#ringVal'), r.mgdl, { from: shown.val });
       shown.val = r.mgdl;
       const st = $('#ringState'); st.textContent = gState(r.mgdl); st.style.color = gText(r.mgdl);
-      let meta = `Última lectura ${whenLabel(r.ts)}, ${CTX[r.context] || ''}.`;
+      let meta = `Última lectura ${whenLabel(r.ts)}${r.sensor ? ' (sensor)' : ', ' + (CTX[r.context] || '')}.`;
       if (rs[1]) { const d = r.mgdl - rs[1].mgdl; meta += ` ${Math.abs(d) < 10 ? '→ estable' : d > 0 ? '↑ +' + d : '↓ ' + d} respecto a la anterior.`; }
       $('#ringMeta').textContent = meta;
     } else {
@@ -933,6 +965,7 @@ ul.plain li{margin:5px 0}
     let why = '', units = 0, parts = null;
     if (!last || age > 60) why = 'Mide tu glucosa para calcular una corrección (la última lectura tiene más de 1 hora).';
     else if (lowRecent || last.mgdl < 70) why = 'Has tenido una glucosa baja en las últimas 3 horas: no se propone corrección.';
+    else if (last.sensor && sensorTrend && sensorTrend <= 2) why = 'El sensor indica que tu glucosa está bajando: no se propone corrección ahora. Vuelve a mirar en unos minutos.';
     else if (sinceDose < 120) why = `Hace ${fmtDur(sinceDose * 6e4)} que te pusiste insulina y aún no ha hecho su efecto principal. Espera ${fmtDur((120 - sinceDose) * 6e4)} y vuelve a medir.`;
     else if (last.mgdl < Math.max(130, target + 40)) why = `Tu última glucosa (${fmt(last.mgdl)}) no necesita corrección.`;
     else {
@@ -1610,7 +1643,7 @@ ul.plain li{margin:5px 0}
   });
   $('#logoutBtn').addEventListener('click', () => {
     try { localStorage.removeItem(KEY + ':key'); localStorage.removeItem(KEY + ':local'); } catch {}
-    entries = []; renderSync(); renderAll(); openLogin();
+    entries = []; sensor = []; renderSync(); renderAll(); openLogin();
   });
 
   /* ---------- Acceso ---------- */
@@ -1623,7 +1656,7 @@ ul.plain li{margin:5px 0}
     try {
       await pullSettings();
       $('#login').hidden = true; $('#pw').value = ''; setStatus('#loginStatus', '', '');
-      renderSync(); await loadEntries();
+      renderSync(); await loadEntries(); syncSensor();
       toast('Sincronizado con tu base de datos');
     } catch (err) {
       try { localStorage.removeItem(KEY + ':key'); } catch {}
@@ -1642,15 +1675,15 @@ ul.plain li{margin:5px 0}
   showTab(TABS.includes(h) ? h : 'hoy');
   (async () => {
     if (isCloud()) {
-      try { await pullSettings(); await loadEntries(); }
+      try { await pullSettings(); await loadEntries(); syncSensor(); }
       catch (err) { toast(err.message, 'err'); openLogin(); }
     } else if (isLocalMode()) await loadEntries();
     else openLogin();
   })();
   // Cada minuto se actualizan los tiempos; cada 2 minutos y al volver a la pestaña se traen los datos de otros dispositivos.
-  setInterval(() => { renderToujeo(); renderCorr(); renderHero(); renderCharts(false); setNow(); }, 60000);
+  setInterval(() => { renderToujeo(); renderCorr(); renderHero(); renderCharts(false); renderSensorLine(); setNow(); if (!document.hidden) syncSensor(); }, 60000);
   setInterval(() => { if (isCloud() && !document.hidden) loadEntries(true); }, 120000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) loadEntries(true); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) { loadEntries(true); syncSensor(); } });
 })();
 </script>
 </body>

@@ -1,16 +1,17 @@
 // API del historial (Netlify Blobs).
 //   GET    /api/data?months=2          -> { entries: [...] }
 //   GET    /api/data?what=settings     -> { settings: {...} | null }
-//   GET    /api/data?what=version      -> { version }  (sin clave, para comprobar el despliegue)
-//   POST   /api/data  { entry }        -> { entry }   (añade un registro)
-//   POST   /api/data  { update }       -> { entry }   (edita un registro)
-//   POST   /api/data  { settings }     -> { ok: true } (guarda ajustes)
+//   GET    /api/data?what=version      -> { version }
+//   POST   /api/data  { entry }        -> { entry }   (añade; si el id ya existe no duplica)
+//   POST   /api/data  { update }       -> { entry }   (edita)
+//   POST   /api/data  { settings }     -> { ok: true }
 //   DELETE /api/data?id=...&ts=...     -> { ok: true }
 import { randomUUID } from "node:crypto";
 import { checkAuth, loadEntries, monthKey, preflight, reply, store } from "../lib/shared.mjs";
 
 const TYPES = ["meal", "reading", "chart", "day", "basal"];
 const CONTEXTS = ["ayunas", "pre_comida", "post2h", "pre_gym", "post_gym", "noche", "otro"];
+const KINDS = ["comida", "cafe", "correccion"];
 
 const num = (v, min, max) => {
   const x = Number(v);
@@ -29,21 +30,24 @@ function cleanEntry(e, id) {
     note: txt(e.note, 300),
   };
   if (e.type === "meal") {
-    out.carbs = num(e.carbs, 0, 500);
+    out.carbs = num(e.carbs, 0, 500) ?? 0; // sin comida = 0 g
     out.bg = num(e.bg, 20, 600);
     out.dose = num(e.dose, 0, 100); // dosis REAL que se pinchó la persona
     out.suggested = num(e.suggested, 0, 100); // dosis que propuso la app
-    out.kind = ["comida", "cafe", "correccion"].includes(e.kind) ? e.kind : "comida";
-    if (out.carbs === null || out.dose === null) return null;
+    out.kind = KINDS.includes(e.kind) ? e.kind : "comida";
+    if (out.dose === null) return null;
   }
   if (e.type === "basal") {
-    // Toujeo: unidades y hora real de la puesta (ts), que puede ser anterior a ahora.
     out.units = num(e.units, 0, 200);
     if (out.units === null) return null;
   }
   if (e.type === "reading") {
     out.mgdl = num(e.mgdl, 20, 600);
     out.context = CONTEXTS.includes(e.context) ? e.context : "otro";
+    // Insulina opcional en la misma lectura (un solo registro)
+    const dose = num(e.dose, 0, 100);
+    out.dose = dose > 0 ? dose : null;
+    out.kind = out.dose ? (KINDS.includes(e.kind) ? e.kind : "correccion") : null;
     if (out.mgdl === null) return null;
   }
   if (e.type === "chart") {
@@ -63,17 +67,20 @@ function cleanEntry(e, id) {
   return out;
 }
 
+const detail = (r) =>
+  `datos no válidos (tipo ${r?.type}, hidratos ${r?.carbs}, dosis ${r?.dose}, glucosa ${r?.mgdl}, unidades ${r?.units})`;
+
 const SETTING_KEYS = ["icr", "isf", "target", "step", "maxDose", "gymAdj", "basal"];
 
 export default async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
-  const url = new URL(req.url);
-  if (url.searchParams.get("what") === "version") return reply(200, { version: "edicion-v2" });
+  if (new URL(req.url).searchParams.get("what") === "version") return reply(200, { version: "v3-unico" });
   const bad = checkAuth(req);
   if (bad) return bad;
 
   const s = store();
+  const url = new URL(req.url);
 
   try {
     if (req.method === "GET") {
@@ -100,11 +107,7 @@ export default async (req) => {
         const old = Number(oldTs);
         if (!id || !Number.isFinite(old)) return reply(400, { error: "Edición: falta el id o la fecha original" });
         const entry = cleanEntry(raw, id);
-        if (!entry) {
-          return reply(400, {
-            error: `Edición: datos no válidos (tipo ${raw?.type}, hidratos ${raw?.carbs}, dosis ${raw?.dose}, glucosa ${raw?.mgdl}, unidades ${raw?.units})`,
-          });
-        }
+        if (!entry) return reply(400, { error: "Edición: " + detail(raw) });
         const oldKey = `entries/${monthKey(old)}`, newKey = `entries/${monthKey(entry.ts)}`;
         const oldList = (await s.get(oldKey, { type: "json" })) || [];
         if (!oldList.some((x) => x.id === entry.id)) return reply(404, { error: "No se encontró el registro" });
@@ -119,10 +122,11 @@ export default async (req) => {
         return reply(200, { entry });
       }
 
-      const entry = cleanEntry(body.entry);
-      if (!entry) return reply(400, { error: "Registro no válido" });
+      const entry = cleanEntry(body.entry, body.entry?.id);
+      if (!entry) return reply(400, { error: "Registro no válido: " + detail(body.entry) });
       const key = `entries/${monthKey(entry.ts)}`;
       const list = (await s.get(key, { type: "json" })) || [];
+      if (list.some((x) => x.id === entry.id)) return reply(200, { entry }); // ya existía: no duplicar
       list.push(entry);
       await s.setJSON(key, list);
       return reply(200, { entry });

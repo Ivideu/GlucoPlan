@@ -61,80 +61,91 @@ export async function loadEntries(months = 2) {
     .sort((a, b) => b.ts - a.ts);
 }
 
-// ---------- Gemini con modelos de respaldo ----------
-// Se prueba primero GEMINI_MODEL (si existe y es un nombre de modelo) y después estos modelos.
-// Cada modelo recibe un solo intento; si falla (saturado, retirado, etc.) se pasa al siguiente.
-const FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3-flash-preview", "gemini-flash-latest"];
-const RETRYABLE = new Set([429, 500, 502, 503, 504]);
-const DEADLINE_MS = 9500; // Netlify corta las funciones a los ~10 s por defecto
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// ---------- Gemini ----------
+// Modelos que funcionan con tu clave, en orden: primero el más rápido
+// (Netlify corta las funciones a los ~10 s). Si falla uno, se prueba el siguiente.
+const FALLBACK_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash"];
+const NEXT_MODEL_ON = new Set([404, 429, 500, 502, 503, 504]); // no existe o está saturado
+const DEADLINE_MS = 8500; // devolvemos un error limpio antes de que Netlify corte
 
 // askGemini({ system, parts })  o  askGemini({ system, text })  ->  objeto JSON
 export async function askGemini({ system, parts, text }) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = (process.env.GEMINI_API_KEY || "").trim();
   if (!apiKey) throw Object.assign(new Error("Falta GEMINI_API_KEY en Netlify"), { status: 500 });
 
   const userParts = parts || [{ text: String(text ?? "") }];
-  // Solo se acepta GEMINI_MODEL si parece un nombre de modelo (evita usar por error otro valor).
-  const custom = /^[a-z0-9][a-z0-9.\-]{2,60}$/i.test(process.env.GEMINI_MODEL || "") && !/^AQ\./.test(process.env.GEMINI_MODEL)
-    ? process.env.GEMINI_MODEL
-    : null;
-  const models = [...new Set([custom, ...FALLBACK_MODELS].filter(Boolean))];
-  const body = JSON.stringify({
-    systemInstruction: { parts: [{ text: system }] },
-    contents: [{ role: "user", parts: userParts }],
-    generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
-  });
 
-  const t0 = Date.now();
+  // GEMINI_MODEL solo se usa si parece un nombre de modelo y no es de la serie 2.5 (retirada).
+  const envModel = (process.env.GEMINI_MODEL || "").trim();
+  const valid = /^gemini-[a-z0-9.\-]{2,60}$/i.test(envModel) && !envModel.startsWith("gemini-2.5");
+  const models = [...new Set([valid ? envModel : "", ...FALLBACK_MODELS].filter(Boolean))];
+
+  const buildBody = (model) => {
+    const generationConfig = { responseMimeType: "application/json", maxOutputTokens: 2048 };
+    // Flash-Lite ya piensa lo mínimo por defecto y no admite temperature personalizada.
+    if (!/flash-lite/.test(model)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
+    return JSON.stringify({
+      system_instruction: { parts: [{ text: system }] },
+      contents: [{ role: "user", parts: userParts }],
+      generationConfig,
+    });
+  };
+
+  const deadline = Date.now() + DEADLINE_MS;
   let lastStatus = 0;
+  let lastMsg = "";
 
   for (const model of models) {
-    const left = DEADLINE_MS - (Date.now() - t0);
+    const left = deadline - Date.now();
     if (left < 1500) break;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), Math.min(left, 6500));
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-          body,
-          signal: ctrl.signal,
+          headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
+          body: buildBody(model),
+          signal: AbortSignal.timeout(left),
         }
       );
-      clearTimeout(timer);
 
       if (res.ok) {
         const data = await res.json();
-        const out = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
-        const clean = out.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+        const raw = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+        const start = raw.indexOf("{");
+        const end = raw.lastIndexOf("}");
         try {
-          return JSON.parse(clean);
+          return JSON.parse(raw.slice(start, end + 1));
         } catch {
-          lastStatus = 502; // respuesta que no es JSON: probar el siguiente modelo
-        }
-      } else {
-        lastStatus = res.status;
-        const raw = await res.text().catch(() => "");
-        console.error("Gemini", model, res.status, raw.slice(0, 500));
-        // 404 (modelo retirado) y errores temporales: probar el siguiente modelo.
-        if (res.status !== 404 && !RETRYABLE.has(res.status)) {
-          let msg = raw.slice(0, 200);
-          try { msg = JSON.parse(raw).error?.message || msg; } catch {}
-          throw Object.assign(new Error(`Gemini devolvió un error (${res.status}): ${msg.slice(0, 160)}`), { status: 502 });
+          lastStatus = 502;
+          lastMsg = "La respuesta no se entendió bien";
+          continue; // probar el siguiente modelo
         }
       }
+
+      const detail = await res.text().catch(() => "");
+      console.error("Gemini error", model, res.status, detail.slice(0, 500));
+      lastStatus = res.status;
+      try { lastMsg = JSON.parse(detail)?.error?.message || ""; } catch { lastMsg = ""; }
+      if (!NEXT_MODEL_ON.has(res.status)) {
+        throw Object.assign(
+          new Error(`Gemini devolvió un error (${res.status}) con ${model}: ${lastMsg}`.slice(0, 300)),
+          { status: 502 }
+        );
+      }
     } catch (err) {
-      clearTimeout(timer);
       if (err.status) throw err;
-      lastStatus = lastStatus || 504; // tiempo agotado o fallo de red
+      console.error("Gemini timeout/red", model, err?.name, err?.message);
+      lastStatus = lastStatus || 504;
     }
-    await sleep(300);
   }
+
   throw Object.assign(
-    new Error(`Gemini no está disponible ahora mismo (${lastStatus || 503}). Inténtalo de nuevo en un minuto`),
+    new Error(
+      lastStatus === 429
+        ? "Se ha alcanzado el límite gratuito de Gemini. Espera un minuto e inténtalo de nuevo"
+        : `Gemini no responde ahora mismo (${lastStatus || 503}). Prueba otra vez en un minuto`
+    ),
     { status: 503 }
   );
 }

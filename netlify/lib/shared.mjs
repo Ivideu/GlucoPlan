@@ -38,7 +38,7 @@ export function checkAuth(req) {
 }
 
 // ---------- Base de datos (Netlify Blobs) ----------
-export const store = () => getStore("glucoplan");
+export const store = () => getStore({ name: "glucoplan", consistency: "strong" });
 
 // Clave de mes en formato AAAA-MM (UTC).
 export const monthKey = (ts) => {

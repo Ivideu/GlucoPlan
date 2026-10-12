@@ -12,6 +12,7 @@ import { checkAuth, loadEntries, monthKey, preflight, reply, store } from "../li
 const TYPES = ["meal", "reading", "chart", "day", "basal"];
 const CONTEXTS = ["ayunas", "pre_comida", "post2h", "pre_gym", "post_gym", "noche", "otro"];
 const KINDS = ["comida", "cafe", "correccion"];
+const ABSORB = ["rapida", "mixta", "lenta"];
 
 const num = (v, min, max) => {
   const x = Number(v);
@@ -35,6 +36,7 @@ function cleanEntry(e, id) {
     out.dose = num(e.dose, 0, 100); // dosis REAL que se pinchó la persona
     out.suggested = num(e.suggested, 0, 100); // dosis que propuso la app
     out.kind = KINDS.includes(e.kind) ? e.kind : "comida";
+    out.absorb = ABSORB.includes(e.absorb) ? e.absorb : "mixta"; // velocidad de absorción de los hidratos
     if (out.dose === null) return null;
   }
   if (e.type === "basal") {
@@ -75,7 +77,7 @@ const SETTING_KEYS = ["icr", "isf", "target", "step", "maxDose", "gymAdj", "basa
 export default async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
-  if (new URL(req.url).searchParams.get("what") === "version") return reply(200, { version: "v3-unico" });
+  if (new URL(req.url).searchParams.get("what") === "version") return reply(200, { version: "v4-absorcion" });
   const bad = checkAuth(req);
   if (bad) return bad;
 

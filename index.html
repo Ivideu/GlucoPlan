@@ -334,6 +334,7 @@ ul.plain li{margin:5px 0}
       </div>
 
       <div class="stack">
+        <div class="card" id="corrCard"></div>
         <div class="card" id="toujeoCard">
           <div class="eyebrow">Insulina basal</div>
           <div id="toujeoBox"></div>
@@ -585,7 +586,6 @@ ul.plain li{margin:5px 0}
     <p class="hint" style="margin-top:12px">Sin sincronizar, el historial se queda solo en este dispositivo y no hay análisis con IA.</p>
   </div>
 </div>
-
 <script>
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
@@ -690,7 +690,7 @@ ul.plain li{margin:5px 0}
   const lastBasal = () => entries.find(e => e.type === 'basal');
 
   function renderAll() {
-    renderHero(); renderToujeo(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc(); renderLearn();
+    renderHero(); renderToujeo(); renderCorr(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc(); renderLearn();
   }
   async function loadEntries(silent) {
     if (isCloud()) {
@@ -875,7 +875,114 @@ ul.plain li{margin:5px 0}
     $('#edSave').disabled = false;
   });
 
-  /* ---------- Gym ---------- */
+  /* ---------- Insulina activa (IOB), hidratos por absorber (COB) y corrección sugerida ---------- */
+  // Curva de Fiasp: empieza a los 5-10 min, pico a 1-3 h, desaparece a las 3-5 h. Se usa 5 h (lo más prudente).
+  const IOB_TABLE = [[0, 1], [15, .98], [30, .92], [60, .75], [90, .58], [120, .42], [180, .20], [240, .07], [300, 0]];
+  const iobFrac = min => {
+    if (min <= 0) return 1;
+    for (let i = 1; i < IOB_TABLE.length; i++) {
+      const [t1, f1] = IOB_TABLE[i], [t0, f0] = IOB_TABLE[i - 1];
+      if (min <= t1) return f0 + (f1 - f0) * (min - t0) / (t1 - t0);
+    }
+    return 0;
+  };
+  const ABS_MIN = { rapida: 120, mixta: 180, lenta: 300 };
+  function onBoard(at) {
+    let iob = 0, cob = 0;
+    entries.forEach(e => {
+      const min = (at - e.ts) / 6e4;
+      if (min < -5 || min > 300) return;
+      if ((e.type === 'meal' || e.type === 'reading') && e.dose > 0) iob += e.dose * iobFrac(min);
+      if (e.type === 'meal' && e.carbs > 0) {
+        const dur = ABS_MIN[e.absorb] || ABS_MIN.mixta;
+        if (min < dur) cob += e.carbs * (1 - Math.max(0, min) / dur);
+      }
+    });
+    return { iob, cob };
+  }
+  let corrTyped = null;
+  function renderCorr() {
+    const box = $('#corrCard'); if (!box) return;
+    if (document.activeElement && document.activeElement.id === 'corrDose') return;
+    const s = store.settings, now = Date.now();
+    const icr = parseFloat(s.icr), isfCfg = parseFloat(s.isf), target = parseFloat(s.target);
+    const step = parseFloat(s.step) || 0.5, max = parseFloat(s.maxDose);
+    let h = '<div class="eyebrow">Corrección de glucosa alta</div>';
+    if (!(icr > 0 && isfCfg > 0 && target > 0)) {
+      box.innerHTML = h + '<p class="sub">Pon tu ratio, tu factor de sensibilidad y tu glucemia objetivo en Ajustes para calcular correcciones.</p>';
+      return;
+    }
+    const { iob, cob } = onBoard(now);
+    let clear = 0;
+    for (let m = 0; m <= 300; m += 5) { if (onBoard(now + m * 6e4).iob < 0.1) { clear = m; break; } }
+
+    const L = learnData();
+    const pf = propose(L.isf, L.corrs, MIN_CORRS, 0, L.lows14);
+    const learned = pf && !pf.blocked ? pf.next : null;
+    const isf = learned || isfCfg;
+
+    const last = readings()[0];
+    const age = last ? (now - last.ts) / 6e4 : Infinity;
+    const doseTimes = entries.filter(e => (e.type === 'meal' || e.type === 'reading') && e.dose > 0).map(e => e.ts);
+    const sinceDose = doseTimes.length ? (now - Math.max(...doseTimes)) / 6e4 : Infinity;
+    const lowRecent = readings().some(r => r.mgdl < 70 && now - r.ts < 3 * 36e5);
+
+    h += `<div class="tj"><div class="u">${fmt(Math.round(iob * 10) / 10)}<small>U de Fiasp activa</small></div><div class="hint">${cob >= 1 ? fmt(Math.round(cob)) + ' g de hidratos por absorber' : 'sin hidratos por absorber'}</div></div>`;
+    h += `<p class="tjnote" style="margin-top:6px">${iob >= 0.1 ? 'Casi toda habrá actuado en ' + fmtDur(clear * 6e4) + '.' : 'No tienes insulina rápida activa.'}</p>`;
+
+    let why = '', units = 0, parts = null;
+    if (!last || age > 60) why = 'Mide tu glucosa para calcular una corrección (la última lectura tiene más de 1 hora).';
+    else if (lowRecent || last.mgdl < 70) why = 'Has tenido una glucosa baja en las últimas 3 horas: no se propone corrección.';
+    else if (sinceDose < 120) why = `Hace ${fmtDur(sinceDose * 6e4)} que te pusiste insulina y aún no ha hecho su efecto principal. Espera ${fmtDur((120 - sinceDose) * 6e4)} y vuelve a medir.`;
+    else if (last.mgdl < Math.max(130, target + 40)) why = `Tu última glucosa (${fmt(last.mgdl)}) no necesita corrección.`;
+    else {
+      const plain = (last.mgdl - target) / isf;
+      const raw = plain - iob + cob / icr;
+      units = Math.min(Math.floor(raw / step + 1e-9) * step, Math.floor(plain / step + 1e-9) * step);
+      if (max > 0) units = Math.min(units, max);
+      if (!(units > 0)) { units = 0; why = 'Con la insulina que aún tienes activa, no hace falta añadir más ahora.'; }
+      else parts = { plain, cobU: cob / icr };
+    }
+
+    if (!parts) {
+      h += `<div class="warn" style="margin-top:12px">${esc(why)}</div>`;
+      if (last && age <= 60 && last.mgdl > 250) h += '<div class="warn danger" style="margin-top:8px">Glucemia alta: mide cetonas y sigue la pauta que tengas para corrección.</div>';
+      box.innerHTML = h; return;
+    }
+
+    h += `<div class="tj" style="margin-top:14px"><div class="u">${fmt(units)}<small>U extra sugeridas</small></div></div>
+      <div class="break">
+        <div><span>Para bajar de ${fmt(last.mgdl)} a ${fmt(target)}</span><span>${fmt(parts.plain)} U</span></div>
+        <div><span>Insulina que aún actúa</span><span>−${fmt(iob)} U</span></div>
+        ${cob >= 1 ? `<div><span>Hidratos por absorber (${fmt(Math.round(cob))} g)</span><span>+${fmt(parts.cobU)} U</span></div>` : ''}
+        <div><span>Sensibilidad usada</span><span>${fmt(isf)} mg/dL por U${learned && learned !== isfCfg ? ' (aprendida)' : ''}</span></div>
+      </div>`;
+    const w = [];
+    if (last.mgdl > 250) w.push(['danger', 'Glucemia alta: mide cetonas y sigue la pauta que tengas para corrección.']);
+    if (last.context === 'noche' || new Date().getHours() < 6) w.push(['', 'De madrugada las correcciones tienen más riesgo de hipoglucemia: sigue tu pauta nocturna.']);
+    if (gymToday()) w.push(['gym', 'Hoy has hecho gym: puede haber bajada tardía. Mide de nuevo en 2 o 3 horas.']);
+    h += w.length ? `<div class="warns">${w.map(x => `<div class="warn ${x[0]}">${esc(x[1])}</div>`).join('')}</div>` : '';
+    h += `<div class="field" style="margin-top:10px"><label for="corrDose">Insulina que me pongo (U)</label>
+        <input id="corrDose" name="corr-dosis" autocomplete="off" type="number" step="${step}" min="0" inputmode="decimal" value="${corrTyped ?? units}"></div>
+      <button class="btn violet block" id="corrSave" type="button" style="margin-top:10px">Registrar corrección</button>
+      <p class="fine">Estimación con la curva de Fiasp (actúa a los 5 a 10 min, pico entre 1 y 3 h, desaparece en 3 a 5 h). Redondeada hacia abajo a saltos de ${fmt(step)} U. Confírmala con la pauta de tu endocrino; mide a las 3 o 4 horas.</p>`;
+    box.innerHTML = h;
+
+    $('#corrDose').addEventListener('input', e => { corrTyped = e.target.value; });
+    $('#corrSave').addEventListener('click', async ev => {
+      const btn = ev.currentTarget;
+      const typed = numOrNull($('#corrDose').value);
+      if (!(typed > 0 && typed <= 100)) { toast('Revisa la dosis', 'err'); return; }
+      if (max > 0 && typed > max && !confirm(`Supera tu aviso de ${fmt(max)} U. ¿Registrar de todos modos?`)) return;
+      btn.disabled = true;
+      try {
+        await addEntry({ type: 'meal', kind: 'correccion', carbs: 0, bg: last.mgdl, dose: typed, suggested: units, gym: gymToday() });
+        corrTyped = null;
+        toast('Corrección guardada. Mide a las 3 o 4 horas');
+      } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
+    });
+  }
+    /* ---------- Gym ---------- */
   function renderGym() {
     const on = gymToday();
     $('#gymSwitch').setAttribute('aria-checked', on);
@@ -1246,6 +1353,15 @@ ul.plain li{margin:5px 0}
 
   let shownDose = 0;
   let realDoseStr = null;   // dosis que escribe la persona (null = sigue la sugerencia)
+  let absorbStr = null;     // rapida | mixta | lenta (null = automática según los alimentos)
+  const FAST_RE = /zumo|refresco|galletas|cereales|pan blanco|plátano|uvas|patatas fritas|arroz blanco/i;
+  const SLOW_RE = /lentejas|garbanzos|judías|avena|integral|hummus|pizza|aguacate/i;
+  const autoAbsorb = () => {
+    let f = 0, sl = 0;
+    items.forEach(i => { const c = itemCarbs(i); if (FAST_RE.test(i.name)) f += c; else if (SLOW_RE.test(i.name)) sl += c; });
+    const tot = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
+    return tot > 0 && f / tot >= 0.6 ? 'rapida' : tot > 0 && sl / tot >= 0.5 ? 'lenta' : 'mixta';
+  };
   let mealKind = 'comida';  // comida | cafe | correccion
   function calc() {
     const r = calcDose();
@@ -1280,21 +1396,31 @@ ul.plain li{margin:5px 0}
         </select>
         ${mealKind === 'correccion' && !(r.bg > 0) ? '<span class="hint">Para que aprenda tu sensibilidad, apunta la glucemia actual arriba.</span>' : ''}
       </div>
+      <div class="field" style="margin:0 0 12px">
+        <label for="absorb">Absorción de los hidratos</label>
+        <select id="absorb">
+          <option value="rapida" ${(absorbStr || autoAbsorb()) === 'rapida' ? 'selected' : ''}>Rápida (zumo, azúcar, pan blanco, fruta)</option>
+          <option value="mixta" ${(absorbStr || autoAbsorb()) === 'mixta' ? 'selected' : ''}>Mixta (plato normal)</option>
+          <option value="lenta" ${(absorbStr || autoAbsorb()) === 'lenta' ? 'selected' : ''}>Lenta (legumbres, integrales, con grasa)</option>
+        </select>
+        <span class="hint">Se propone según los alimentos; cámbiala si quieres. La corrección de «Hoy» la usa para saber cuántos hidratos te quedan por absorber.</span>
+      </div>
       <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 && mealKind !== 'correccion' ? 'disabled' : ''}>Guardar esta toma de insulina</button>
       <p class="fine">Fiasp: pínchate unos 2 minutos antes de comer, o hasta 20 minutos después de empezar. Redondeado a saltos de ${fmt(parseFloat(store.settings.step))} U.</p>`;
     animateNum($('#doseNum'), r.dose, { from: shownDose, dec: r.dose % 1 ? 1 : 0, ms: 450 });
     shownDose = r.dose;
     $('#realDose').addEventListener('input', e => { realDoseStr = e.target.value; });
     $('#mealKind').addEventListener('change', e => { mealKind = e.target.value; calc(); });
+    $('#absorb').addEventListener('change', e => { absorbStr = e.target.value; });
     const b = $('#saveMeal');
     if (b) b.addEventListener('click', async () => {
       const typed = numOrNull($('#realDose').value);
       const dose = typed == null ? r.dose : typed;
       if (!(dose >= 0 && dose <= 100)) { toast('Revisa la dosis que te pones', 'err'); return; }
       try {
-        await addEntry({ type:'meal', kind: mealKind, carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose, suggested: r.dose, gym: gymToday() });
+        await addEntry({ type:'meal', kind: mealKind, carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose, suggested: r.dose, absorb: absorbStr || autoAbsorb(), gym: gymToday() });
         const wasCorr = mealKind === 'correccion';
-        realDoseStr = null; mealKind = 'comida'; calc();
+        realDoseStr = null; mealKind = 'comida'; absorbStr = null; calc();
         toast(wasCorr ? 'Corrección guardada. Mide a las 3 o 4 horas' : 'Guardado. Mide tu glucosa a las 2 horas');
       } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
     });
@@ -1522,7 +1648,7 @@ ul.plain li{margin:5px 0}
     else openLogin();
   })();
   // Cada minuto se actualizan los tiempos; cada 2 minutos y al volver a la pestaña se traen los datos de otros dispositivos.
-  setInterval(() => { renderToujeo(); renderHero(); renderCharts(false); setNow(); }, 60000);
+  setInterval(() => { renderToujeo(); renderCorr(); renderHero(); renderCharts(false); setNow(); }, 60000);
   setInterval(() => { if (isCloud() && !document.hidden) loadEntries(true); }, 120000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) loadEntries(true); });
 })();

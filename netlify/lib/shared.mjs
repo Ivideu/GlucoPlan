@@ -61,12 +61,12 @@ export async function loadEntries(months = 2) {
     .sort((a, b) => b.ts - a.ts);
 }
 
-// ---------- Gemini con reintentos y modelos de respaldo ----------
-// Se prueba primero GEMINI_MODEL (si existe) y después estos modelos.
-// Si un modelo da 404 (retirado o mal escrito), se pasa al siguiente.
-const FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
+// ---------- Gemini con modelos de respaldo ----------
+// Se prueba primero GEMINI_MODEL (si existe y es un nombre de modelo) y después estos modelos.
+// Cada modelo recibe un solo intento; si falla (saturado, retirado, etc.) se pasa al siguiente.
+const FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3-flash-preview", "gemini-flash-latest"];
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
-const DEADLINE_MS = 9000; // Netlify corta las funciones a los ~10 s por defecto
+const DEADLINE_MS = 9500; // Netlify corta las funciones a los ~10 s por defecto
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // askGemini({ system, parts })  o  askGemini({ system, text })  ->  objeto JSON
@@ -75,7 +75,11 @@ export async function askGemini({ system, parts, text }) {
   if (!apiKey) throw Object.assign(new Error("Falta GEMINI_API_KEY en Netlify"), { status: 500 });
 
   const userParts = parts || [{ text: String(text ?? "") }];
-  const models = [...new Set([process.env.GEMINI_MODEL, ...FALLBACK_MODELS].filter(Boolean))];
+  // Solo se acepta GEMINI_MODEL si parece un nombre de modelo (evita usar por error otro valor).
+  const custom = /^[a-z0-9][a-z0-9.\-]{2,60}$/i.test(process.env.GEMINI_MODEL || "") && !/^AQ\./.test(process.env.GEMINI_MODEL)
+    ? process.env.GEMINI_MODEL
+    : null;
+  const models = [...new Set([custom, ...FALLBACK_MODELS].filter(Boolean))];
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: "user", parts: userParts }],
@@ -86,49 +90,48 @@ export async function askGemini({ system, parts, text }) {
   let lastStatus = 0;
 
   for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const left = DEADLINE_MS - (Date.now() - t0);
-      if (left < 1500) break;
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), Math.min(left, 6500));
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-            body,
-            signal: ctrl.signal,
-          }
-        );
-        clearTimeout(timer);
-        if (res.ok) {
-          const data = await res.json();
-          const out = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
-          const clean = out.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-          try {
-            return JSON.parse(clean);
-          } catch {
-            lastStatus = 502; // respuesta que no es JSON: se trata como fallo temporal
-          }
-        } else {
-          lastStatus = res.status;
-          if (res.status === 404) break; // modelo retirado o mal escrito: probar el siguiente
-          if (!RETRYABLE.has(res.status)) {
-            const raw = await res.text().catch(() => "");
-            let msg = raw.slice(0, 200);
-            try { msg = JSON.parse(raw).error?.message || msg; } catch {}
-            console.error("Gemini", model, res.status, raw.slice(0, 500));
-            throw Object.assign(new Error(`Gemini devolvió un error (${res.status}): ${msg.slice(0, 160)}`), { status: 502 });
-           }
+    const left = DEADLINE_MS - (Date.now() - t0);
+    if (left < 1500) break;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), Math.min(left, 6500));
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body,
+          signal: ctrl.signal,
         }
-      } catch (err) {
-        clearTimeout(timer);
-        if (err.status) throw err;
-        lastStatus = lastStatus || 504; // tiempo agotado o fallo de red
+      );
+      clearTimeout(timer);
+
+      if (res.ok) {
+        const data = await res.json();
+        const out = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
+        const clean = out.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+        try {
+          return JSON.parse(clean);
+        } catch {
+          lastStatus = 502; // respuesta que no es JSON: probar el siguiente modelo
+        }
+      } else {
+        lastStatus = res.status;
+        const raw = await res.text().catch(() => "");
+        console.error("Gemini", model, res.status, raw.slice(0, 500));
+        // 404 (modelo retirado) y errores temporales: probar el siguiente modelo.
+        if (res.status !== 404 && !RETRYABLE.has(res.status)) {
+          let msg = raw.slice(0, 200);
+          try { msg = JSON.parse(raw).error?.message || msg; } catch {}
+          throw Object.assign(new Error(`Gemini devolvió un error (${res.status}): ${msg.slice(0, 160)}`), { status: 502 });
+        }
       }
-      await sleep(500 * (attempt + 1));
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.status) throw err;
+      lastStatus = lastStatus || 504; // tiempo agotado o fallo de red
     }
+    await sleep(300);
   }
   throw Object.assign(
     new Error(`Gemini no está disponible ahora mismo (${lastStatus || 503}). Inténtalo de nuevo en un minuto`),

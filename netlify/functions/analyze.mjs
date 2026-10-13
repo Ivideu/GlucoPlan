@@ -5,14 +5,17 @@ import { askGemini, checkAuth, preflight, reply } from "../lib/shared.mjs";
 const MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const FOOD_SYSTEM = `Eres un dietista experto en nutrición para personas con diabetes tipo 1 que cuentan hidratos.
-Recibes la foto de un plato. Identifica cada alimento visible, estima los gramos de ración tal y como se ve en el plato
-(cocinado, si lo está) y los gramos de hidratos de carbono disponibles por cada 100 g de ese alimento, usando valores
-de tablas de composición de alimentos (BEDCA, USDA) y de productos habituales del mercado alimentario.
+Recibes la foto de un plato. Identifica TODOS los alimentos visibles (también proteínas, grasas, verduras y bebidas),
+estima los gramos de ración tal y como se ve en el plato (cocinado, si lo está) y los valores por cada 100 g de ese alimento,
+usando tablas de composición de alimentos (BEDCA, USDA) y productos habituales del mercado.
 Reglas:
 - Devuelve SOLO un objeto JSON con este formato:
-  {"items":[{"nombre":"","gramos":0,"carbs_100g":0,"confianza":"alta|media|baja"}],"notas":""}
+  {"items":[{"nombre":"","gramos":0,"carbs_100g":0,"proteina_100g":0,"grasa_100g":0,"fibra_100g":0,"absorcion":"rapida|mixta|lenta","confianza":"alta|media|baja"}],"notas":""}
+- "carbs_100g": hidratos de carbono disponibles por 100 g. "proteina_100g", "grasa_100g" y "fibra_100g": gramos por 100 g.
+- "absorcion": velocidad a la que sus hidratos pasan a la sangre: "rapida" (zumos, azúcar, pan blanco, bollería, fruta muy madura),
+  "lenta" (legumbres, integrales, alimentos con mucha grasa o fibra) o "mixta" (el resto o sin hidratos).
 - Si no hay comida en la imagen, devuelve {"items":[],"notas":"No se ve comida"}.
-- Separa los alimentos que aporten hidratos de forma relevante (arroz, pan, patata, fruta, salsas azucaradas, rebozados).
+- Máximo 10 alimentos; agrupa los que sean muy pequeños (por ejemplo especias o aliños).
 - Marca "baja" la confianza cuando el tamaño de la ración, la salsa o los ingredientes ocultos sean difíciles de estimar.
 - En "notas", una frase corta en español con lo que más puede alterar la estimación.
 - No des consejos de insulina ni dosis.`;
@@ -61,10 +64,14 @@ export default async (req) => {
     });
 
     if (type === "food") {
-      const items = (Array.isArray(parsed.items) ? parsed.items : []).slice(0, 15).map((i) => ({
+      const items = (Array.isArray(parsed.items) ? parsed.items : []).slice(0, 12).map((i) => ({
         nombre: String(i.nombre || "Alimento").slice(0, 60),
         gramos: n(i.gramos, 0, 2000) ?? 0,
         carbs_100g: n(i.carbs_100g, 0, 100) ?? 0,
+        proteina_100g: n(i.proteina_100g, 0, 100) ?? 0,
+        grasa_100g: n(i.grasa_100g, 0, 100) ?? 0,
+        fibra_100g: n(i.fibra_100g, 0, 100) ?? 0,
+        absorcion: ["rapida", "mixta", "lenta"].includes(i.absorcion) ? i.absorcion : "mixta",
         confianza: ["alta", "media", "baja"].includes(i.confianza) ? i.confianza : "media",
       }));
       return reply(200, { items, notas: String(parsed.notas || "").slice(0, 300) });

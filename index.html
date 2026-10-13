@@ -243,6 +243,17 @@ ul.plain li{margin:5px 0}
 .toast.ok{border-color:rgba(127,203,154,.5)} .toast.err{border-color:rgba(224,138,154,.5);color:#A8394F}
 .toast.out{opacity:0;transform:translateY(10px);transition:all .3s}
 @keyframes pop{from{opacity:0;transform:translateY(20px) scale(.9)}}
+.report{position:fixed;inset:0;z-index:70;background:#fff;overflow:auto;padding:18px}
+.report .sheet{max-width:820px;margin:0 auto}
+.report h1{font-size:1.6rem}
+.report h2{font-size:1.1rem;margin:20px 0 6px}
+.rtools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+@media print{
+  body>*:not(#reportBox){display:none!important}
+  .report{position:static;overflow:visible;padding:0}
+  .rtools{display:none}
+  h2{break-after:avoid} table,svg{break-inside:avoid}
+}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.chart .draw{stroke-dashoffset:0}}
 </style>
 </head>
@@ -483,7 +494,7 @@ ul.plain li{margin:5px 0}
     <div class="card">
       <h2>Coach de datos</h2>
       <p class="sub">Analiza tus últimos 28 días con los criterios que te dio tu endocrino: objetivos, ratio de cada comida, sensibilidad, Toujeo y gym. Cuando haya datos suficientes hace la evaluación completa; mientras tanto te dice qué te falta anotar. No cambia tus ajustes ni tu dosis por sí solo.</p>
-      <div class="actions"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button></div>
+      <div class="actions"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button><button class="btn violet" id="reportBtn" type="button">Informe para mi endocrino</button></div>
       <div id="coachStatus"></div>
     </div>
     <div id="coachOut"></div>
@@ -588,6 +599,19 @@ ul.plain li{margin:5px 0}
       <button class="btn ghost" id="localBtn" type="button">Usar sin sincronizar</button>
     </div>
     <p class="hint" style="margin-top:12px">Sin sincronizar, el historial se queda solo en este dispositivo y no hay análisis con IA.</p>
+  </div>
+</div>
+<div class="report" id="reportBox" hidden>
+  <div class="sheet">
+    <div class="rtools">
+      <button class="btn small" id="rPrint" type="button">Imprimir o guardar PDF</button>
+      <div class="chips" id="rRange">
+        <button class="chip" type="button" data-d="14" aria-pressed="true">14 días</button>
+        <button class="chip" type="button" data-d="28" aria-pressed="false">28 días</button>
+      </div>
+      <button class="btn ghost small" id="rClose" type="button">Cerrar</button>
+    </div>
+    <div id="reportBody"></div>
   </div>
 </div>
 <script>
@@ -1513,7 +1537,14 @@ ul.plain li{margin:5px 0}
   // La app calcula con tus datos reales qué ratio y qué factor te habrían ido mejor y te lo PROPONE.
   // Nunca cambia tus ajustes sola: tú lo aplicas con un toque. Cambios limitados al 10 % cada vez.
   const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-  const MIN_MEALS = 5, MIN_CORRS = 4, MAX_STEP = 0.10, POST_MARGIN = 20;
+   const MIN_MEALS = 5, MIN_CORRS = 4, MAX_STEP = 0.10, POST_MARGIN = 20;
+  // Lectura del sensor más cercana a un momento (solo si ya ha pasado)
+  const sensorAt = (ts, tolMin) => {
+    if (ts > Date.now()) return null;
+    let best = null, bd = tolMin * 6e4 + 1;
+    for (const p of sensor) { const d = Math.abs(p.ts - ts); if (d < bd) { bd = d; best = p; } }
+    return best;
+  };
 
   function learnData() {
     const s = store.settings;
@@ -1524,15 +1555,15 @@ ul.plain li{margin:5px 0}
       .map(e => e.type === 'reading' ? { ...e, kind: e.kind || 'correccion', carbs: 0, bg: e.mgdl } : e);
     const gymDays = new Set(E.filter(e => e.gym).map(e => dayStr(e.ts)));
     const L = { icr, isf, target, meals: [], gymMeals: [], corrs: [], bias: null,
-      lows14: rs.filter(r => r.mgdl < 70 && r.ts >= Date.now() - 14 * DAY).length };
-
+      lows14: rs.filter(r => r.mgdl < 70 && r.ts >= Date.now() - 14 * DAY).length + sensor.filter(r => r.mgdl < 70 && r.ts >= Date.now() - 14 * DAY).length };
+      
     const withSug = bol.filter(m => (m.kind || 'comida') === 'comida' && m.suggested > 0 && m.dose != null && m.carbs > 0);
     if (withSug.length) L.bias = { n: withSug.length, pct: Math.round(median(withSug.map(m => (m.dose - m.suggested) / m.suggested * 100))) };
 
     bol.forEach((m, i) => {
       const kind = m.kind || 'comida', next = bol[i + 1];
       if (kind === 'comida' && m.carbs >= 10 && icr > 0 && isf > 0 && target > 0) {
-        const r = rs.find(x => x.context === 'post2h' && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4);
+        const r = rs.find(x => x.context === 'post2h' && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4) || sensorAt(m.ts + 120 * 6e4, 15);
         if (!r || (next && next.ts < r.ts)) return; // otra insulina de por medio: no sirve para aprender
         const corr = m.bg > 0 ? Math.max(0, (m.bg - target) / isf) : 0;
         const ideal = Math.max(0, m.dose - corr) + (r.mgdl - (target + POST_MARGIN)) / isf;
@@ -1540,7 +1571,7 @@ ul.plain li{margin:5px 0}
         (gymDays.has(dayStr(m.ts)) ? L.gymMeals : L.meals).push(m.carbs / ideal);
       }
       if (kind === 'correccion' && m.dose > 0 && m.bg > 0) {
-        const r = rs.find(x => x.ts - m.ts >= 150 * 6e4 && x.ts - m.ts <= 300 * 6e4);
+        const r = rs.find(x => x.ts - m.ts >= 150 * 6e4 && x.ts - m.ts <= 300 * 6e4) || sensorAt(m.ts + 210 * 6e4, 30);
         if (!r || (next && next.ts < r.ts)) return;
         const drop = m.bg - r.mgdl;
         if (drop > 0) L.corrs.push(drop / m.dose);
@@ -1590,6 +1621,158 @@ ul.plain li{margin:5px 0}
     if (isCloud()) { try { await pushSettings(); } catch (err) { toast('Guardado aquí, pero no sincronizado: ' + err.message, 'err'); } }
     calc(); renderLearn(); toast('Ajuste aplicado: ' + fmt(v));
   });
+
+  /* ---------- Informe para el endocrino ---------- */
+  let reportDays = 14;
+  const pctile = (a, p) => {
+    if (!a.length) return null;
+    const s = [...a].sort((x, y) => x - y), i = (s.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+    return s[lo] + (s[hi] - s[lo]) * (i - lo);
+  };
+  function buildReport(days) {
+    const now = Date.now(), from = now - days * DAY, s = store.settings;
+    const r1 = n => fmt(Math.round(n * 10) / 10);
+    const dfmt = t => new Date(t).toLocaleDateString('es-ES');
+    const rs = readings().filter(r => r.ts >= from).sort((a, b) => a.ts - b.ts);
+    let head = `<h1>Informe de glucosa</h1><p class="hint">GlucoPlan · del ${dfmt(from)} al ${dfmt(now)} (${days} días)`;
+    if (rs.length < 10) return head + '</p><p class="empty">Hay muy pocas lecturas en este periodo para hacer un informe.</p>';
+    const sens = sensor.filter(p => p.ts >= from);
+    if (sens.length) {
+      const span = Math.max(0.1, Math.min(days, (now - sens[0].ts) / DAY));
+      head += ` · sensor con datos el ${Math.min(100, Math.round(sens.length / (span * 96) * 100))} % del tiempo en ${r1(span)} días`;
+    }
+    let h = head + ` · ${rs.length} lecturas</p>`;
+
+    const E = entries.filter(e => e.ts >= from).slice().sort((a, b) => a.ts - b.ts);
+    const v = rs.map(r => r.mgdl), n = v.length;
+    const mean = v.reduce((a, b) => a + b, 0) / n;
+    const sd = Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
+    const share = f => v.filter(f).length / n * 100;
+    const tir = share(x => x >= 70 && x <= 180), tbr = share(x => x < 70), tbr54 = share(x => x < 54);
+    const tar = share(x => x > 180), tar250 = share(x => x > 250);
+    const cv = sd / mean * 100, gmi = 3.31 + 0.02392 * mean;
+    const ok = c => (c ? '✅' : '⚠️');
+
+    const rows = [
+      ['Glucosa media', r1(mean) + ' mg/dL', '', ''],
+      ['GMI (HbA1c estimada)', r1(gmi) + ' %', 'Orientativo', ''],
+      ['Variabilidad (CV)', r1(cv) + ' %', '≤ 36 %', ok(cv <= 36)],
+      ['Tiempo en rango 70 a 180', r1(tir) + ' %', '> 70 %', ok(tir > 70)],
+      ['Tiempo por debajo de 70', r1(tbr) + ' %', '< 4 %', ok(tbr < 4)],
+      ['Tiempo por debajo de 54', r1(tbr54) + ' %', '< 1 %', ok(tbr54 < 1)],
+      ['Tiempo por encima de 180', r1(tar) + ' %', '< 25 %', ok(tar < 25)],
+      ['Tiempo por encima de 250', r1(tar250) + ' %', '< 5 %', ok(tar250 < 5)]
+    ];
+    h += `<h2>Resumen</h2><table><thead><tr><th>Indicador</th><th>Tu dato</th><th>Objetivo habitual</th><th></th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td>${r[0]}</td><td><b>${r[1]}</b></td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('') +
+      `</tbody></table><p class="fine">Objetivos habituales del consenso internacional sobre sensores continuos. Tu endocrino puede indicarte otros.</p>`;
+
+    // Glucosas bajas
+    const eps = []; let cur = null;
+    rs.forEach(r => {
+      if (r.mgdl < 70) {
+        if (!cur || r.ts - cur.end > 45 * 6e4) { cur = { start: r.ts, end: r.ts, min: r.mgdl }; eps.push(cur); }
+        else { cur.end = r.ts; cur.min = Math.min(cur.min, r.mgdl); }
+      }
+    });
+    h += `<h2>Glucosas bajas (&lt; 70)</h2>`;
+    h += eps.length
+      ? `<p>${eps.length} episodio${eps.length === 1 ? '' : 's'} en el periodo.</p><table><thead><tr><th>Cuándo</th><th>Mínima</th></tr></thead><tbody>` +
+        eps.slice(-8).reverse().map(e => `<tr><td>${new Date(e.start).toLocaleString('es-ES', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td>${e.min} mg/dL</td></tr>`).join('') + '</tbody></table>'
+      : '<p>Sin episodios por debajo de 70 en este periodo.</p>';
+
+    // Perfil por horas (AGP)
+    const byH = Array.from({ length: 24 }, () => []);
+    rs.forEach(r => byH[new Date(r.ts).getHours()].push(r.mgdl));
+    const hrs = byH.map((a, i) => (a.length >= 3 ? { i, p: [.1, .25, .5, .75, .9].map(q => pctile(a, q)) } : null)).filter(Boolean);
+    if (hrs.length >= 4) {
+      const W = 680, H = 230, pl = 34, pr = 8, pt = 10, pb = 26, lo = 40, hi = Math.min(400, Math.max(260, Math.round(pctile(v, .98) + 10)));
+      const gx = i => pl + (i + 0.5) / 24 * (W - pl - pr);
+      const gy = val => pt + (1 - (Math.min(hi, Math.max(lo, val)) - lo) / (hi - lo)) * (H - pt - pb);
+      const band = (a, b, fill) => `<polygon fill="${fill}" points="${hrs.map(o => gx(o.i) + ',' + gy(o.p[a])).join(' ')} ${[...hrs].reverse().map(o => gx(o.i) + ',' + gy(o.p[b])).join(' ')}"/>`;
+      const grid = [70, 180].map(t => `<line x1="${pl}" x2="${W - pr}" y1="${gy(t)}" y2="${gy(t)}" stroke="#999" stroke-dasharray="4 4"/><text x="${pl - 4}" y="${gy(t) + 4}" font-size="10" text-anchor="end" fill="#555">${t}</text>`).join('');
+      const xl = [0, 3, 6, 9, 12, 15, 18, 21].map(i => `<text x="${gx(i)}" y="${H - 8}" font-size="10" text-anchor="middle" fill="#555">${pad(i)}:00</text>`).join('');
+      h += `<h2>Perfil por horas del día</h2>
+        <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Perfil de glucosa por horas">
+          <rect x="${pl}" y="${gy(180)}" width="${W - pl - pr}" height="${gy(70) - gy(180)}" fill="rgba(127,203,154,.18)"/>
+          ${band(0, 4, 'rgba(111,159,207,.18)')}${band(1, 3, 'rgba(111,159,207,.35)')}
+          <polyline fill="none" stroke="#2E6E9E" stroke-width="2.5" points="${hrs.map(o => gx(o.i) + ',' + gy(o.p[2])).join(' ')}"/>
+          ${grid}${xl}
+        </svg><p class="fine">Línea: mediana. Banda oscura: del 25 al 75 % de las lecturas. Banda clara: del 10 al 90 %.</p>`;
+    }
+
+    // Comidas por franjas
+    const man2h = m => E.find(x => x.type === 'reading' && x.context === 'post2h' && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4);
+    const post = m => man2h(m) || sensorAt(m.ts + 120 * 6e4, 15);
+    const meals = E.filter(e => e.type === 'meal' && (e.kind || 'comida') === 'comida' && e.carbs >= 10);
+    const slots = [['Desayuno (antes de las 12 h)', t => t < 12], ['Comida (12 a 17 h)', t => t >= 12 && t < 17], ['Cena y tarde (desde las 17 h)', t => t >= 17]];
+    const avg = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+    const slotInfo = slots.map(([name, f]) => {
+      const ms = meals.filter(m => f(new Date(m.ts).getHours()));
+      const p2 = ms.map(post).filter(Boolean).map(x => x.mgdl);
+      const sumD = ms.reduce((a, m) => a + (m.dose || 0), 0), sumC = ms.reduce((a, m) => a + m.carbs, 0);
+      return { name, n: ms.length, carbs: avg(ms.map(m => m.carbs)), dose: avg(ms.map(m => m.dose || 0)), ratio: sumD > 0 ? sumC / sumD : null,
+        p2n: p2.length, p2med: pctile(p2, .5), p2high: p2.length ? p2.filter(x => x > 180).length / p2.length * 100 : null };
+    });
+    h += `<h2>Comidas</h2>`;
+    h += meals.length
+      ? `<table><thead><tr><th>Franja</th><th>Comidas</th><th>Hidratos</th><th>Fiasp</th><th>g por unidad</th><th>Glucosa a las 2 h</th></tr></thead><tbody>` +
+        slotInfo.map(o => `<tr><td>${o.name}</td><td>${o.n}</td><td>${o.carbs != null ? r1(o.carbs) + ' g' : '—'}</td><td>${o.n ? r1(o.dose) + ' U' : '—'}</td><td>${o.ratio != null ? r1(o.ratio) : '—'}</td><td>${o.p2n ? r1(o.p2med) + ' mg/dL<small style="display:block;color:#666">' + Math.round(o.p2high) + ' % por encima de 180 (' + o.p2n + ' datos)</small>' : '—'}</td></tr>`).join('') +
+        `</tbody></table><p class="fine">Solo comidas guardadas con 10 g de hidratos o más. «g por unidad» sale de la dosis que realmente te pusiste.</p>`
+      : '<p>No hay comidas guardadas con hidratos en este periodo.</p>';
+
+    // Insulina
+    const dosed = E.filter(e => (e.type === 'meal' || e.type === 'reading') && e.dose > 0);
+    const totalF = dosed.reduce((a, e) => a + e.dose, 0);
+    const basals = E.filter(e => e.type === 'basal');
+    h += `<h2>Insulina registrada</h2><ul class="plain">
+      <li>Fiasp: ${r1(totalF)} U en ${dosed.length} dosis (${r1(totalF / days)} U al día de media; solo es fiable si anotas todas las dosis). Correcciones: ${dosed.filter(e => e.kind === 'correccion').length}.</li>
+      <li>Toujeo: ${basals.length ? basals.length + ' registros, media de ' + r1(avg(basals.map(b => b.units))) + ' U' : 'sin registros en este periodo'}.</li></ul>`;
+
+    // Gym
+    const gymDays = new Set(E.filter(e => e.gym).map(e => dayStr(e.ts)));
+    if (gymDays.size >= 3) {
+      const g = rs.filter(r => gymDays.has(dayStr(r.ts))), ng = rs.filter(r => !gymDays.has(dayStr(r.ts)));
+      if (g.length >= 20 && ng.length >= 20) {
+        const st = a => `media ${r1(avg(a.map(r => r.mgdl)))} mg/dL, ${Math.round(a.filter(r => r.mgdl >= 70 && r.mgdl <= 180).length / a.length * 100)} % en rango`;
+        h += `<h2>Días de gym</h2><ul class="plain"><li>Con gym (${gymDays.size} días): ${st(g)}.</li><li>Sin gym: ${st(ng)}.</li></ul>`;
+      }
+    }
+
+    // Ajustes
+    h += `<h2>Ajustes usados en la app</h2><p>Ratio: ${s.icr || '—'} g por unidad · Sensibilidad: ${s.isf || '—'} mg/dL por unidad · Objetivo: ${s.target || '—'} mg/dL · Salto de pluma: ${s.step || '—'} U · Toujeo habitual: ${s.basal || '—'} U.</p>`;
+
+    // Observaciones
+    const obs = [];
+    if (tbr >= 4) obs.push(`Tiempo por debajo de 70: ${r1(tbr)} % (lo habitual es menos del 4 %).`);
+    if (tbr54 >= 1) obs.push(`Tiempo por debajo de 54: ${r1(tbr54)} % (lo habitual es menos del 1 %).`);
+    const nocturnas = eps.filter(e => new Date(e.start).getHours() < 6).length;
+    if (nocturnas) obs.push(`${nocturnas} episodio${nocturnas === 1 ? '' : 's'} de glucosa baja de madrugada (antes de las 6 h).`);
+    if (tar >= 25) obs.push(`Tiempo por encima de 180: ${r1(tar)} % (lo habitual es menos del 25 %).`);
+    if (cv > 36) obs.push(`Variabilidad alta: CV de ${r1(cv)} % (lo habitual es hasta el 36 %).`);
+    if (hrs.length >= 4) {
+      const mx = hrs.reduce((a, b) => (b.p[2] > a.p[2] ? b : a)), mn = hrs.reduce((a, b) => (b.p[2] < a.p[2] ? b : a));
+      obs.push(`La mediana más alta del día está hacia las ${pad(mx.i)}:00 (${r1(mx.p[2])} mg/dL) y la más baja hacia las ${pad(mn.i)}:00 (${r1(mn.p[2])} mg/dL).`);
+    }
+    slotInfo.forEach(o => {
+      if (o.p2n >= 3 && o.p2med > 180) obs.push(`${o.name}: a las 2 h la mediana es ${r1(o.p2med)} mg/dL (por encima de 180).`);
+      if (o.p2n >= 3 && o.p2med < 90) obs.push(`${o.name}: a las 2 h la mediana es ${r1(o.p2med)} mg/dL (cerca de la zona baja).`);
+    });
+    h += `<h2>Para comentar en consulta</h2>` + (obs.length ? `<ul class="plain">${obs.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p>Sin observaciones destacables en este periodo.</p>');
+    h += `<p class="fine" style="margin-top:18px">Informe generado por GlucoPlan con datos del sensor y registros manuales. Es descriptivo y no sustituye la valoración de tu equipo médico.</p>`;
+    return h;
+  }
+  $('#reportBtn').addEventListener('click', () => {
+    $('#reportBody').innerHTML = buildReport(reportDays);
+    $('#reportBox').hidden = false; $('#reportBox').scrollTop = 0;
+  });
+  $('#rClose').addEventListener('click', () => { $('#reportBox').hidden = true; });
+  $('#rPrint').addEventListener('click', () => window.print());
+  $$('#rRange .chip').forEach(c => c.addEventListener('click', () => {
+    reportDays = Number(c.dataset.d);
+    $$('#rRange .chip').forEach(x => x.setAttribute('aria-pressed', x === c));
+    $('#reportBody').innerHTML = buildReport(reportDays);
+  }));
 
   /* ---------- Coach ---------- */
   $('#coachBtn').addEventListener('click', async () => {

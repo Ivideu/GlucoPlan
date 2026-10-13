@@ -748,7 +748,7 @@ ul.plain li{margin:5px 0}
     if (!t) { el.innerHTML = ''; return; }
     const col = Math.abs(t.level) >= 3 ? '#B83A52' : Math.abs(t.level) === 2 ? '#9A6A14' : '#2E8B7A';
     const rate = Math.abs(t.rate) < 0.05 ? '0' : (t.rate > 0 ? '+' : '') + fmt(Math.round(t.rate * 10) / 10);
-    el.innerHTML = `<span style="color:${col}"><span style="font-size:1.25rem;margin-right:4px">${t.a}</span>${t.t}</span><br><span style="color:var(--muted);font-weight:500">${rate} mg/dL por minuto</span>`;
+    el.innerHTML = `<span style="color:${col}"><span style="font-size:1.25rem;margin-right:4px">${t.a}</span>${t.t}</span><br><span style="color:var(--muted);font-weight:500">${rate} mg/dL minuto</span>`;
   }
   function renderSensorLine() {
     renderTrend();

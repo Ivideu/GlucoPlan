@@ -247,6 +247,7 @@ ul.plain li{margin:5px 0}
 </style>
 </head>
 <body>
+<body>
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
@@ -279,6 +280,7 @@ ul.plain li{margin:5px 0}
           <div class="val" id="ringVal">—</div>
           <div class="unit">mg/dL</div>
           <div class="st" id="ringState">Sin lecturas</div>
+          <div id="ringTrend" style="margin-top:4px;font-weight:700;font-size:.82rem;line-height:1.25"></div>
         </div>
       </div>
       <div class="greet">
@@ -365,7 +367,7 @@ ul.plain li{margin:5px 0}
       <div class="stack">
         <div class="card">
           <h2>Foto del plato</h2>
-          <p class="sub">Haz una foto antes de comer. La IA estima alimentos, gramos e hidratos; tú los revisas.</p>
+          <p class="sub">Haz una foto antes de comer. La IA estima alimentos, gramos, hidratos, proteínas y grasas; tú los revisas.</p>
           <div class="drop">
             <img id="preview" alt="Vista previa del plato" hidden>
             <div id="dropText">
@@ -381,6 +383,7 @@ ul.plain li{margin:5px 0}
           <h2>Alimentos del plato</h2>
           <p class="sub">Ajusta los gramos o añade alimentos a mano si la foto no acierta.</p>
           <div class="items" id="items"></div>
+          <div id="macros"></div>
           <div class="add">
             <input id="foodIn" list="foodList" placeholder="Buscar alimento (arroz, pan, manzana…)" aria-label="Alimento">
             <input id="gramsIn" type="number" inputmode="decimal" min="0" placeholder="g" aria-label="Gramos">
@@ -685,22 +688,52 @@ ul.plain li{margin:5px 0}
     else { el.className = 'pill'; $('#syncText').textContent = 'Modo local: sin sincronizar'; }
   }
 
-  /* ---------- Registros ---------- */
   /* ---------- Sensor Libre (vía LibreLinkUp) ---------- */
   let sensor = [];          // lecturas del sensor, mezcladas con las manuales
-  let sensorTrend = null;   // 1 baja rápido, 2 baja, 3 estable, 4 sube, 5 sube rápido
+  let sensorTrend = null;   // flecha del sensor: 1 baja rápido, 2 baja, 3 estable, 4 sube, 5 sube rápido
   let sensorInfo = { state: 'idle' };
   let syncing = false;
-  const TREND = { 1: '↓↓', 2: '↘', 3: '→', 4: '↗', 5: '↑↑' };
   const readings = () => entries.filter(e => e.type === 'reading').concat(sensor).sort((a, b) => b.ts - a.ts);
 
+  // Tendencia en 7 niveles a partir de cuánto cambia la glucosa por minuto
+  const TREND7 = {
+    3: { a: '⇈', t: 'Subida muy rápida' }, 2: { a: '↑', t: 'Subida media' }, 1: { a: '↗', t: 'Subida pequeña' },
+    0: { a: '→', t: 'Estable' },
+    '-1': { a: '↘', t: 'Bajada pequeña' }, '-2': { a: '↓', t: 'Bajada media' }, '-3': { a: '⇊', t: 'Bajada muy rápida' }
+  };
+  const levelOf = r => (r >= 3 ? 3 : r >= 2 ? 2 : r >= 1 ? 1 : r <= -3 ? -3 : r <= -2 ? -2 : r <= -1 ? -1 : 0);
+  function trendNow() {
+    const rs = readings(), last = rs[0];
+    if (!last || Date.now() - last.ts > 30 * 6e4) return null;
+    let ref = null, best = 1e9;
+    for (const r of rs) {
+      const m = (last.ts - r.ts) / 6e4;
+      if (m > 30) break;
+      if (m >= 8 && Math.abs(m - 15) < best) { best = Math.abs(m - 15); ref = r; }
+    }
+    let rate = null;
+    if (ref) rate = (last.mgdl - ref.mgdl) / ((last.ts - ref.ts) / 6e4);
+    else if (last.sensor && sensorTrend) rate = { 5: 3, 4: 1.5, 3: 0, 2: -1.5, 1: -3 }[sensorTrend];
+    if (rate == null) return null;
+    const level = levelOf(rate);
+    return { level, rate, ...TREND7[level] };
+  }
+  function renderTrend() {
+    const el = $('#ringTrend'); if (!el) return;
+    const t = trendNow();
+    if (!t) { el.innerHTML = ''; return; }
+    const col = Math.abs(t.level) >= 3 ? '#B83A52' : Math.abs(t.level) === 2 ? '#9A6A14' : '#2E8B7A';
+    const rate = Math.abs(t.rate) < 0.05 ? '0' : (t.rate > 0 ? '+' : '') + fmt(Math.round(t.rate * 10) / 10);
+    el.innerHTML = `<span style="color:${col}"><span style="font-size:1.25rem;margin-right:4px">${t.a}</span>${t.t}</span><br><span style="color:var(--muted);font-weight:500">${rate} mg/dL por minuto</span>`;
+  }
   function renderSensorLine() {
+    renderTrend();
     const el = $('#sensorLine'); if (!el) return;
     const i = sensorInfo;
     if (i.state === 'off') { el.textContent = 'Sensor Libre sin conectar: faltan LIBRE_EMAIL y LIBRE_PASSWORD en Netlify.'; return; }
     if (!i.lastTs) { el.textContent = i.msg ? 'Sensor Libre: ' + i.msg : ''; return; }
     const min = Math.max(0, Math.round((Date.now() - i.lastTs) / 6e4));
-    el.textContent = `Sensor Libre ${TREND[sensorTrend] || ''} · lectura de hace ${min < 1 ? 'menos de 1 min' : min + ' min'}` +
+    el.textContent = `Sensor Libre · lectura de hace ${min < 1 ? 'menos de 1 min' : min + ' min'}` +
       (min > 20 ? '. Sin datos recientes: comprueba que LibreLink está subiendo lecturas.' : '') + (i.msg ? ' · ' + i.msg : '');
   }
   async function syncSensor() {
@@ -718,6 +751,8 @@ ul.plain li{margin:5px 0}
     syncing = false;
     renderHero(); renderCorr(); renderCharts(false); renderSensorLine();
   }
+
+  /* ---------- Registros ---------- */
   const gymToday = () => entries.some(e => e.type === 'day' && e.gym && dayStr(e.ts) === todayKey());
   const lastBasal = () => entries.find(e => e.type === 'basal');
 
@@ -965,7 +1000,7 @@ ul.plain li{margin:5px 0}
     let why = '', units = 0, parts = null;
     if (!last || age > 60) why = 'Mide tu glucosa para calcular una corrección (la última lectura tiene más de 1 hora).';
     else if (lowRecent || last.mgdl < 70) why = 'Has tenido una glucosa baja en las últimas 3 horas: no se propone corrección.';
-    else if (last.sensor && sensorTrend && sensorTrend <= 2) why = 'El sensor indica que tu glucosa está bajando: no se propone corrección ahora. Vuelve a mirar en unos minutos.';
+    else if ((trendNow() || {}).level <= -1) why = 'Tu glucosa está bajando: no se propone corrección ahora. Vuelve a mirar en unos minutos.';
     else if (sinceDose < 120) why = `Hace ${fmtDur(sinceDose * 6e4)} que te pusiste insulina y aún no ha hecho su efecto principal. Espera ${fmtDur((120 - sinceDose) * 6e4)} y vuelve a medir.`;
     else if (last.mgdl < Math.max(130, target + 40)) why = `Tu última glucosa (${fmt(last.mgdl)}) no necesita corrección.`;
     else {
@@ -1181,7 +1216,7 @@ ul.plain li{margin:5px 0}
     }).join('');
 
     // Puntos y marcadores
-    const hits = rs.map(r => ({ ts: r.ts, px: x(r.ts), py: y(r.mgdl), html: `<b style="color:${gText(r.mgdl)}">${fmt(r.mgdl)} mg/dL</b><br>${CTX[r.context] || ''} · ${whenLabel(r.ts)}` }));
+    const hits = rs.map(r => ({ ts: r.ts, px: x(r.ts), py: y(r.mgdl), html: `<b style="color:${gText(r.mgdl)}">${fmt(r.mgdl)} mg/dL</b><br>${r.sensor ? 'sensor' : (CTX[r.context] || '')} · ${whenLabel(r.ts)}` }));
     let marks = '';
     entries.filter(e => (e.type === 'basal' || e.type === 'meal' || (e.type === 'reading' && e.dose > 0)) && e.ts >= from).forEach(e => {
       const px = x(e.ts), py = H - pb - 8;
@@ -1269,7 +1304,7 @@ ul.plain li{margin:5px 0}
     if (!items.length) { box.innerHTML = '<p class="empty">Aún no hay alimentos. Haz una foto o añádelos a mano.</p>'; calc(); return; }
     box.innerHTML = items.map(it => `
       <div class="item" data-id="${it.id}">
-        <div class="name">${esc(it.name)}<small class="${it.conf === 'baja' ? 'low' : ''}">${fmt(it.cp100)} g de hidratos por 100 g${it.conf ? ', confianza ' + it.conf : ''}</small></div>
+        <div class="name">${esc(it.name)}<small class="${it.conf === 'baja' ? 'low' : ''}">${fmt(it.cp100)} g de hidratos por 100 g${it.conf ? ', confianza ' + it.conf : ''}</small>${it.prot != null ? `<small>Proteínas ${fmt((it.grams || 0) * it.prot / 100)} g · grasas ${fmt((it.grams || 0) * it.fat / 100)} g · fibra ${fmt((it.grams || 0) * it.fibre / 100)} g</small>` : ''}</div>
         <input type="number" inputmode="decimal" min="0" value="${it.grams}" aria-label="Gramos de ${esc(it.name)}">
         <div class="c">${fmt(itemCarbs(it))} g</div>
         <button class="x" type="button" aria-label="Quitar ${esc(it.name)}">×</button>
@@ -1307,13 +1342,13 @@ ul.plain li{margin:5px 0}
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const dataUrl = await compress(file, 1280, 0.82);
+      const dataUrl = await compress(file, 1024, 0.78);
       $('#preview').src = dataUrl; $('#preview').hidden = false; $('#dropText').hidden = true;
       if (!isCloud()) { setStatus('#status', 'err', 'Para analizar la foto con IA, entra con tu clave (Ajustes > Cerrar sesión y vuelve a entrar). Mientras, añade los alimentos a mano.'); return; }
       setStatus('#status', 'info', '<span class="spin"></span>Analizando el plato…');
       const data = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'food', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
       if (!Array.isArray(data.items) || !data.items.length) { setStatus('#status', 'err', 'No he reconocido comida en la foto. Prueba con otra o añade los alimentos a mano.'); return; }
-      items = data.items.map(i => ({ id: nextId++, name: String(i.nombre || 'Alimento'), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), conf: i.confianza || '' }));
+      items = data.items.map(i => ({ id: nextId++, name: String(i.nombre || 'Alimento'), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), prot: Math.max(0, Number(i.proteina_100g) || 0), fat: Math.max(0, Number(i.grasa_100g) || 0), fibre: Math.max(0, Number(i.fibra_100g) || 0), abs: i.absorcion || '', conf: i.confianza || '' }));
       setStatus('#status', 'ok', 'Estimación lista. Revisa los gramos de cada alimento antes de pinchar.' + (data.notas ? '<br>' + esc(data.notas) : ''));
       renderItems();
     } catch (err) { setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.'); }
@@ -1374,6 +1409,8 @@ ul.plain li{margin:5px 0}
     const max = parseFloat(s.maxDose);
     if (max > 0 && dose > max) warns.push(['danger', `La dosis supera tu aviso de ${fmt(max)} U. Revisa gramos y glucemia antes de pinchar.`]);
     if (items.some(i => i.conf === 'baja')) warns.push(['', 'Hay alimentos con confianza baja en la foto. Pésalos o confirma los gramos.']);
+    const fatG = items.reduce((a, i) => a + (i.grams || 0) * (i.fat || 0) / 100, 0), protG = items.reduce((a, i) => a + (i.grams || 0) * (i.prot || 0) / 100, 0);
+    if (fatG >= 30 || protG >= 40) warns.push(['', `Comida con ${fmt(fatG)} g de grasa y ${fmt(protG)} g de proteína: la glucosa puede subir más tarde. Mide también a las 3 o 4 horas y comenta con tu endocrino cómo ajustarlo.`]);
     if (carbs > 0 && !(bg > 0)) warns.push(['', 'Sin glucemia no se aplica corrección: solo cubre los hidratos.']);
     if (!(isf > 0) || !(target > 0)) warns.push(['', 'Falta el factor de sensibilidad o la glucemia objetivo en Ajustes: no se calcula la corrección.']);
     if (gym) {
@@ -1384,6 +1421,16 @@ ul.plain li{margin:5px 0}
     return { carbs, mealU, corrU: bg > 0 ? corrU : 0, gymAdj, dose, warns, bg, gym };
   }
 
+  function renderMacros() {
+    const el = $('#macros'); if (!el) return;
+    if (!items.length) { el.innerHTML = ''; return; }
+    const sum = k => items.reduce((a, i) => a + (i.grams || 0) * (i[k] || 0) / 100, 0);
+    const hc = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
+    const p = sum('prot'), g = sum('fat'), f = sum('fibre');
+    const st = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+    el.innerHTML = `<div class="stats">${st(fmt(hc) + ' g', 'hidratos')}${st(fmt(p) + ' g', 'proteínas')}${st(fmt(g) + ' g', 'grasas')}${st(fmt(f) + ' g', 'fibra')}${st(Math.round(hc * 4 + p * 4 + g * 9) + ' kcal', 'aprox.')}</div>`;
+  }
+
   let shownDose = 0;
   let realDoseStr = null;   // dosis que escribe la persona (null = sigue la sugerencia)
   let absorbStr = null;     // rapida | mixta | lenta (null = automática según los alimentos)
@@ -1391,14 +1438,17 @@ ul.plain li{margin:5px 0}
   const SLOW_RE = /lentejas|garbanzos|judías|avena|integral|hummus|pizza|aguacate/i;
   const autoAbsorb = () => {
     let f = 0, sl = 0;
-    items.forEach(i => { const c = itemCarbs(i); if (FAST_RE.test(i.name)) f += c; else if (SLOW_RE.test(i.name)) sl += c; });
+    items.forEach(i => {
+      const c = itemCarbs(i), a = i.abs || (FAST_RE.test(i.name) ? 'rapida' : SLOW_RE.test(i.name) ? 'lenta' : '');
+      if (a === 'rapida') f += c; else if (a === 'lenta') sl += c;
+    });
     const tot = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
     return tot > 0 && f / tot >= 0.6 ? 'rapida' : tot > 0 && sl / tot >= 0.5 ? 'lenta' : 'mixta';
   };
   let mealKind = 'comida';  // comida | cafe | correccion
   function calc() {
     const r = calcDose();
-    const box = $('#doseBox');
+    const box = $('#doseBox'); renderMacros();
     if (r.missing) {
       box.innerHTML = `<p class="sub">Para calcular la dosis, pon tu ratio insulina/hidratos en Ajustes.</p>
         <button class="btn" type="button" id="goSet">Ir a ajustes</button>
@@ -1680,7 +1730,7 @@ ul.plain li{margin:5px 0}
     } else if (isLocalMode()) await loadEntries();
     else openLogin();
   })();
-  // Cada minuto se actualizan los tiempos; cada 2 minutos y al volver a la pestaña se traen los datos de otros dispositivos.
+  // Cada minuto se actualizan los tiempos y el sensor; cada 2 minutos y al volver a la pestaña se traen los datos de otros dispositivos.
   setInterval(() => { renderToujeo(); renderCorr(); renderHero(); renderCharts(false); renderSensorLine(); setNow(); if (!document.hidden) syncSensor(); }, 60000);
   setInterval(() => { if (isCloud() && !document.hidden) loadEntries(true); }, 120000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) { loadEntries(true); syncSensor(); } });

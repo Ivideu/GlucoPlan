@@ -443,9 +443,9 @@ details.day>.log{padding-bottom:10px}
       <div class="head">
         <h2>Tu glucosa</h2>
         <div class="chips" id="rangePills">
-          <button class="chip" type="button" data-r="1" aria-pressed="false">24 h</button>
+          <button class="chip" type="button" data-r="1" aria-pressed="true">24 h</button>
           <button class="chip" type="button" data-r="0" aria-pressed="false">Día</button>
-          <button class="chip" type="button" data-r="7" aria-pressed="true">7 días</button>
+          <button class="chip" type="button" data-r="7" aria-pressed="false">7 días</button>
           <button class="chip" type="button" data-r="28" aria-pressed="false">28 días</button>
         </div>
       </div>
@@ -672,7 +672,7 @@ details.day>.log{padding-bottom:10px}
   let items = [];
   let nextId = 1;
   let entries = [];
-  let chartDays = 7;
+  let chartDays = 1;
   function startOfDay(ts) { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
   let chartDay = startOfDay(Date.now());   // día que se muestra cuando se pulsa «Día»
   const chartRange = () => {

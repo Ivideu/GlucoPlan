@@ -72,7 +72,7 @@ function cleanEntry(e, id) {
 const detail = (r) =>
   `datos no válidos (tipo ${r?.type}, hidratos ${r?.carbs}, dosis ${r?.dose}, glucosa ${r?.mgdl}, unidades ${r?.units})`;
 
-const SETTING_KEYS = ["icr", "isf", "target", "step", "maxDose", "gymAdj", "basal"];
+const SETTING_KEYS = ["icr", "isf", "target", "step", "maxDose", "gymAdj", "basal", "adaptOn", "adaptFrom"];
 
 export default async (req) => {
   const pre = preflight(req);

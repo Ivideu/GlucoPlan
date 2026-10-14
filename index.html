@@ -396,8 +396,8 @@ ul.plain li{margin:5px 0}
           <div class="items" id="items"></div>
           <div id="macros"></div>
           <div class="add">
-            <input id="foodIn" list="foodList" placeholder="Buscar alimento (arroz, pan, manzana…)" aria-label="Alimento">
-            <input id="gramsIn" type="number" inputmode="decimal" min="0" placeholder="g" aria-label="Gramos">
+            <input id="foodIn" list="foodList" placeholder="Cualquier alimento o plato (la IA lo busca)" aria-label="Alimento">
+            <input id="gramsIn" type="number" inputmode="decimal" min="0" placeholder="g (opcional)" aria-label="Gramos">
             <button class="btn ghost" id="addBtn" type="button">Añadir</button>
           </div>
           <datalist id="foodList"></datalist>
@@ -409,8 +409,8 @@ ul.plain li{margin:5px 0}
             </div>
             <div class="field">
               <label for="bg">Glucemia actual (mg/dL)</label>
-              <input id="bg" type="number" inputmode="decimal" min="0" placeholder="Opcional">
-              <span class="hint">Sensor o glucómetro.</span>
+              <input id="bg" type="number" inputmode="decimal" min="0" placeholder="Automática">
+              <span class="hint" id="bgHint">Sensor o glucómetro.</span>
             </div>
           </div>
         </div>
@@ -452,35 +452,6 @@ ul.plain li{margin:5px 0}
       </div>
     </div>
 
-    <div class="card">
-      <h2>Subir una gráfica de glucosa</h2>
-      <p class="sub">Haz una captura de tu app del sensor. La IA extrae los datos y tú los confirmas antes de guardar.</p>
-      <div class="drop" style="min-height:130px">
-        <img id="chartPreview" alt="Vista previa de la gráfica" hidden>
-        <div id="chartDropText">
-          <div class="cam" aria-hidden="true">📈</div>
-          <strong>Elegir captura de la gráfica</strong>
-        </div>
-        <input type="file" id="chartFile" accept="image/*" aria-label="Elegir captura de la gráfica de glucosa">
-      </div>
-      <p class="hint" style="margin-top:8px">Con el plan gratuito, Google puede usar lo que envías para mejorar sus productos. Recorta tu nombre y otros datos personales antes de subir la captura.</p>
-      <div id="chartStatus"></div>
-      <div id="chartForm" hidden>
-        <div class="fgrid" style="margin-top:14px">
-          <div class="field"><label for="c-periodo">Periodo</label><input id="c-periodo"></div>
-          <div class="field"><label for="c-media">Media (mg/dL)</label><input id="c-media" type="number" inputmode="decimal"></div>
-          <div class="field"><label for="c-tir">Tiempo en rango (%)</label><input id="c-tir" type="number" inputmode="decimal"></div>
-          <div class="field"><label for="c-bajo">Por debajo (%)</label><input id="c-bajo" type="number" inputmode="decimal"></div>
-          <div class="field"><label for="c-alto">Por encima (%)</label><input id="c-alto" type="number" inputmode="decimal"></div>
-          <div class="field"><label for="c-hipos">Eventos de glucosa baja</label><input id="c-hipos" type="number" inputmode="decimal"></div>
-          <div class="field"><label for="c-min">Mínima (mg/dL)</label><input id="c-min" type="number" inputmode="decimal"></div>
-          <div class="field"><label for="c-max">Máxima (mg/dL)</label><input id="c-max" type="number" inputmode="decimal"></div>
-        </div>
-        <ul class="plain" id="chartPatterns"></ul>
-        <div class="field" style="margin-top:12px"><label for="c-note">Qué pasó esos días (gym, comidas…)</label><input id="c-note" name="glucoplan-nota-grafica" autocomplete="off" maxlength="200"></div>
-        <div class="actions" style="margin-top:14px"><button class="btn" id="saveChart" type="button">Guardar gráfica</button></div>
-      </div>
-    </div>
 
     <div class="card">
       <h2>Registro</h2>
@@ -658,7 +629,7 @@ ul.plain li{margin:5px 0}
   const CTX = { post2h:'2 h después de comer', pre_comida:'antes de comer', ayunas:'en ayunas', pre_gym:'antes del gym', post_gym:'después del gym', noche:'noche o madrugada', otro:'otro momento' };
 
   /* ---------- Estado local ---------- */
-  const defaults = { icr:'', isf:'30', target:'', step:'0.5', maxDose:'', gymAdj:'', basal:'28' };
+  const defaults = { icr:'', isf:'30', target:'', step:'0.5', maxDose:'', gymAdj:'', basal:'28', adaptOn:'1', adaptFrom:'0' };
   function load() {
     try {
       const d = JSON.parse(localStorage.getItem(KEY)) || {};
@@ -774,6 +745,8 @@ ul.plain li{margin:5px 0}
     } catch (err) { sensorInfo = { ...sensorInfo, state: 'error', msg: err.message }; }
     syncing = false;
     renderHero(); renderCorr(); renderCharts(false); renderSensorLine();
+    const ae = document.activeElement && document.activeElement.id;
+    if (!['realDose', 'gramsIn', 'foodIn', 'extra', 'bg', 'corrDose'].includes(ae)) calc();
   }
 
   /* ---------- Registros ---------- */
@@ -1007,10 +980,9 @@ ul.plain li{margin:5px 0}
     let clear = 0;
     for (let m = 0; m <= 300; m += 5) { if (onBoard(now + m * 6e4).iob < 0.1) { clear = m; break; } }
 
-    const L = learnData();
-    const pf = propose(L.isf, L.corrs, MIN_CORRS, 0, L.lows14);
-    const learned = pf && !pf.blocked ? pf.next : null;
-    const isf = learned || isfCfg;
+    const adp = adaptNow();
+    const isf = adp.isf;
+    const learned = adp.isfMul !== 1 ? adp.isf : null;
 
     const last = readings()[0];
     const age = last ? (now - last.ts) / 6e4 : Infinity;
@@ -1340,7 +1312,33 @@ ul.plain li{margin:5px 0}
     });
     calc();
   }
-  $('#addBtn').addEventListener('click', () => {
+  $('#addBtn').addEventListener('click', async () => {
+    const btn = $('#addBtn');
+    const name = $('#foodIn').value.trim();
+    const grams = parseFloat($('#gramsIn').value);
+    if (!name) { setStatus('#status', 'err', 'Escribe un alimento o un plato.'); return; }
+    const f = FOODS.find(x => x[0].toLowerCase() === name.toLowerCase());
+    if (f && grams > 0) {
+      items.push({ id: nextId++, name: f[0], grams, cp100: f[1], conf: '' });
+      $('#foodIn').value = ''; $('#gramsIn').value = ''; $('#status').innerHTML = '';
+      renderItems(); return;
+    }
+    if (!isCloud()) { setStatus('#status', 'err', 'Para buscar con IA entra con tu clave. Sin ella, elige un alimento de la lista e indica los gramos.'); return; }
+    btn.disabled = true;
+    setStatus('#status', 'info', `<span class="spin"></span>Buscando «${esc(name)}»…`);
+    try {
+      const d = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'lookup', text: name, grams: grams > 0 ? grams : null }) });
+      if (!Array.isArray(d.items) || !d.items.length) setStatus('#status', 'err', 'No he podido identificar ese alimento. Prueba con otro nombre.');
+      else {
+        d.items.forEach(i => items.push({ id: nextId++, name: String(i.nombre || 'Alimento'), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), prot: Math.max(0, Number(i.proteina_100g) || 0), fat: Math.max(0, Number(i.grasa_100g) || 0), fibre: Math.max(0, Number(i.fibra_100g) || 0), abs: i.absorcion || '', conf: i.confianza || '' }));
+        $('#foodIn').value = ''; $('#gramsIn').value = '';
+        setStatus('#status', 'ok', 'Añadido con IA. Revisa los gramos.' + (d.notas ? '<br>' + esc(d.notas) : ''));
+        renderItems();
+      }
+    } catch (err) { setStatus('#status', 'err', 'No se pudo buscar (' + esc(err.message) + '). Elige uno de la lista e indica los gramos.'); }
+    btn.disabled = false;
+  });
+  $('#addBtnOld')?.addEventListener('click', () => {
     const name = $('#foodIn').value.trim();
     const grams = parseFloat($('#gramsIn').value);
     const f = FOODS.find(x => x[0].toLowerCase() === name.toLowerCase());
@@ -1377,7 +1375,7 @@ ul.plain li{margin:5px 0}
       renderItems();
     } catch (err) { setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.'); }
   });
-  $('#chartFile').addEventListener('change', async e => {
+  $('#chartFile')?.addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
     try {
@@ -1399,7 +1397,7 @@ ul.plain li{margin:5px 0}
     $('#c-note').value = '';
     $('#chartForm').hidden = false;
   }
-  $('#saveChart').addEventListener('click', async () => {
+  $('#saveChart')?.addEventListener('click', async () => {
     const summary = { periodo: $('#c-periodo').value, patrones: chartPatterns };
     ['media_mgdl','tir_pct','bajo_pct','alto_pct','hipos','min_mgdl','max_mgdl'].forEach(k => { summary[k] = numOrNull($(CF[k]).value); });
     try {
@@ -1412,18 +1410,27 @@ ul.plain li{margin:5px 0}
   /* ---------- Cálculo de dosis ---------- */
   function calcDose() {
     const s = store.settings;
-    const icr = parseFloat(s.icr), isf = parseFloat(s.isf), target = parseFloat(s.target);
+    const ad = adaptNow(), icr = ad.icr, isf = ad.isf, target = parseFloat(s.target);
     const step = parseFloat(s.step) || 0.5;
     const gym = gymToday();
     const gymAdj = gym ? Math.min(50, Math.max(-50, parseFloat(s.gymAdj) || 0)) : 0;
-    const bg = parseFloat($('#bg').value);
+    const ab = autoBg(), bg = ab ? ab.v : NaN;
     const carbs = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
     const warns = [];
     if (!(icr > 0)) return { missing: true, carbs };
 
     const mealU = carbs / icr;
     let corrU = 0;
-    if (bg > 0 && isf > 0 && target > 0) corrU = (bg - target) / isf;
+    let iobUsed = 0, trendNote = null;
+    if (bg > 0 && isf > 0 && target > 0) {
+      corrU = (bg - target) / isf;
+      if (corrU > 0) {
+        const iob = onBoard(Date.now()).iob;
+        if (iob > 0.05) { iobUsed = Math.min(iob, corrU); corrU -= iobUsed; }   // descuenta la insulina que aún actúa
+        const tr = trendNow();
+        if (tr && tr.level <= -2 && corrU > 0) { trendNote = tr; corrU = 0; }  // glucosa bajando: no se suma corrección
+      }
+    }
     const raw = Math.max(0, mealU + corrU);
     let dose = Math.round(raw * (1 + gymAdj / 100) / step) * step;
 
@@ -1436,13 +1443,15 @@ ul.plain li{margin:5px 0}
     const fatG = items.reduce((a, i) => a + (i.grams || 0) * (i.fat || 0) / 100, 0), protG = items.reduce((a, i) => a + (i.grams || 0) * (i.prot || 0) / 100, 0);
     if (fatG >= 30 || protG >= 40) warns.push(['', `Comida con ${fmt(fatG)} g de grasa y ${fmt(protG)} g de proteína: la glucosa puede subir más tarde. Mide también a las 3 o 4 horas y comenta con tu endocrino cómo ajustarlo.`]);
     if (carbs > 0 && !(bg > 0)) warns.push(['', 'Sin glucemia no se aplica corrección: solo cubre los hidratos.']);
+    if (trendNote) warns.push(['', `Tu glucosa está bajando (${trendNote.t.toLowerCase()}): no se suma corrección. Valora pinchar después de empezar a comer.`]);
+    if (ad.adjusted) warns.push(['', `Ajuste aprendido de ${ad.slot.name.toLowerCase()}: ratio ${fmt(ad.icr)} g/U y sensibilidad ${fmt(ad.isf)} mg/dL por U, según cómo te han ido tus últimas dosis.`]);
     if (!(isf > 0) || !(target > 0)) warns.push(['', 'Falta el factor de sensibilidad o la glucemia objetivo en Ajustes: no se calcula la corrección.']);
     if (gym) {
       warns.push(['gym', gymAdj
         ? `Hoy has hecho gym: se aplica tu ajuste de ${gymAdj > 0 ? '+' : ''}${fmt(gymAdj)} %. Mide a las 2 h y de nuevo unas 3 a 6 h después por si hay bajada tardía.`
         : 'Hoy has hecho gym (musculación y cardio). La musculación suele subirte la glucosa, así que no se reduce la dosis. Mide a las 2 h y de nuevo unas 3 a 6 h después por si hay bajada tardía. Si necesitas un ajuste fijo, coméntalo con tu endocrino y ponlo en Ajustes.']);
     }
-    return { carbs, mealU, corrU: bg > 0 ? corrU : 0, gymAdj, dose, warns, bg, gym };
+    return { carbs, mealU, corrU: bg > 0 ? corrU : 0, gymAdj, dose, warns, bg, gym, ad, ab, iobUsed };
   }
 
   function renderMacros() {
@@ -1472,7 +1481,7 @@ ul.plain li{margin:5px 0}
   let mealKind = 'comida';  // comida | cafe | correccion
   function calc() {
     const r = calcDose();
-    const box = $('#doseBox'); renderMacros();
+    const box = $('#doseBox'); renderMacros(); renderBgHint();
     if (r.missing) {
       box.innerHTML = `<p class="sub">Para calcular la dosis, pon tu ratio insulina/hidratos en Ajustes.</p>
         <button class="btn" type="button" id="goSet">Ir a ajustes</button>
@@ -1486,6 +1495,8 @@ ul.plain li{margin:5px 0}
       <div class="break">
         <div><span>Por los hidratos</span><span>${fmt(r.mealU)} U</span></div>
         <div><span>Corrección por glucemia</span><span>${r.corrU >= 0 ? '+' : ''}${fmt(r.corrU)} U</span></div>
+        ${r.iobUsed > 0.05 ? `<div><span>Insulina activa ya descontada</span><span>−${fmt(r.iobUsed)} U</span></div>` : ''}
+        ${r.ad && r.ad.adjusted ? `<div><span>Ratio de ${r.ad.slot.name.toLowerCase()} (aprendido)</span><span>${fmt(r.ad.icr)} g/U</span></div>` : ''}
         ${r.gym && r.gymAdj ? `<div><span>Ajuste por gym</span><span>${r.gymAdj > 0 ? '+' : ''}${fmt(r.gymAdj)} %</span></div>` : ''}
       </div>
       <div class="warns">${r.warns.map(w => `<div class="warn ${w[0]}">${esc(w[1])}</div>`).join('')}</div>
@@ -1590,7 +1601,152 @@ ul.plain li{margin:5px 0}
       blocked: moreInsulin && lows14 > 0 ? 'Has tenido glucosas bajas (< 70) en los últimos 14 días: no se propone más insulina.' :
                agree < 0.6 ? 'Tus datos son contradictorios entre sí: hace falta más información.' : '' };
   }
+    /* ---------- Glucosa automática para calcular ---------- */
+  function autoBg() {
+    const typed = parseFloat($('#bg').value);
+    if (typed > 0) return { v: typed, auto: false };
+    const last = readings()[0];
+    if (last && Date.now() - last.ts <= 20 * 6e4) return { v: last.mgdl, auto: true, ts: last.ts, sensor: !!last.sensor };
+    return null;
+  }
+  function renderBgHint() {
+    const el = $('#bgHint'); if (!el) return;
+    const ab = autoBg();
+    if (!ab) { el.textContent = 'Sin lectura de menos de 20 min: escribe tu glucemia o espera al sensor.'; return; }
+    if (!ab.auto) { el.textContent = 'Usando el valor que has escrito.'; return; }
+    const min = Math.max(0, Math.round((Date.now() - ab.ts) / 6e4)), t = trendNow();
+    el.textContent = `Automática: ${ab.v} mg/dL ${ab.sensor ? 'del sensor' : 'de tu última lectura'}, de hace ${min} min${t ? ' · ' + t.a + ' ' + t.t.toLowerCase() : ''}. Escribe otro valor para cambiarla.`;
+  }
+
+  /* ---------- Aprendizaje automático por franja del día ---------- */
+  // Compara cada dosis con la glucosa 2 h después (comidas) o 3 h y media después (correcciones).
+  // Si hay una glucosa baja en el camino, esa dosis cuenta doble y la franja baja la insulina enseguida.
+  // Cambios limitados a ±25 % (±30 % tras una bajada) sobre los valores de Ajustes.
+  const SLOTS = [
+    { id: 'desayuno', name: 'Desayuno', test: h => h >= 5 && h < 12 },
+    { id: 'comida', name: 'Comida', test: h => h >= 12 && h < 17 },
+    { id: 'cena', name: 'Cena', test: h => h >= 17 && h < 22 },
+    { id: 'noche', name: 'Acostarse y madrugada', test: h => h >= 22 || h < 5 }
+  ];
+  const slotOf = ts => SLOTS.find(s => s.test(new Date(ts).getHours())) || SLOTS[3];
+  const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+  let adaptMemo = { key: '', val: null };
+
+  function adaptModel() {
+    const st = store.settings, now = Date.now();
+    const key = [entries.length, entries.reduce((a, e) => a + e.ts % 997 + (e.dose || 0) * 7 + (e.carbs || 0), 0), sensor.length,
+      sensor.length ? sensor[sensor.length - 1].ts : 0, st.icr, st.isf, st.target, st.adaptOn, st.adaptFrom, Math.floor(now / 6e4)].join('|');
+    if (adaptMemo.key === key) return adaptMemo.val;
+
+    const icr = parseFloat(st.icr), isf = parseFloat(st.isf), target = parseFloat(st.target);
+    const on = st.adaptOn !== '0';
+    const slots = {};
+    SLOTS.forEach(s => { slots[s.id] = { id: s.id, name: s.name, mealsN: 0, corrN: 0, ratios: [], isfs: [], fastIcr: 1, fastIsf: 1, lastHypo: null, icrMul: 1, isfMul: 1, icr, isf }; });
+    const M = { on, ready: icr > 0 && isf > 0 && target > 0, slots, icr, isf, target, lows14: 0 };
+    if (!M.ready) { adaptMemo = { key, val: M }; return M; }
+
+    const from = Math.max(now - 60 * DAY, Number(st.adaptFrom) || 0);
+    const all = readings().slice().sort((a, b) => a.ts - b.ts);
+    M.lows14 = all.filter(r => r.mgdl < 70 && r.ts >= now - 14 * DAY).length;
+    const gymDays = new Set(entries.filter(e => e.gym).map(e => dayStr(e.ts)));
+    const bol = entries.filter(e => e.ts >= from && e.dose > 0 && (e.type === 'meal' || e.type === 'reading'))
+      .map(e => e.type === 'reading' ? { ...e, kind: e.kind || 'correccion', carbs: 0, bg: e.mgdl } : e)
+      .sort((a, b) => a.ts - b.ts);
+    const near = (ts, tol) => {
+      let b = null, bd = tol * 6e4 + 1;
+      for (const r of all) { const d = Math.abs(r.ts - ts); if (d < bd) { bd = d; b = r; } }
+      return b;
+    };
+
+    bol.forEach((m, i) => {
+      if (gymDays.has(dayStr(m.ts))) return;                 // los días de gym tienen su propio ajuste
+      const kind = m.kind || 'comida', next = bol[i + 1], S = slots[slotOf(m.ts).id];
+      const isMeal = kind !== 'correccion' && m.carbs >= 10;
+      const isCorr = kind === 'correccion' && m.bg >= 130;
+      if (!isMeal && !isCorr) return;
+      const t = m.ts + (isMeal ? 120 : 210) * 6e4;
+      if (t > now) return;                                    // aún no se puede evaluar
+      if (next && next.ts < t - 15 * 6e4) return;             // otra insulina de por medio
+      const end = Math.min(m.ts + 300 * 6e4, now, next ? next.ts : Infinity);
+      const win = all.filter(r => r.ts > m.ts + 20 * 6e4 && r.ts <= end);
+      const ref = near(t, 20);
+      if (!win.length || !ref) return;
+      const low = win.reduce((a, r) => (r.mgdl < a.mgdl ? r : a));
+      const hypo = low.mgdl < 70, G = hypo ? low.mgdl : ref.mgdl, w = hypo ? 2 : 1;
+      if (hypo && now - low.ts <= 7 * DAY) {
+        const f = 1 + (low.mgdl < 54 ? 0.15 : 0.10);
+        if (isMeal) S.fastIcr = Math.max(S.fastIcr, f); else S.fastIsf = Math.max(S.fastIsf, f);
+        if (!S.lastHypo || low.mgdl < S.lastHypo.mgdl) S.lastHypo = { mgdl: low.mgdl, ts: low.ts };
+      }
+      if (isMeal) {
+        const corr = m.bg > 0 ? Math.max(0, (m.bg - target) / isf) : 0;
+        const ideal = Math.max(0, m.dose - corr) + (G - (target + 20)) / isf;
+        const ratio = clampN(m.carbs / Math.max(ideal, 0.3), icr * 0.4, icr * 2.5);
+        for (let k = 0; k < w; k++) S.ratios.push(ratio);
+        S.mealsN++;
+      } else {
+        const drop = m.bg - G;
+        if (drop > 0) { for (let k = 0; k < w; k++) S.isfs.push(drop / m.dose); S.corrN++; }
+      }
+    });
+
+    const lows = M.lows14 > 0;
+    SLOTS.forEach(sl => {
+      const S = slots[sl.id];
+      let im = 1, sm = 1;
+      if (S.mealsN >= 3) { const k = S.ratios.length; im = 1 + (median(S.ratios) / icr - 1) * k / (k + 4); }
+      if (S.corrN >= 2) { const k = S.isfs.length; sm = 1 + (median(S.isfs) / isf - 1) * k / (k + 3); }
+      if (im < 1 && lows) im = 1;                             // no se sube la insulina si ha habido bajas
+      if (sm < 1 && lows) sm = 1;
+      im = Math.max(im, S.fastIcr); sm = Math.max(sm, S.fastIsf);
+      S.icrMul = on ? clampN(im, 0.75, 1.3) : 1;
+      S.isfMul = on ? clampN(sm, 0.75, 1.3) : 1;
+      S.icr = Math.round(icr * S.icrMul * 10) / 10;
+      S.isf = Math.round(isf * S.isfMul);
+    });
+    adaptMemo = { key, val: M };
+    return M;
+  }
+  function adaptNow() {
+    const M = adaptModel(), sl = slotOf(Date.now()), S = M.slots[sl.id];
+    return { slot: sl, icr: S.icr, isf: S.isf, icrMul: S.icrMul, isfMul: S.isfMul, adjusted: M.ready && M.on && (S.icrMul !== 1 || S.isfMul !== 1), S };
+  }
+
   function renderLearn() {
+    const box = $('#learnCard'); if (!box) return;
+    const M = adaptModel();
+    let h = `<div class="eyebrow">Aprendizaje automático</div><h2>Ajuste por franja del día</h2>`;
+    if (!M.ready) { box.innerHTML = h + '<p class="sub">Pon tu ratio insulina/hidratos, tu factor de sensibilidad y tu glucemia objetivo en Ajustes para empezar a aprender.</p>'; return; }
+    h += `<p class="sub">Compara cada dosis con cómo acabas 2 a 5 horas después (sensor o lecturas). Ajusta el ratio y la sensibilidad de cada franja, con un máximo de ±25 % sobre los valores de tu endocrino, y reacciona enseguida a una glucosa baja. ${M.on ? 'Ajuste automático activado.' : '<b>Ajuste automático desactivado:</b> se usan solo tus valores de Ajustes.'}</p>`;
+    const pctTxt = mul => { const p = Math.round((1 / mul - 1) * 100); return (p > 0 ? '+' : '') + p + ' %'; };
+    h += `<div style="overflow-x:auto"><table><thead><tr><th>Franja</th><th>Ratio (g por U)</th><th>Sensibilidad (mg/dL por U)</th><th>Estado</th></tr></thead><tbody>` +
+      SLOTS.map(sl => {
+        const S = M.slots[sl.id];
+        let state = 'Sin cambios';
+        if (!M.on) state = 'Solo tus valores';
+        else if (S.fastIcr > 1 || S.fastIsf > 1) state = `⚠️ Bajada reciente (${S.lastHypo ? S.lastHypo.mgdl : '?'} mg/dL): menos insulina`;
+        else if (S.icrMul > 1) state = `Menos insulina en comidas (${pctTxt(S.icrMul)})`;
+        else if (S.icrMul < 1) state = `Más insulina en comidas (${pctTxt(S.icrMul)})`;
+        else if (S.mealsN < 3) state = `Faltan datos (${S.mealsN} de 3 comidas)`;
+        return `<tr><td><b>${sl.name}</b></td><td>${fmt(M.icr)} → <b>${fmt(S.icr)}</b><small style="display:block;color:var(--muted)">${S.mealsN} comidas válidas</small></td><td>${fmt(M.isf)} → <b>${fmt(S.isf)}</b><small style="display:block;color:var(--muted)">${S.corrN} correcciones válidas</small></td><td>${state}</td></tr>`;
+      }).join('') + `</tbody></table></div>`;
+    h += `<div class="actions" style="margin-top:12px"><button class="btn small violet" type="button" data-act="toggle">${M.on ? 'Desactivar' : 'Activar'} ajuste automático</button><button class="btn small ghost" type="button" data-act="reset">Reiniciar aprendizaje</button></div>`;
+    h += `<p class="fine">Cada comida o corrección solo cuenta si hay una lectura a la hora de evaluarla y no hay otra insulina en medio. Los días de gym no se usan. Son ajustes estadísticos con pocos datos: revísalos con tu endocrino, sobre todo si se alejan de tus valores.</p>`;
+    box.innerHTML = h;
+  }
+  $('#learnCard').addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-act]'); if (!b) return;
+    if (b.dataset.act === 'toggle') store.settings.adaptOn = store.settings.adaptOn === '0' ? '1' : '0';
+    else if (b.dataset.act === 'reset') {
+      if (!confirm('¿Reiniciar el aprendizaje? Se vuelve a usar tu ratio y tu sensibilidad de Ajustes hasta que haya datos nuevos.')) return;
+      store.settings.adaptFrom = String(Date.now());
+    }
+    save();
+    if (isCloud()) { try { await pushSettings(); } catch (err) { toast('Guardado aquí, pero no sincronizado: ' + err.message, 'err'); } }
+    calc(); renderCorr(); renderLearn();
+  });
+
+  function renderLearnOld() {
     const box = $('#learnCard'); if (!box) return;
     const L = learnData();
     let h = `<div class="eyebrow">Aprendizaje</div><h2>Lo que la app ha aprendido de ti</h2>`;
@@ -1852,7 +2008,7 @@ ul.plain li{margin:5px 0}
 
   /* ---------- Ajustes ---------- */
   const map = { icr:'#s-icr', isf:'#s-isf', target:'#s-target', step:'#s-step', maxDose:'#s-max', gymAdj:'#s-gym', basal:'#s-basal' };
-  const SYNCED = Object.keys(map);
+  const SYNCED = [...Object.keys(map), 'adaptOn', 'adaptFrom'];
   const fillSettings = () => Object.entries(map).forEach(([k, sel]) => { $(sel).value = store.settings[k] ?? ''; });
   async function pushSettings() {
     const s = {}; SYNCED.forEach(k => { s[k] = String(store.settings[k] ?? ''); });

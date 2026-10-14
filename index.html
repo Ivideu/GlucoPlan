@@ -1235,7 +1235,8 @@ details.day>.log{padding-bottom:10px}
       const chipEl = $('#qNotes .chip[aria-pressed="true"]');
       if (chipEl) {
         // Un solo registro: el snack con sus 12 g de absorción rápida (la glucosa que escribas va dentro como glucemia)
-        await addEntry({ type:'meal', kind, carbs: 12, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb: 'rapida', note, gym, ts });
+        const SNACK_G = { 'Café con leche': 6, 'Merienda': 12, 'Sobre azúcar': 12 };
+        await addEntry({ type:'meal', kind, carbs: SNACK_G[chipEl.textContent.trim()] ?? 12, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb: 'rapida', note, gym, ts });
       } else if (mgdl != null) {
         // Un solo registro: glucosa y, si la hay, la insulina
         const e = { type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts };

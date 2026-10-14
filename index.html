@@ -438,10 +438,16 @@ ul.plain li{margin:5px 0}
         <h2>Tu glucosa</h2>
         <div class="chips" id="rangePills">
           <button class="chip" type="button" data-r="1" aria-pressed="false">24 h</button>
+          <button class="chip" type="button" data-r="0" aria-pressed="false">Día</button>
           <button class="chip" type="button" data-r="7" aria-pressed="true">7 días</button>
           <button class="chip" type="button" data-r="28" aria-pressed="false">28 días</button>
         </div>
       </div>
+    <div class="head" id="dayNav" hidden style="justify-content:center;gap:14px;margin-top:10px">
+      <button class="btn ghost small" type="button" id="dayPrev" aria-label="Día anterior">‹ Anterior</button>
+      <b id="dayLabel" style="min-width:190px;text-align:center;text-transform:capitalize"></b>
+      <button class="btn ghost small" type="button" id="dayNext" aria-label="Día siguiente">Siguiente ›</button>
+    </div>
       <div class="stats" id="gStats"></div>
       <div class="chart" id="chartMain"></div>
       <div class="legend">
@@ -661,6 +667,13 @@ ul.plain li{margin:5px 0}
   let nextId = 1;
   let entries = [];
   let chartDays = 7;
+  function startOfDay(ts) { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  let chartDay = startOfDay(Date.now());   // día que se muestra cuando se pulsa «Día»
+  const chartRange = () => {
+    if (chartDays !== 0) return { from: Date.now() - chartDays * DAY, to: Date.now() };
+    const e = new Date(chartDay); e.setDate(e.getDate() + 1);
+    return { from: chartDay, to: e.getTime() };
+  };
 
   /* ---------- Avisos ---------- */
   function toast(msg, type = 'ok') {
@@ -1192,9 +1205,11 @@ ul.plain li{margin:5px 0}
   $('#r-val').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
 
   /* ---------- Gráfica ---------- */
-  function drawChart(el, days, anim) {
-    const to = Date.now(), from = to - days * DAY;
-    const rs = readings().filter(r => r.ts >= from).sort((a, b) => a.ts - b.ts);
+  function drawChart(el, days, anim, dayStart) {
+    const dayMode = dayStart != null;
+    const to = dayMode ? (() => { const e = new Date(dayStart); e.setDate(e.getDate() + 1); return e.getTime(); })() : Date.now();
+    const from = dayMode ? dayStart : to - days * DAY;
+    const rs = readings().filter(r => r.ts >= from && r.ts <= to).sort((a, b) => a.ts - b.ts);
     if (!rs.length) { el.innerHTML = '<p class="empty">Sin lecturas en este periodo. Anota una glucosa y aparecerá aquí.</p>'; return; }
     const W = 680, H = 260, pl = 34, pr = 10, pt = 14, pb = 38;
     const vals = rs.map(r => r.mgdl);
@@ -1212,7 +1227,7 @@ ul.plain li{margin:5px 0}
 
     // Ejes
     let ticks = '';
-    const stepMs = days <= 1.5 ? 6 * 36e5 : days <= 8 ? DAY : 7 * DAY;
+    const stepMs = dayMode ? 3 * 36e5 : days <= 1.5 ? 6 * 36e5 : days <= 8 ? DAY : 7 * DAY;
     const t0 = new Date(from);
     if (stepMs < DAY) t0.setMinutes(0, 0, 0); else t0.setHours(0, 0, 0, 0);
     for (let t = t0.getTime(); t <= to; t += stepMs) {
@@ -1245,7 +1260,7 @@ ul.plain li{margin:5px 0}
     // Puntos y marcadores
     const hits = rs.map(r => ({ ts: r.ts, px: x(r.ts), py: y(r.mgdl), html: `<b style="color:${gText(r.mgdl)}">${fmt(r.mgdl)} mg/dL</b><br>${r.sensor ? 'sensor' : (CTX[r.context] || '')} · ${whenLabel(r.ts)}` }));
     let marks = '';
-    entries.filter(e => (e.type === 'basal' || e.type === 'meal' || (e.type === 'reading' && e.dose > 0)) && e.ts >= from).forEach(e => {
+    entries.filter(e => (e.type === 'basal' || e.type === 'meal' || (e.type === 'reading' && e.dose > 0)) && e.ts >= from && e.ts <= to).forEach(e => {
       const px = x(e.ts), py = H - pb - 8;
       if (e.type === 'basal') { marks += `<rect x="${px - 5}" y="${py - 5}" width="10" height="10" fill="#9D95E0" transform="rotate(45 ${px} ${py})"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#6A62B8">Toujeo ${fmt(e.units)} U</b><br>${whenLabel(e.ts)}` }); }
       else {
@@ -1281,7 +1296,8 @@ ul.plain li{margin:5px 0}
     hit.addEventListener('pointerleave', () => { tip.hidden = true; hl.setAttribute('opacity', 0); });
   }
   function renderStats() {
-    const rs = readings().filter(r => r.ts >= Date.now() - chartDays * DAY);
+    const { from, to } = chartRange();
+    const rs = readings().filter(r => r.ts >= from && r.ts <= to);
     const st = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
     if (!rs.length) { $('#gStats').innerHTML = ''; return; }
     const v = rs.map(r => r.mgdl);
@@ -1290,10 +1306,27 @@ ul.plain li{margin:5px 0}
   }
   function renderCharts(anim) {
     if (!$('#tab-hoy').hidden) drawChart($('#chartHoy'), 1, anim);
-    if (!$('#tab-glucosa').hidden) { drawChart($('#chartMain'), chartDays, anim); renderStats(); }
+    if (!$('#tab-glucosa').hidden) { drawChart($('#chartMain'), chartDays || 1, anim, chartDays === 0 ? chartDay : null); renderStats(); renderDayNav(); }
   }
+  function renderDayNav() {
+    const nav = $('#dayNav'); nav.hidden = chartDays !== 0;
+    if (chartDays !== 0) return;
+    const isToday = chartDay >= startOfDay(Date.now());
+    const d = new Date(chartDay);
+    $('#dayLabel').textContent = isToday
+      ? 'Hoy · ' + d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+      : d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    $('#dayNext').disabled = isToday;
+  }
+  $('#dayPrev').addEventListener('click', () => { const d = new Date(chartDay); d.setDate(d.getDate() - 1); chartDay = d.getTime(); renderCharts(true); });
+  $('#dayNext').addEventListener('click', () => {
+    const d = new Date(chartDay); d.setDate(d.getDate() + 1);
+    if (d.getTime() > startOfDay(Date.now())) return;
+    chartDay = d.getTime(); renderCharts(true);
+  });
   $$('#rangePills .chip').forEach(c => c.addEventListener('click', () => {
     chartDays = Number(c.dataset.r);
+    if (chartDays === 0) chartDay = startOfDay(Date.now());
     $$('#rangePills .chip').forEach(x => x.setAttribute('aria-pressed', x === c));
     renderCharts(true);
   }));

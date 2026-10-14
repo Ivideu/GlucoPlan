@@ -255,6 +255,12 @@ ul.plain li{margin:5px 0}
   h2{break-after:avoid} table,svg{break-inside:avoid}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.chart .draw{stroke-dashoffset:0}}
+details.day{background:rgba(40,70,95,.04);border-radius:16px;padding:0 10px;margin-bottom:8px}
+details.day>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:12px 4px;font-weight:700}
+details.day>summary::-webkit-details-marker{display:none}
+details.day>summary .dl::before{content:"▸";display:inline-block;margin-right:8px;color:var(--muted);transition:transform .2s}
+details.day[open]>summary .dl::before{transform:rotate(90deg)}
+details.day>.log{padding-bottom:10px}
 </style>
 </head>
 <body>
@@ -1133,7 +1139,46 @@ ul.plain li{margin:5px 0}
       return `<div class="row" data-id="${e.id}"><div class="ic ${e.type}" aria-hidden="true">${ic}</div><div>${html}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div><div style="display:flex;gap:2px"><button class="x ed" type="button" aria-label="Editar registro">✎</button><button class="x" type="button" aria-label="Borrar registro">×</button></div></div>`;
     }).join('');
   }
-  function renderEntries() { fillLog('#entryLogHoy', 6); fillLog('#entryLog', 30); }
+  /* Registro agrupado por días (pestaña Glucosa) */
+  let logDays = 7;          // cuántos días se muestran
+  const dayOpen = {};       // recuerda qué días has abierto o cerrado
+  const rowHtml = e => {
+    const [ic, html] = describe(e);
+    return `<div class="row" data-id="${e.id}"><div class="ic ${e.type}" aria-hidden="true">${ic}</div><div>${html}<small>${clock(e.ts)}</small></div><div style="display:flex;gap:2px"><button class="x ed" type="button" aria-label="Editar registro">✎</button><button class="x" type="button" aria-label="Borrar registro">×</button></div></div>`;
+  };
+  const dayLabel = d => {
+    const t = new Date(d + 'T12:00:00').getTime();
+    if (d === todayKey()) return 'Hoy · ' + new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    if (d === dayStr(Date.now() - DAY)) return 'Ayer · ' + new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    return new Date(t).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+  };
+  function groupedLog(box) {
+    if (!entries.length) { box.innerHTML = '<p class="empty">Todavía no hay registros.</p>'; return; }
+    const byDay = new Map();
+    entries.forEach(e => { const d = dayStr(e.ts); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(e); });
+    const days = [...byDay.keys()];
+    const rs = readings();
+    const html = days.slice(0, logDays).map(d => {
+      const list = byDay.get(d);
+      const meals = list.filter(e => e.type === 'meal' && (e.kind || 'comida') === 'comida').length;
+      const fiasp = list.reduce((a, e) => a + ((e.type === 'meal' || e.type === 'reading') && e.dose > 0 ? e.dose : 0), 0);
+      const g = rs.filter(r => dayStr(r.ts) === d).map(r => r.mgdl);
+      const gym = list.some(e => e.gym);
+      const low = g.length > 0 && Math.min(...g) < 70;
+      const info = [
+        meals ? `${meals} comida${meals === 1 ? '' : 's'}` : '',
+        fiasp > 0 ? `${fmt(Math.round(fiasp * 10) / 10)} U` : '',
+        g.length ? `${Math.min(...g)}–${Math.max(...g)} mg/dL` : ''
+      ].filter(Boolean).join(' · ');
+      const open = dayOpen[d] ?? (d === todayKey());
+      return `<details class="day" data-day="${d}" ${open ? 'open' : ''}><summary><span class="dl">${dayLabel(d)}${gym ? '<span class="tag">gym</span>' : ''}${low ? '<span class="tag" style="background:rgba(224,138,154,.2);color:#A8394F">⚠️ bajada</span>' : ''}</span><span class="hint">${info}</span></summary><div class="log">${list.map(rowHtml).join('')}</div></details>`;
+    }).join('');
+    const more = days.length > logDays ? `<button class="btn ghost block" type="button" id="moreDays">Ver días anteriores (${days.length - logDays} más)</button>` : '';
+    box.innerHTML = html + more;
+  }
+  $('#entryLog').addEventListener('toggle', ev => { const d = ev.target; if (d.dataset && d.dataset.day) dayOpen[d.dataset.day] = d.open; }, true);
+  $('#entryLog').addEventListener('click', ev => { if (ev.target.closest('#moreDays')) { logDays += 7; renderEntries(); } });
+  function renderEntries() { fillLog('#entryLogHoy', 6); groupedLog($('#entryLog')); }
   ['#entryLogHoy', '#entryLog'].forEach(sel => $(sel).addEventListener('click', async ev => {
     const btn = ev.target.closest('.x'); if (!btn) return;
     const e = entries.find(x => x.id === btn.closest('.row').dataset.id);

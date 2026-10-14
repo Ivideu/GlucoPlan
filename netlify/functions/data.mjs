@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import { checkAuth, loadEntries, monthKey, preflight, reply, store } from "../lib/shared.mjs";
 
 const TYPES = ["meal", "reading", "chart", "day", "basal"];
-const CONTEXTS = ["ayunas", "pre_comida", "post2h", "pre_gym", "post_gym", "noche", "otro"];
+const CONTEXTS = ["ayunas", "pre_comida", "post2h", "post2h_desayuno", "pre_cena", "post2h_cena", "pre_gym", "post_gym", "noche", "otro"];
 const KINDS = ["comida", "cafe", "correccion"];
 const ABSORB = ["rapida", "mixta", "lenta"];
 

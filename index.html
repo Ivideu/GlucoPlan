@@ -626,7 +626,22 @@ ul.plain li{margin:5px 0}
     ['Pizza',33],['Hummus',14],['Wrap de trigo',48],['Zumo de naranja',10],['Refresco de cola',11],
     ['Café con leche',4],['Chocolate negro 70 %',30],['Aguacate',2],['Huevo',1],['Pechuga de pollo',0]
   ];
-  const CTX = { post2h:'2 h después de comer', pre_comida:'antes de comer', ayunas:'en ayunas', pre_gym:'antes del gym', post_gym:'después del gym', noche:'noche o madrugada', otro:'otro momento' };
+  // Textos para mostrar en frases (incluye los tipos antiguos, para no perder el historial)
+  const CTX = {
+    ayunas:'antes de desayunar', post2h_desayuno:'2 h después de desayunar',
+    pre_comida:'antes de comer', post2h:'2 h después de comer',
+    pre_cena:'antes de cenar', post2h_cena:'2 h después de cenar',
+    otro:'otro momento',
+    pre_gym:'antes del gym', post_gym:'después del gym', noche:'noche o madrugada'
+  };
+  // Opciones que se ofrecen al anotar o editar una lectura
+  const CTX_OPTS = {
+    ayunas:'Antes de desayunar', post2h_desayuno:'2 horas después de desayunar',
+    pre_comida:'Antes de comer', post2h:'2 horas después de comer',
+    pre_cena:'Antes de cenar', post2h_cena:'2 horas después de cenar',
+    otro:'Otros'
+  };
+  $('#r-ctx').innerHTML = Object.entries(CTX_OPTS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
 
   /* ---------- Estado local ---------- */
   const defaults = { icr:'', isf:'30', target:'', step:'0.5', maxDose:'', gymAdj:'', basal:'28', adaptOn:'1', adaptFrom:'0' };
@@ -890,7 +905,7 @@ ul.plain li{margin:5px 0}
   /* ---------- Editar registros ---------- */
   const KINDS = { comida:'Comida', cafe:'Café o snack', correccion:'Corrección' };
   const EDIT = {
-    reading: [['mgdl','Glucosa (mg/dL)','num'], ['context','Tipo de lectura','sel', CTX], ['dose','Insulina Fiasp (U)','num'], ['note','Nota','txt']],
+    reading: [['mgdl','Glucosa (mg/dL)','num'], ['context','Tipo de lectura','sel', CTX_OPTS], ['dose','Insulina Fiasp (U)','num'], ['note','Nota','txt']],
     meal: [['kind','Tipo','sel', KINDS], ['carbs','Hidratos (g)','num'], ['bg','Glucemia (mg/dL)','num'], ['dose','Insulina que te pusiste (U)','num'], ['note','Nota','txt']],
     basal: [['units','Toujeo (U)','num'], ['note','Nota','txt']],
     day: [['gym','Día de gym','chk'], ['note','Nota','txt']],
@@ -902,7 +917,7 @@ ul.plain li{margin:5px 0}
     const f = [`<div class="field"><label for="ed-ts">Fecha y hora</label><input id="ed-ts" type="datetime-local" value="${toLocalInput(e.ts)}"></div>`];
     (EDIT[e.type] || []).forEach(([k, label, kind, opts]) => {
       const v = e[k] ?? '';
-      if (kind === 'sel') f.push(`<div class="field"><label for="ed-${k}">${label}</label><select id="ed-${k}">${Object.entries(opts).map(([ov, ol]) => `<option value="${ov}" ${ov === (e[k] || (k === 'kind' ? 'comida' : 'otro')) ? 'selected' : ''}>${ol}</option>`).join('')}</select></div>`);
+      if (kind === 'sel') f.push(`<div class="field"><label for="ed-${k}">${label}</label><select id="ed-${k}">${Object.entries(k === 'context' && e.context && !(e.context in opts) ? { ...opts, [e.context]: CTX[e.context] || e.context } : opts).map(([ov, ol]) => `<option value="${ov}" ${ov === (e[k] || (k === 'kind' ? 'comida' : 'otro')) ? 'selected' : ''}>${ol}</option>`).join('')}</select></div>`);
       else if (kind === 'chk') f.push(`<label style="display:flex;gap:10px;align-items:center;font-weight:600"><input id="ed-${k}" type="checkbox" style="width:auto" ${e[k] ? 'checked' : ''}>${label}</label>`);
       else f.push(`<div class="field"><label for="ed-${k}">${label}</label><input id="ed-${k}" name="ed-${k}" autocomplete="off" ${kind === 'num' ? 'type="number" step="0.5" inputmode="decimal"' : 'maxlength="300"'} value="${esc(v)}"></div>`);
     });
@@ -1858,7 +1873,7 @@ ul.plain li{margin:5px 0}
     }
 
     // Comidas por franjas
-    const man2h = m => E.find(x => x.type === 'reading' && x.context === 'post2h' && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4);
+    const man2h = m => E.find(x => x.type === 'reading' && /^post2h/.test(x.context || '') && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4);
     const post = m => man2h(m) || sensorAt(m.ts + 120 * 6e4, 15);
     const meals = E.filter(e => e.type === 'meal' && (e.kind || 'comida') === 'comida' && e.carbs >= 10);
     const slots = [['Desayuno (antes de las 12 h)', t => t < 12], ['Comida (12 a 17 h)', t => t >= 12 && t < 17], ['Cena y tarde (desde las 17 h)', t => t >= 17]];

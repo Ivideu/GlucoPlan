@@ -1,6 +1,6 @@
 // POST /api/coach  { settings: { icr, isf, target } }  -> evaluación de los últimos 28 días según el protocolo de tu endocrino
-// Todo lo numérico se calcula aquí con tus datos; Gemini solo redacta la interpretación.
-import { askGemini, checkAuth, loadEntries, preflight, reply } from "../lib/shared.mjs";
+// Todo lo numérico se calcula aquí con tus datos (registros y sensor Libre); Gemini solo redacta la interpretación.
+import { askGemini, checkAuth, loadEntries, preflight, reply, store } from "../lib/shared.mjs";
 
 const DAY = 864e5;
 const TZ = "Europe/Madrid";
@@ -18,6 +18,7 @@ PROTOCOLO DE SU ENDOCRINO (marco principal):
 - Factor de sensibilidad (FSI, mg/dL que baja 1 UI de rápida) = 1800 / DTI para análogos rápidos. Corrección = (glucemia actual - glucemia objetivo) / FSI, con o sin ingesta. Puede variar por estrés o actividad física. Si hay hiperglucemia antes de comer: dosis = hidratos / ratio + corrección.
 
 QUÉ RECIBES: estadísticas ya calculadas (no las recalcules ni las inventes), señales, eventos recientes y "preparacion", que dice si hay datos suficientes.
+Si estadisticas.sensor existe, la persona lleva un sensor continuo FreeStyle Libre 2: las medias, el GMI, el CV y los tiempos en rango son fiables y puedes usar estadisticas.sensor.perfil_3h para hablar de patrones por franja horaria.
 Devuelve SOLO un objeto JSON con este formato:
 {"resumen":"","patrones":[{"titulo":"","detalle":""}],"sugerencias":[{"texto":"","prioridad":"alta|media|baja","requiere_endocrino":true}],"preguntas_endocrino":[""]}
 
@@ -28,7 +29,7 @@ REGLAS:
 - Para ajustes de ratio indica solo la DIRECCIÓN según la regla de su endocrino (subir o bajar UI/r) y que la cantidad la decide su endocrino. NUNCA des una dosis concreta, un valor nuevo de ratio, de factor de sensibilidad ni de Toujeo. Todo lo que implique insulina lleva requiere_endocrino=true.
 - Si una comida solo tiene datos de pocas veces (menos de 3), no concluyas sobre su ratio.
 - Las lecturas con "insulina" son glucemias a las que se puso Fiasp en ese momento.
-- Las medias, GMI y CV calculados con lecturas sueltas son aproximados (no es un sensor continuo): dilo si los usas. Los datos de gráficas del sensor son más fiables.
+- Si NO existe estadisticas.sensor, las medias, GMI y CV calculados con lecturas sueltas son aproximados: dilo si los usas.
 - Si hay glucosas bajas (< 70), es la prioridad número uno y recuerda la regla del 15.
 - Máximo 5 patrones, 5 sugerencias y 6 preguntas.`;
 
@@ -37,6 +38,7 @@ const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
 const median = (a) => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const clip = (v, len) => String(v ?? "").slice(0, len);
 const pct = (num, den) => (den ? Math.round((num / den) * 100) : null);
+const isPost = (c) => typeof c === "string" && c.startsWith("post2h");
 
 function minutesOfDay(ts) {
   const parts = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(ts));
@@ -44,36 +46,89 @@ function minutesOfDay(ts) {
 }
 const dayKey = (ts) => new Intl.DateTimeFormat("sv-SE", { timeZone: TZ }).format(new Date(ts));
 const hhmm = (min) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(Math.round(min % 60)).padStart(2, "0")}`;
-const SLOTS = [["desayuno", "05:00 a 11:59"], ["comida", "12:00 a 17:59"], ["cena", "18:00 a 23:59"]];
-const slotOf = (ts) => { const h = Math.floor(minutesOfDay(ts) / 60); return h >= 5 && h < 12 ? "desayuno" : h >= 12 && h < 18 ? "comida" : h >= 18 ? "cena" : null; };
+const SLOTS = [["desayuno", "05:00 a 11:59"], ["comida", "12:00 a 16:59"], ["cena", "17:00 a 21:59"]];
+const slotOf = (ts) => { const h = Math.floor(minutesOfDay(ts) / 60); return h >= 5 && h < 12 ? "desayuno" : h >= 12 && h < 17 ? "comida" : h >= 17 && h < 22 ? "cena" : null; };
 const gmiOf = (media) => (media > 0 ? n1(3.31 + 0.02392 * media) : null);
 
-export function computeStats(all, now = Date.now(), settings = {}) {
+// Lectura más cercana a un momento, dentro de una tolerancia en minutos
+const nearestTo = (arr, ts, tolMin) => {
+  let best = null, bd = tolMin * 6e4 + 1;
+  for (const r of arr) { const d = Math.abs(r.ts - ts); if (d < bd) { bd = d; best = r; } }
+  return best;
+};
+// Episodios de glucosa baja (lecturas < 70 separadas más de 45 min). rs debe estar ordenado por fecha.
+const lowEpisodes = (rs) => {
+  let n = 0, lastLow = -Infinity;
+  rs.forEach((r) => { if (r.mgdl < 70) { if (r.ts - lastLow > 45 * 6e4) n++; lastLow = r.ts; } });
+  return n;
+};
+
+// Histórico del sensor guardado por /api/libre (puntos [ts, mg/dL] cada 15 min)
+async function loadSensor(days = 28) {
+  const s = store();
+  const now = new Date();
+  const keys = [0, 1].map((i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    return `sensor/${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+  const lists = await Promise.all(keys.map((k) => s.get(k, { type: "json" }).catch(() => null)));
+  const from = Date.now() - days * DAY;
+  return lists
+    .flatMap((l) => (Array.isArray(l) ? l : []))
+    .filter((p) => p[0] >= from)
+    .sort((a, b) => a[0] - b[0])
+    .map(([ts, mgdl]) => ({ id: "s" + ts, type: "reading", ts, mgdl, context: "sensor", sensor: true }));
+}
+
+export function computeStats(all, now = Date.now(), settings = {}, sensorPts = []) {
   const icr = parseFloat(settings.icr), isf = parseFloat(settings.isf), target = parseFloat(settings.target);
   const E = all.filter((e) => e.ts >= now - 28 * DAY && e.ts <= now + 6e5).sort((a, b) => a.ts - b.ts);
-  const readings = E.filter((e) => e.type === "reading");
+  const manual = E.filter((e) => e.type === "reading");
   const meals = E.filter((e) => e.type === "meal");
   const basals = E.filter((e) => e.type === "basal");
   const charts = E.filter((e) => e.type === "chart");
+  const sens = sensorPts.filter((p) => p.ts >= now - 28 * DAY && p.ts <= now + 6e5);
+  const readings = [...manual, ...sens].sort((a, b) => a.ts - b.ts);
+  const usaSensor = sens.length >= 96; // al menos un día de datos
   const gymDays = new Set(E.filter((e) => e.gym).map((e) => dayKey(e.ts)));
   const vals = readings.map((r) => r.mgdl);
   const bol = E.filter((e) => e.type === "meal" || (e.type === "reading" && e.dose > 0))
     .map((e) => (e.type === "reading" ? { ...e, kind: e.kind || "correccion", carbs: 0, bg: e.mgdl } : e));
 
+  // Lectura a las 2 h de una comida: la que anotaste tú o, si no hay, la del sensor
+  const post2hFor = (m) => {
+    const man = manual.find((r) => isPost(r.context) && r.ts - m.ts >= 75 * 6e4 && r.ts - m.ts <= 210 * 6e4);
+    if (man) return man;
+    const t = m.ts + 120 * 6e4;
+    return t <= now ? nearestTo(sens, t, 15) : null;
+  };
+
   // ----- Cambio tras comer (glucemia de la comida -> lectura a las 2 h)
   const changes = [];
   meals.forEach((m) => {
     if (!(m.carbs > 0) || !(m.bg > 0)) return;
-    const post = readings.find((r) => r.context === "post2h" && r.ts - m.ts >= 75 * 6e4 && r.ts - m.ts <= 210 * 6e4);
+    const post = post2hFor(m);
     if (post) changes.push(post.mgdl - m.bg);
   });
 
-  // ----- Gym
+  // ----- Gym (sesiones con lectura antes y después, de registros antiguos)
   const gymDeltas = [];
-  readings.filter((r) => r.context === "pre_gym").forEach((pre) => {
-    const post = readings.find((r) => r.context === "post_gym" && r.ts > pre.ts && r.ts - pre.ts <= 6 * 36e5);
+  manual.filter((r) => r.context === "pre_gym").forEach((pre) => {
+    const post = manual.find((r) => r.context === "post_gym" && r.ts > pre.ts && r.ts - pre.ts <= 6 * 36e5);
     if (post) gymDeltas.push(post.mgdl - pre.mgdl);
   });
+
+  // ----- Gym: días de gym frente a días sin gym
+  const perDay = new Map();
+  readings.forEach((r) => { const d = dayKey(r.ts); perDay.set(d, (perDay.get(d) || 0) + 1); });
+  const gymDaysWithData = [...gymDays].filter((d) => (perDay.get(d) || 0) >= 10).length;
+  const gymR = readings.filter((r) => gymDays.has(dayKey(r.ts)));
+  const noGymR = readings.filter((r) => !gymDays.has(dayKey(r.ts)));
+  const tirOf = (a) => Math.round((a.filter((r) => r.mgdl >= 70 && r.mgdl <= 180).length / a.length) * 100);
+  const gym_dias = gymR.length >= 20 && noGymR.length >= 20
+    ? { dias_gym: gymDays.size, media_gym: Math.round(mean(gymR.map((r) => r.mgdl))), media_sin: Math.round(mean(noGymR.map((r) => r.mgdl))),
+        tir_gym: tirOf(gymR), tir_sin: tirOf(noGymR), bajas_gym: lowEpisodes(gymR), bajas_sin: lowEpisodes(noGymR) }
+    : null;
 
   // ----- Toujeo
   let toujeo = { registros: 0 };
@@ -86,34 +141,42 @@ export function computeStats(all, now = Date.now(), settings = {}) {
   }
 
   // ----- Ayunas y madrugada (para valorar la basal)
-  const grupo = (ctx) => {
-    const v = readings.filter((r) => r.context === ctx).map((r) => r.mgdl);
+  const grupo = (pred) => {
+    const v = readings.filter(pred).map((r) => r.mgdl);
     return { n: v.length, mediana: v.length ? Math.round(median(v)) : null, pct_alta: pct(v.filter((x) => x > 130).length, v.length), pct_baja: pct(v.filter((x) => x < 70).length, v.length) };
   };
-  const ayunas = grupo("ayunas"), noche = grupo("noche");
+  const ayunas = grupo((r) => r.context === "ayunas");
+  const noche = grupo((r) => r.context === "noche" || minutesOfDay(r.ts) < 360); // de 0:00 a 5:59 y lecturas antiguas "noche"
 
   // ----- Control global frente a los objetivos
   const media = vals.length ? mean(vals) : null;
   const sd = vals.length > 1 ? Math.sqrt(mean(vals.map((v) => (v - media) ** 2))) : null;
   const cv = media && sd != null ? Math.round((sd / media) * 100) : null;
   const tir = pct(vals.filter((v) => v >= 70 && v <= 180).length, vals.length);
-  const post2h = readings.filter((r) => r.context === "post2h").map((r) => r.mgdl);
-  const post2hOk = pct(post2h.filter((v) => v < 180).length, post2h.length);
+  const tbr = pct(vals.filter((v) => v < 70).length, vals.length);
+  const tar = pct(vals.filter((v) => v > 180).length, vals.length);
+  const post2hVals = meals.filter((m) => (m.kind || "comida") === "comida" && m.carbs >= 10).map(post2hFor).filter(Boolean).map((r) => r.mgdl);
+  const post2hOk = pct(post2hVals.filter((v) => v < 180).length, post2hVals.length);
   const chart = [...charts].reverse().find((c) => c.summary && c.summary.media_mgdl != null);
 
   const fila = (indicador, valor, objetivo, estado, nota = "") => ({ indicador, valor, objetivo, estado, nota });
+  const nota = usaSensor ? "Calculado con tu sensor continuo." : "Aproximado: son lecturas sueltas, no un sensor continuo.";
   const filas = [
-    fila("Tiempo en rango 70-180 (lecturas)", tir != null ? `${tir} %` : "sin datos", "lo más alto posible", tir == null ? "sin_datos" : tir >= 70 ? "ok" : "revisar", "Aproximado: son lecturas sueltas, no un sensor continuo."),
-    fila("Glucosa 2 h después de comer", post2hOk != null ? `${post2hOk} % por debajo de 180 (${post2h.length} lecturas)` : "sin datos", "< 180 mg/dL", post2hOk == null ? "sin_datos" : post2hOk >= 70 ? "ok" : "revisar"),
-    fila("GMI (lecturas)", media ? `${gmiOf(media)} %` : "sin datos", "< 7 %", !media ? "sin_datos" : gmiOf(media) < 7 ? "ok" : "revisar", "Aproximado: se calcula con tus lecturas sueltas."),
-    fila("Variabilidad (CV, lecturas)", cv != null ? `${cv} %` : "sin datos", "<= 36 %", cv == null ? "sin_datos" : cv <= 36 ? "ok" : "revisar", "Aproximado: el CV fiable sale de un sensor continuo."),
+    fila("Tiempo en rango 70-180", tir != null ? `${tir} %` : "sin datos", "lo más alto posible", tir == null ? "sin_datos" : tir >= 70 ? "ok" : "revisar", nota),
+    fila("Glucosa 2 h después de comer", post2hOk != null ? `${post2hOk} % por debajo de 180 (${post2hVals.length} comidas)` : "sin datos", "< 180 mg/dL", post2hOk == null ? "sin_datos" : post2hOk >= 70 ? "ok" : "revisar"),
+    fila("GMI", media ? `${gmiOf(media)} %` : "sin datos", "< 7 %", !media ? "sin_datos" : gmiOf(media) < 7 ? "ok" : "revisar", nota),
+    fila("Variabilidad (CV)", cv != null ? `${cv} %` : "sin datos", "<= 36 %", cv == null ? "sin_datos" : cv <= 36 ? "ok" : "revisar", usaSensor ? nota : "Aproximado: el CV fiable sale de un sensor continuo."),
   ];
-  if (chart) {
-    const s = chart.summary;
-    filas.push(fila(`GMI de tu gráfica (${s.periodo || "sensor"})`, `${gmiOf(s.media_mgdl)} %`, "< 7 %", gmiOf(s.media_mgdl) < 7 ? "ok" : "revisar", "Calculado con la media de la gráfica del sensor: más fiable."));
-    if (s.tir_pct != null) filas.push(fila("Tiempo en rango de tu gráfica", `${s.tir_pct} %`, "lo más alto posible", s.tir_pct >= 70 ? "ok" : "revisar"));
+  if (usaSensor) {
+    filas.push(fila("Tiempo por debajo de 70", `${tbr} %`, "< 4 %", tbr < 4 ? "ok" : "revisar", nota));
+    filas.push(fila("Tiempo por encima de 180", `${tar} %`, "< 25 %", tar < 25 ? "ok" : "revisar", nota));
   }
-  filas.push(fila("Lecturas bajas (< 70) en 28 días", `${vals.filter((v) => v < 70).length}`, "0", vals.some((v) => v < 70) ? "revisar" : (vals.length ? "ok" : "sin_datos"), "Si hay una baja: regla del 15."));
+  if (chart && !usaSensor) {
+    const s = chart.summary;
+    filas.push(fila(`GMI de tu gráfica (${s.periodo || "sensor"})`, `${gmiOf(s.media_mgdl)} %`, "< 7 %", gmiOf(s.media_mgdl) < 7 ? "ok" : "revisar", "Calculado con la media de la gráfica del sensor."));
+  }
+  const eps = lowEpisodes(readings);
+  filas.push(fila("Episodios de glucosa baja (< 70) en 28 días", `${eps}`, "0", eps ? "revisar" : vals.length ? "ok" : "sin_datos", "Si hay una baja: regla del 15."));
 
   // ----- Ratio por comida (desayuno, comida, cena)
   const S = Object.fromEntries(SLOTS.map(([k]) => [k, { comidas: 0, descartadas: 0, sin_control: 0, validas: [] }]));
@@ -124,7 +187,7 @@ export function computeStats(all, now = Date.now(), settings = {}) {
     let pre = m.bg > 0 ? m.bg : null;
     if (pre == null) { const r = [...readings].reverse().find((x) => x.ts <= m.ts && m.ts - x.ts <= 45 * 6e4); if (r) pre = r.mgdl; }
     if (!(pre >= 70 && pre <= 180)) { S[s].descartadas++; return; }
-    const post = readings.find((r) => r.context === "post2h" && r.ts - m.ts >= 75 * 6e4 && r.ts - m.ts <= 210 * 6e4);
+    const post = post2hFor(m);
     const next = bol[i + 1];
     if (!post || (next && next.ts < post.ts)) { S[s].sin_control++; return; }
     const corr = isf > 0 && target > 0 && pre > target ? (pre - target) / isf : 0;
@@ -151,7 +214,8 @@ export function computeStats(all, now = Date.now(), settings = {}) {
   const corrs = [];
   bol.forEach((m, i) => {
     if (m.kind !== "correccion" || !(m.dose > 0) || !(m.bg > 0)) return;
-    const r = readings.find((x) => x.ts - m.ts >= 150 * 6e4 && x.ts - m.ts <= 300 * 6e4);
+    let r = manual.find((x) => x.ts - m.ts >= 150 * 6e4 && x.ts - m.ts <= 300 * 6e4);
+    if (!r && m.ts + 210 * 6e4 <= now) r = nearestTo(sens, m.ts + 210 * 6e4, 30);
     const next = bol[i + 1];
     if (!r || (next && next.ts < r.ts)) return;
     if (m.bg - r.mgdl > 0) corrs.push((m.bg - r.mgdl) / m.dose);
@@ -174,6 +238,27 @@ export function computeStats(all, now = Date.now(), settings = {}) {
     nota: "La DTI estimada solo es fiable si anotas TODAS tus dosis de Fiasp y de Toujeo. Es un contraste con las reglas 1800 y 500, no una pauta.",
   };
 
+  // ----- Resumen del sensor (para el análisis y para el perfil por horas)
+  let sensorInfo = null;
+  if (usaSensor) {
+    const sv = sens.map((p) => p.mgdl), sm = mean(sv);
+    const ssd = Math.sqrt(mean(sv.map((v) => (v - sm) ** 2)));
+    const span = Math.max(0.1, Math.min(28, (now - sens[0].ts) / DAY));
+    const perfil = [];
+    for (let b = 0; b < 8; b++) {
+      const v = sens.filter((p) => Math.floor(minutesOfDay(p.ts) / 180) === b).map((p) => p.mgdl);
+      perfil.push({ franja: `${String(b * 3).padStart(2, "0")}-${String(b * 3 + 3).padStart(2, "0")} h`, mediana: v.length ? Math.round(median(v)) : null });
+    }
+    sensorInfo = {
+      dias: n1(span), cobertura_pct: Math.min(100, Math.round((sens.length / (span * 96)) * 100)),
+      media: Math.round(sm), cv_pct: Math.round((ssd / sm) * 100),
+      tir_pct: pct(sv.filter((v) => v >= 70 && v <= 180).length, sv.length),
+      bajo_70_pct: pct(sv.filter((v) => v < 70).length, sv.length),
+      alto_180_pct: pct(sv.filter((v) => v > 180).length, sv.length),
+      perfil_3h: perfil,
+    };
+  }
+
   // ----- ¿Hay datos suficientes?
   const diasConLectura = new Set(readings.map((r) => dayKey(r.ts))).size;
   const item = (texto, tengo, necesito, esencial = false) => ({ texto, tengo, necesito, ok: tengo >= necesito, esencial });
@@ -182,38 +267,40 @@ export function computeStats(all, now = Date.now(), settings = {}) {
     item("Días distintos con lecturas", diasConLectura, 14, true),
     ...franjas.map((f) => item(`Comidas válidas de ${f.franja} (glucosa previa 70-180 y lectura a las 2 h)`, f.validas, 3)),
     item("Correcciones con control a las 3 o 4 h", corrs.length, 3),
-    item("Sesiones de gym con glucosa antes y después", gymDeltas.length, 2),
+    item("Días de gym con lecturas", gymDaysWithData, 3),
     item("Registros de Toujeo", basals.length, 7),
-    item("Lecturas en ayunas", ayunas.n, 5),
+    item("Lecturas en ayunas (antes de desayunar)", ayunas.n, 5),
   ];
   const listo = items.filter((i) => i.esencial).every((i) => i.ok) && franjas.some((f) => f.validas >= 3);
   const preparacion = { nivel: listo ? "completo" : "preliminar", porcentaje: Math.round((items.filter((i) => i.ok).length / items.length) * 100), items };
 
   return {
-    lecturas: readings.length, comidas: meals.length,
+    lecturas: readings.length, lecturas_sensor: sens.length, comidas: meals.length,
     media_lecturas: media != null ? Math.round(media) : null,
     bajas_menos_70: vals.filter((v) => v < 70).length,
     bajas_menos_54: vals.filter((v) => v < 54).length,
+    episodios_bajos: eps,
     altas_mas_250: vals.filter((v) => v > 250).length,
     en_rango_pct: tir, dias_gym: gymDays.size,
     tras_comida: { n: changes.length, subida_media: changes.length ? Math.round(mean(changes)) : null },
     gym_antes_despues: { n: gymDeltas.length, suben: gymDeltas.filter((d) => d > 0).length, cambio_medio: gymDeltas.length ? Math.round(mean(gymDeltas)) : null },
+    gym_dias, sensor: sensorInfo,
     toujeo, ayunas, madrugada: noche,
     objetivos: { filas }, ratios: { franjas }, sensibilidad, preparacion,
-    _E: E,
+    _E: E, _R: readings,
   };
 }
 
-function signals(s, E, now) {
+function signals(s, R, now) {
   const out = [];
-  const last7 = E.filter((e) => e.type === "reading" && e.ts >= now - 7 * DAY);
-  const low7 = last7.filter((r) => r.mgdl < 70);
-  if (low7.length) out.push(`${low7.length} lectura${low7.length > 1 ? "s" : ""} por debajo de 70 en los últimos 7 días.`);
+  const last7 = R.filter((r) => r.ts >= now - 7 * DAY);
+  const ep7 = lowEpisodes(last7);
+  if (ep7) out.push(`${ep7} episodio${ep7 > 1 ? "s" : ""} de glucosa baja (< 70) en los últimos 7 días.`);
   if (last7.some((r) => r.mgdl < 54)) out.push("Hay alguna lectura por debajo de 54 mg/dL en la última semana.");
   if (s.altas_mas_250) out.push(`${s.altas_mas_250} lectura${s.altas_mas_250 > 1 ? "s" : ""} por encima de 250 en 28 días.`);
   const sinPrevia = s.ratios.franjas.reduce((a, f) => a + f.descartadas_glucemia_previa, 0);
-  if (sinPrevia >= 3) out.push(`${sinPrevia} comidas no sirven para evaluar la ratio porque no tienen glucosa previa entre 70 y 180 (o no la anotaste).`);
-  if (s.ayunas.n >= 3 && s.ayunas.mediana > 130) out.push(`Tu glucosa en ayunas tiene una mediana de ${s.ayunas.mediana} mg/dL.`);
+  if (sinPrevia >= 3) out.push(`${sinPrevia} comidas no sirven para evaluar la ratio porque no tienen glucosa previa entre 70 y 180.`);
+  if (s.ayunas.n >= 3 && s.ayunas.mediana > 130) out.push(`Tu glucosa antes de desayunar tiene una mediana de ${s.ayunas.mediana} mg/dL.`);
   if (s.madrugada.pct_baja > 0) out.push("Hay lecturas bajas de noche o madrugada: valóralo con tu endocrino por si afecta a la basal.");
   if (s.toujeo.registros > 1 && s.toujeo.variacion_horaria_min > 90) out.push(`La hora de tu Toujeo varía unos ${s.toujeo.variacion_horaria_min} min entre días.`);
   if (s.lecturas < 10) out.push("Hay pocas lecturas en 28 días: el análisis será poco fiable.");
@@ -225,7 +312,7 @@ function compactEvents(E) {
   return E.slice(-70).map((e) => {
     const t = f.format(new Date(e.ts));
     if (e.type === "reading") return { t, tipo: "lectura", mgdl: e.mgdl, momento: e.context, insulina: e.dose > 0 ? e.dose : undefined, gym: e.gym || undefined };
-    if (e.type === "meal") return { t, tipo: e.kind || "comida", hidratos: e.carbs, glucemia: e.bg ?? undefined, insulina: e.dose, sugerida: e.suggested ?? undefined, gym: e.gym || undefined };
+    if (e.type === "meal") return { t, tipo: e.kind || "comida", hidratos: e.carbs, glucemia: e.bg ?? undefined, insulina: e.dose, sugerida: e.suggested ?? undefined, absorcion: e.absorb || undefined, gym: e.gym || undefined };
     if (e.type === "basal") return { t, tipo: "toujeo", u: e.units };
     if (e.type === "day") return { t, tipo: "gym" };
     return null;
@@ -245,20 +332,20 @@ export default async (req) => {
     const body = await req.json().catch(() => ({}));
     const settings = body?.settings || {};
     const now = Date.now();
-    const all = await loadEntries(2);
-    const full = computeStats(all, now, settings);
-    const { _E: E, objetivos, ratios, sensibilidad, preparacion, ...stats } = full;
-    const senales = signals(full, E, now);
+    const [all, sensorPts] = await Promise.all([loadEntries(2), loadSensor(28).catch(() => [])]);
+    const full = computeStats(all, now, settings, sensorPts);
+    const { _E: E, _R: R, objetivos, ratios, sensibilidad, preparacion, ...stats } = full;
+    const senales = signals(full, R, now);
 
-    const lows7 = E.filter((e) => e.type === "reading" && e.mgdl < 70 && e.ts >= now - 7 * DAY).length;
+    const ep7 = lowEpisodes(R.filter((r) => r.ts >= now - 7 * DAY));
     const out = {
       stats, objetivos, ratios, sensibilidad, preparacion, senales,
-      alerta: lows7 >= 2 ? `Has tenido ${lows7} lecturas bajas (< 70) esta semana. Si te pasa: regla del 15 (15 g de hidratos rápidos, esperar 15 min y repetir). Comenta el patrón con tu endocrino.` : "",
+      alerta: ep7 >= 2 ? `Has tenido ${ep7} episodios de glucosa baja (< 70) esta semana. Si te pasa: regla del 15 (15 g de hidratos rápidos, esperar 15 min y repetir). Comenta el patrón con tu endocrino.` : "",
       resumen: "", patrones: [], sugerencias: [], preguntas_endocrino: [],
     };
 
-    if (!E.length) {
-      out.resumen = "Todavía no hay datos de los últimos 28 días. Anota lecturas, comidas y correcciones para que el análisis tenga de qué partir.";
+    if (!R.length && !E.length) {
+      out.resumen = "Todavía no hay datos de los últimos 28 días. Anota lecturas, comidas y correcciones, o conecta el sensor, para que el análisis tenga de qué partir.";
       return reply(200, out);
     }
 

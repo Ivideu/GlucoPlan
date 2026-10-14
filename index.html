@@ -1222,7 +1222,7 @@ details.day>.log{padding-bottom:10px}
     if (btn.disabled) return;
     const mgdl = numOrNull($('#r-val').value);
     const units = numOrNull($('#r-ins').value);
-    if (mgdl == null && !(units > 0)) { toast('Escribe la glucosa o la insulina', 'err'); return; }
+    if (mgdl == null && !(units > 0) && !quickKind) { toast('Escribe la glucosa o la insulina', 'err'); return; }
     if (mgdl != null && !(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
     if (units != null && !(units >= 0 && units <= 100)) { toast('Revisa las unidades de insulina', 'err'); return; }
     const ts = whenTouched ? new Date($('#r-when').value).getTime() : Date.now();
@@ -1232,7 +1232,13 @@ details.day>.log{padding-bottom:10px}
     const kind = quickKind || 'correccion';
     btn.disabled = true;
     try {
-      if (mgdl != null) {
+      const chipEl = $('#qNotes .chip[aria-pressed="true"]');
+      const SNACK_G = 12;   // hidratos de un café con leche, una merienda o un sobre de azúcar
+      if (chipEl) {
+        // Se guardan dos registros: la glucosa (si la hay) y el snack con sus 12 g
+        if (mgdl != null) await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts });
+        await addEntry({ type:'meal', kind, carbs: SNACK_G, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb: chipEl.textContent === 'Sobre azúcar' ? 'rapida' : 'mixta', note, gym, ts });
+      } else if (mgdl != null) {
         // Un solo registro: glucosa y, si la hay, la insulina
         const e = { type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts };
         if (units > 0) { e.dose = units; e.kind = kind; }

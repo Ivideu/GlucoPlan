@@ -314,7 +314,7 @@ ul.plain li{margin:5px 0}
           <h2>Anotar glucosa e insulina</h2>
           <p class="sub">Apunta la glucosa, la insulina que te has puesto, o las dos cosas. La lectura de 2 horas después de comer es la que más enseña al coach.</p>
           <div class="fgrid">
-            <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"></div>
+            <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"><span class="hint" id="r-hint"></span></div>
             <div class="field"><label for="r-ins">Insulina Fiasp (U)</label><input id="r-ins" type="number" step="0.5" min="0" max="100" inputmode="decimal" placeholder="Opcional"></div>
           </div>
           <div class="fgrid" style="margin-top:12px">
@@ -816,7 +816,22 @@ ul.plain li{margin:5px 0}
   const gText = v => (v < 70 ? '#B83A52' : v <= 180 ? '#2E8B7A' : v <= 250 ? '#9A6A14' : '#B83A52');
   const gState = v => (v < 70 ? 'Baja' : v <= 180 ? 'En rango' : v <= 250 ? 'Alta' : 'Muy alta');
   let shown = { val: 0, media: 0, tir: 0, low: 0, meals: 0 };
-
+  /* Autorrelleno del campo "Glucosa" con la última lectura (la misma del anillo) */
+  let rValTouched = false;
+  function autoFillReading() {
+    const el = $('#r-val'), hint = $('#r-hint');
+    if (!el || rValTouched || document.activeElement === el) return;
+    const last = readings()[0];
+    if (last && Date.now() - last.ts <= 20 * 6e4) {
+      el.value = last.mgdl; el.dataset.auto = '1';
+      const min = Math.max(0, Math.round((Date.now() - last.ts) / 6e4));
+      hint.textContent = `Automática: ${last.sensor ? 'del sensor' : 'de tu última lectura'}, de hace ${min < 1 ? 'menos de 1' : min} min. Escribe otro valor para cambiarla.`;
+    } else {
+      if (el.dataset.auto === '1') { el.value = ''; el.dataset.auto = ''; }
+      hint.textContent = 'Sin lectura de menos de 20 min: escribe tu glucosa.';
+    }
+  }
+  $('#r-val').addEventListener('input', () => { rValTouched = true; $('#r-val').dataset.auto = ''; $('#r-hint').textContent = ''; });
   function renderHero() {
     const h = new Date().getHours();
     $('#greet').textContent = h < 6 ? 'Buenas noches' : h < 14 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches';
@@ -852,7 +867,8 @@ ul.plain li{margin:5px 0}
       if (suf) setTimeout(() => { el.textContent = fmt(v) + suf; }, 720);
     };
     set('#hs-media', media, 'media'); set('#hs-tir', tir, 'tir', ' %'); set('#hs-low', low, 'low'); set('#hs-meals', meals, 'meals');
-  }
+      autoFillReading();
+    }
 
   /* ---------- Toujeo ---------- */
   function renderToujeo() {
@@ -1168,7 +1184,7 @@ ul.plain li{margin:5px 0}
       }
       ['#r-val', '#r-ins', '#r-note'].forEach(id => { $(id).value = ''; });
       $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
-      quickKind = null; whenTouched = false; setNow();
+      rValTouched = false; $('#r-val').dataset.auto = ''; autoFillReading();
       toast(mgdl != null && mgdl < 70 ? 'Guardado. Glucosa baja: trátala según tu pauta' : 'Guardado' + (units > 0 ? ': ' + fmt(units) + ' U' : ''), mgdl != null && mgdl < 70 ? 'err' : 'ok');
     } catch (err) { toast(err.message, 'err'); }
     btn.disabled = false;

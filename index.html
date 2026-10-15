@@ -1014,6 +1014,41 @@ details.day>.log{padding-bottom:10px}
     });
     return { iob, cob };
   }
+    /* Toujeo (glargina U300): estimación orientativa. NO se resta a las correcciones. */
+  const TJ_HOURS = 36;   // la ficha técnica indica que actúa hasta unas 36 h, sin pico
+  function basalInfo(now) {
+    const b = lastBasal();
+    let h = '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed rgba(40,70,95,.18)">';
+    if (b) {
+      const left = Math.max(0, 1 - (now - b.ts) / (TJ_HOURS * 36e5));
+      h += `<div class="tj"><div class="u" style="font-size:1.7rem">${fmt(Math.round(b.units * left * 10) / 10)}<small>U de Toujeo activas</small></div><div class="hint">${Math.round(left * 100)} % de ${fmt(b.units)} U</div></div>`;
+    } else h += '<p class="hint">Registra tu Toujeo para estimar la basal activa.</p>';
+
+    // ¿Te está haciendo efecto? Tendencia en el último tramo sin Fiasp ni hidratos activos
+    let clearMin = 720;
+    for (let m = 0; m <= 720; m += 10) {
+      const o = onBoard(now - m * 6e4);
+      if (o.iob >= 0.1 || o.cob >= 1) { clearMin = m; break; }
+    }
+    const win = Math.min(clearMin, 360);
+    const pts = readings().filter(r => r.ts >= now - win * 6e4 && r.ts <= now);
+    if (clearMin < 180 || pts.length < 8) {
+      h += `<p class="hint" style="margin-top:8px">Efecto de la basal: aún no hay un tramo limpio. Hacen falta 3 h sin Fiasp ni hidratos activos y lecturas del sensor${clearMin < 180 ? ` (faltan unos ${fmtDur((180 - clearMin) * 6e4)})` : ''}.</p>`;
+    } else {
+      const t0 = pts[pts.length - 1].ts;
+      const xs = pts.map(r => (r.ts - t0) / 36e5), ys = pts.map(r => r.mgdl);
+      const mx = xs.reduce((a, v) => a + v, 0) / xs.length, my = ys.reduce((a, v) => a + v, 0) / ys.length;
+      const den = xs.reduce((a, v) => a + (v - mx) ** 2, 0);
+      const slope = den > 0 ? xs.reduce((a, v, i) => a + (v - mx) * (ys[i] - my), 0) / den : 0;
+      const s = Math.round(slope), hrs = fmt(Math.round(win / 6) / 10);
+      let msg, col = '#2E8B7A';
+      if (Math.abs(slope) <= 10) msg = 'Tu glucosa se mantiene estable: la basal parece cubrirte.';
+      else if (slope > 0) { col = '#9A6A14'; msg = 'Tu glucosa sube sin insulina rápida activa: la basal podría quedarse corta. Coméntalo con tu endocrino.'; }
+      else { col = '#9A6A14'; msg = 'Tu glucosa baja sin insulina rápida activa: vigila posibles bajadas' + (gymToday() ? ' (hoy has hecho gym).' : '. Coméntalo con tu endocrino si se repite.'); }
+      h += `<p class="tjnote" style="margin-top:8px"><b>Efecto de la basal:</b> en las últimas ${hrs} h sin Fiasp ni hidratos, ${s > 0 ? '+' : ''}${s} mg/dL por hora. <span style="color:${col}">${msg}</span></p>`;
+    }
+    return h + '<p class="fine">Estimación orientativa. No se descuenta de las correcciones y no sustituye la pauta de tu endocrino.</p></div>';
+  }
   let corrTyped = null;
   function renderCorr() {
     const box = $('#corrCard'); if (!box) return;
@@ -1042,7 +1077,7 @@ details.day>.log{padding-bottom:10px}
 
     h += `<div class="tj"><div class="u">${fmt(Math.round(iob * 10) / 10)}<small>U de Fiasp activa</small></div><div class="hint">${cob >= 1 ? fmt(Math.round(cob)) + ' g de hidratos por absorber' : 'sin hidratos por absorber'}</div></div>`;
     h += `<p class="tjnote" style="margin-top:6px">${iob >= 0.1 ? 'Casi toda habrá actuado en ' + fmtDur(clear * 6e4) + '.' : 'No tienes insulina rápida activa.'}</p>`;
-
+    h += basalInfo(now);
     let why = '', units = 0, parts = null;
     if (!last || age > 60) why = 'Mide tu glucosa para calcular una corrección (la última lectura tiene más de 1 hora).';
     else if (lowRecent || last.mgdl < 70) why = 'Has tenido una glucosa baja en las últimas 3 horas: no se propone corrección.';

@@ -435,13 +435,14 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
         </div>
       </aside>
     </div>
-        <div class="card">
-      <div class="head">
+        <details class="card fold" id="histFold">
+      <summary>
         <h2>Últimas comidas</h2>
         <button class="btn ghost small" id="pdfBtn" type="button">Descargar PDF</button>
-      </div>
-      <div id="histBox" style="margin-top:8px"></div>
-    </div>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div id="histBox" style="margin-top:14px"></div>
+    </details>
   </section>
 
   <!-- GLUCOSA -->
@@ -1242,7 +1243,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     box.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hidratos</th><th>Glucemia</th><th>Fiasp</th></tr></thead><tbody>` +
       meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}${h.hasPhoto ? ' 📷' : ''}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
   }
-
+  $('#pdfBtn').addEventListener('click', e => e.preventDefault());
     /* ---------- PDF de últimas comidas ---------- */
   const loadJsPdf = () => window.jspdf ? Promise.resolve(window.jspdf) : new Promise((ok, ko) => {
     const s = document.createElement('script');

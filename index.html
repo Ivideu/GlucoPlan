@@ -261,6 +261,11 @@ details.day>summary::-webkit-details-marker{display:none}
 details.day>summary .dl::before{content:"▸";display:inline-block;margin-right:8px;color:var(--muted);transition:transform .2s}
 details.day[open]>summary .dl::before{transform:rotate(90deg)}
 details.day>.log{padding-bottom:10px}
+details.fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary h2{margin-right:auto}
+details.fold>summary .chev{flex:0 0 auto;width:9px;height:9px;margin:0 4px 3px 2px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .25s}
+details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
 </style>
 </head>
 <body>
@@ -368,10 +373,14 @@ details.day>.log{padding-bottom:10px}
             Tu glucosa suele subir con la musculación. La app lo tiene en cuenta en el cálculo y en el coach. Mide antes y después del gym, y vigila bajadas tardías unas horas después.
           </div>
         </div>
-        <div class="card">
-          <h2>Registro reciente</h2>
-          <div class="log" id="entryLogHoy" style="margin-top:12px"></div>
-        </div>
+  <details class="card fold" id="recentFold">
+  <summary>
+    <h2>Registro reciente</h2>
+    <span class="hint" id="recentInfo"></span>
+    <span class="chev" aria-hidden="true"></span>
+  </summary>
+  <div class="log" id="entryLogHoy" style="margin-top:14px"></div>
+</details>
       </div>
     </div>
   </section>
@@ -1212,7 +1221,11 @@ details.day>.log{padding-bottom:10px}
   }
   $('#entryLog').addEventListener('toggle', ev => { const d = ev.target; if (d.dataset && d.dataset.day) dayOpen[d.dataset.day] = d.open; }, true);
   $('#entryLog').addEventListener('click', ev => { if (ev.target.closest('#moreDays')) { logDays += 7; renderEntries(); } });
-  function renderEntries() { fillLog('#entryLogHoy', 6); groupedLog($('#entryLog')); }
+  function renderEntries() {
+  fillLog('#entryLogHoy', 6); groupedLog($('#entryLog'));
+  const info = $('#recentInfo'), last = entries[0];
+  if (info) info.textContent = last ? 'Último: ' + whenLabel(last.ts) : 'Sin registros';
+}
   ['#entryLogHoy', '#entryLog'].forEach(sel => $(sel).addEventListener('click', async ev => {
     const btn = ev.target.closest('.x'); if (!btn) return;
     const e = entries.find(x => x.id === btn.closest('.row').dataset.id);

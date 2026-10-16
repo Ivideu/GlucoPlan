@@ -778,7 +778,7 @@ details.day>.log{padding-bottom:10px}
       }
     } catch (err) { sensorInfo = { ...sensorInfo, state: 'error', msg: err.message }; }
     syncing = false;
-    renderHero(); renderCorr(); renderCharts(false); renderSensorLine(); renderLearn();
+    renderHero(); renderCorr(); renderCharts(false); renderSensorLine();
     const ae = document.activeElement && document.activeElement.id;
     if (!['realDose', 'gramsIn', 'foodIn', 'extra', 'bg', 'corrDose'].includes(ae)) calc();
   }
@@ -1426,7 +1426,7 @@ details.day>.log{padding-bottom:10px}
       p.hidden = !on; p.classList.remove('enter');
       if (on) { void p.offsetWidth; p.classList.add('enter'); }
     });
-    if (name === 'coach') renderLearn();
+    history.replaceState(null, '', '#' + name);
     renderCharts(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1771,7 +1771,6 @@ details.day>.log{padding-bottom:10px}
         else skip('la glucosa no bajó tras la corrección');
       }
     });
-    bol.forEach((m, i) => {
       const kind = m.kind || 'comida', next = bol[i + 1];
       if (kind === 'comida' && m.carbs >= 10 && icr > 0 && isf > 0 && target > 0) {
         const r = rs.find(x => x.context === 'post2h' && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4) || sensorAt(m.ts + 120 * 6e4, 15);
@@ -1925,7 +1924,7 @@ details.day>.log{padding-bottom:10px}
   function renderLearn() {
     const box = $('#learnCard'); if (!box) return;
     const M = adaptModel();
-    if (isCloud() && sensorInfo.state === 'idle') { box.innerHTML = h + '<p class="sub"><span class="spin"></span>Cargando las lecturas del sensor…</p>'; return; }
+    let h = `<div class="eyebrow">Aprendizaje automático</div><h2>Ajuste por franja del día</h2>`;
     if (!M.ready) { box.innerHTML = h + '<p class="sub">Pon tu ratio insulina/hidratos, tu factor de sensibilidad y tu glucemia objetivo en Ajustes para empezar a aprender.</p>'; return; }
     h += `<p class="sub">Compara cada dosis con cómo acabas 2 a 5 horas después (sensor o lecturas). Ajusta el ratio y la sensibilidad de cada franja, con un máximo de ±25 % sobre los valores de tu endocrino, y reacciona enseguida a una glucosa baja. ${M.on ? 'Ajuste automático activado.' : '<b>Ajuste automático desactivado:</b> se usan solo tus valores de Ajustes.'}</p>`;
     const pctTxt = mul => { const p = Math.round((1 / mul - 1) * 100); return (p > 0 ? '+' : '') + p + ' %'; };

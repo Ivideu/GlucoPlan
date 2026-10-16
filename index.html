@@ -778,7 +778,7 @@ details.day>.log{padding-bottom:10px}
       }
     } catch (err) { sensorInfo = { ...sensorInfo, state: 'error', msg: err.message }; }
     syncing = false;
-    renderHero(); renderCorr(); renderCharts(false); renderSensorLine(); renderLearn();
+    renderHero(); renderCorr(); renderCharts(false); renderSensorLine();
     const ae = document.activeElement && document.activeElement.id;
     if (!['realDose', 'gramsIn', 'foodIn', 'extra', 'bg', 'corrDose'].includes(ae)) calc();
   }
@@ -886,8 +886,8 @@ details.day>.log{padding-bottom:10px}
       if (suf) setTimeout(() => { el.textContent = fmt(v) + suf; }, 720);
     };
     set('#hs-media', media, 'media'); set('#hs-tir', tir, 'tir', ' %'); set('#hs-low', low, 'low'); set('#hs-meals', meals, 'meals');
-    autoFillReading();
-  }
+      autoFillReading();
+    }
 
   /* ---------- Toujeo ---------- */
   function renderToujeo() {
@@ -1014,8 +1014,7 @@ details.day>.log{padding-bottom:10px}
     });
     return { iob, cob };
   }
-
-  /* Toujeo (glargina U300): estimación orientativa. NO se resta a las correcciones. */
+    /* Toujeo (glargina U300): estimación orientativa. NO se resta a las correcciones. */
   const TJ_HOURS = 36;   // la ficha técnica indica que actúa hasta unas 36 h, sin pico
   function basalInfo(now) {
     const b = lastBasal();
@@ -1132,7 +1131,7 @@ details.day>.log{padding-bottom:10px}
       } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
     });
   }
-  /* ---------- Gym ---------- */
+    /* ---------- Gym ---------- */
   function renderGym() {
     const on = gymToday();
     $('#gymSwitch').setAttribute('aria-checked', on);
@@ -1270,7 +1269,7 @@ details.day>.log{padding-bottom:10px}
     try {
       const chipEl = $('#qNotes .chip[aria-pressed="true"]');
       if (chipEl) {
-        // Un solo registro: el snack con sus hidratos de absorción rápida (la glucosa que escribas va dentro como glucemia)
+        // Un solo registro: el snack con sus 12 g de absorción rápida (la glucosa que escribas va dentro como glucemia)
         const SNACK_G = { 'Café con leche': 6, 'Merienda': 12, 'Sobre azúcar': 12 };
         await addEntry({ type:'meal', kind, carbs: SNACK_G[chipEl.textContent.trim()] ?? 12, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb: 'rapida', note, gym, ts });
       } else if (mgdl != null) {
@@ -1283,7 +1282,6 @@ details.day>.log{padding-bottom:10px}
       }
       ['#r-val', '#r-ins', '#r-note'].forEach(id => { $(id).value = ''; });
       $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
-      quickKind = null; whenTouched = false; setNow();
       rValTouched = false; $('#r-val').dataset.auto = ''; autoFillReading();
       toast(mgdl != null && mgdl < 70 ? 'Guardado. Glucosa baja: trátala según tu pauta' : 'Guardado' + (units > 0 ? ': ' + fmt(units) + ' U' : ''), mgdl != null && mgdl < 70 ? 'err' : 'ok');
     } catch (err) { toast(err.message, 'err'); }
@@ -1428,7 +1426,7 @@ details.day>.log{padding-bottom:10px}
       p.hidden = !on; p.classList.remove('enter');
       if (on) { void p.offsetWidth; p.classList.add('enter'); }
     });
-    if (name === 'coach') renderLearn();
+    history.replaceState(null, '', '#' + name);
     renderCharts(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1489,7 +1487,16 @@ details.day>.log{padding-bottom:10px}
     } catch (err) { setStatus('#status', 'err', 'No se pudo buscar (' + esc(err.message) + '). Elige uno de la lista e indica los gramos.'); }
     btn.disabled = false;
   });
-  let bgTouched = false;     // true si has escrito tú la glucemia en la pestaña Comida
+  $('#addBtnOld')?.addEventListener('click', () => {
+    const name = $('#foodIn').value.trim();
+    const grams = parseFloat($('#gramsIn').value);
+    const f = FOODS.find(x => x[0].toLowerCase() === name.toLowerCase());
+    if (!f || !(grams > 0)) { setStatus('#status', 'err', 'Elige un alimento de la lista e indica los gramos.'); return; }
+    items.push({ id: nextId++, name: f[0], grams, cp100: f[1], conf: '' });
+    $('#foodIn').value = ''; $('#gramsIn').value = '';
+    $('#status').innerHTML = '';
+    renderItems();
+  });
   $('#extra').addEventListener('input', calc);
   $('#bg').addEventListener('input', () => { bgTouched = true; $('#bg').dataset.auto = ''; calc(); });
 
@@ -1516,6 +1523,37 @@ details.day>.log{padding-bottom:10px}
       setStatus('#status', 'ok', 'Estimación lista. Revisa los gramos de cada alimento antes de pinchar.' + (data.notas ? '<br>' + esc(data.notas) : ''));
       renderItems();
     } catch (err) { setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.'); }
+  });
+  $('#chartFile')?.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compress(file, 1600, 0.85);
+      $('#chartPreview').src = dataUrl; $('#chartPreview').hidden = false; $('#chartDropText').hidden = true;
+      if (!isCloud()) { setStatus('#chartStatus', 'err', 'Para leer la gráfica con IA, entra con tu clave. También puedes rellenar los datos a mano.'); fillChart({}); return; }
+      setStatus('#chartStatus', 'info', '<span class="spin"></span>Leyendo la gráfica…');
+      const d = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'glucose', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
+      fillChart(d);
+      setStatus('#chartStatus', 'ok', 'Datos extraídos. Corrige lo que no coincida con tu app y guarda.');
+    } catch (err) { setStatus('#chartStatus', 'err', 'No se pudo leer la gráfica (' + esc(err.message) + '). Puedes rellenar los datos a mano.'); fillChart({}); }
+  });
+  const CF = { periodo:'#c-periodo', media_mgdl:'#c-media', tir_pct:'#c-tir', bajo_pct:'#c-bajo', alto_pct:'#c-alto', hipos:'#c-hipos', min_mgdl:'#c-min', max_mgdl:'#c-max' };
+  let chartPatterns = [];
+  function fillChart(d) {
+    Object.entries(CF).forEach(([k, sel]) => { $(sel).value = d[k] ?? ''; });
+    chartPatterns = d.patrones || [];
+    $('#chartPatterns').innerHTML = chartPatterns.map(p => `<li>${esc(p)}</li>`).join('');
+    $('#c-note').value = '';
+    $('#chartForm').hidden = false;
+  }
+  $('#saveChart')?.addEventListener('click', async () => {
+    const summary = { periodo: $('#c-periodo').value, patrones: chartPatterns };
+    ['media_mgdl','tir_pct','bajo_pct','alto_pct','hipos','min_mgdl','max_mgdl'].forEach(k => { summary[k] = numOrNull($(CF[k]).value); });
+    try {
+      await addEntry({ type:'chart', summary, note: $('#c-note').value });
+      $('#chartForm').hidden = true; $('#chartPreview').hidden = true; $('#chartDropText').hidden = false; $('#chartFile').value = '';
+      setStatus('#chartStatus', '', ''); toast('Gráfica guardada en tu historial');
+    } catch (err) { setStatus('#chartStatus', 'err', esc(err.message)); }
   });
 
   /* ---------- Cálculo de dosis ---------- */
@@ -1656,7 +1694,7 @@ details.day>.log{padding-bottom:10px}
     });
   }
 
-  /* ULTIMO TROZO PEGADO ---------- Aprendizaje de ratio y sensibilidad ---------- */
+  /* ---------- Aprendizaje de ratio y sensibilidad ---------- */
   // La app calcula con tus datos reales qué ratio y qué factor te habrían ido mejor y te lo PROPONE.
   // Nunca cambia tus ajustes sola: tú lo aplicas con un toque. Cambios limitados al 10 % cada vez.
   const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };

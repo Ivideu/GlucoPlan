@@ -1721,56 +1721,7 @@ details.day>.log{padding-bottom:10px}
     const withSug = bol.filter(m => (m.kind || 'comida') === 'comida' && m.suggested > 0 && m.dose != null && m.carbs > 0);
     if (withSug.length) L.bias = { n: withSug.length, pct: Math.round(median(withSug.map(m => (m.dose - m.suggested) / m.suggested * 100))) };
 
-    M.diag = { dosis: bol.length, lecturas: all.length, skip: {} };
-    const skip = why => { M.diag.skip[why] = (M.diag.skip[why] || 0) + 1; };
-    const used = new Set();   // dosis extra ya sumadas a una comida anterior
     bol.forEach((m, i) => {
-      if (used.has(m)) return;
-      if (gymDays.has(dayStr(m.ts))) return skip('día de gym');   // los días de gym tienen su propio ajuste
-      const kind = m.kind || 'comida', next = bol[i + 1], S = slots[slotOf(m.ts).id];
-      const isMeal = kind !== 'correccion' && m.carbs >= 10;
-      const isCorr = kind === 'correccion' && m.bg >= 130;
-      if (!isMeal && !isCorr) return skip(kind === 'correccion' ? 'corrección con glucosa menor de 130' : 'toma de menos de 10 g');
-      const t = m.ts + (isMeal ? 120 : 210) * 6e4;
-      if (t > now) return skip('aún no han pasado 2 h');
-      if (isCorr && next && next.ts < t - 15 * 6e4) return skip('otra insulina de por medio');
-      const ref = near(t, 20);
-      if (!ref) return skip('sin lectura a la hora de evaluar');
-      // Dosis extra tomadas después de la comida (corrección, café con leche...): se suman a la comida en vez de descartarla
-      let carbs = m.carbs || 0, dose = m.dose, corrX = 0;
-      if (isMeal) {
-        bol.forEach(x => {
-          if (x === m || x.ts <= m.ts || x.ts >= t - 15 * 6e4 || used.has(x)) return;
-          const eff = x.dose * (1 - iobFrac((t - x.ts) / 6e4));          // parte de la insulina que ya ha actuado
-          carbs += (x.carbs || 0) * Math.min(1, (t - x.ts) / 6e4 / (ABS_MIN[x.absorb] || ABS_MIN.mixta));
-          const need = !(x.carbs > 0) && x.bg > 0 ? Math.max(0, (x.bg - target) / isf) : 0;   // lo que una corrección necesitaba por glucosa alta
-          corrX += Math.min(eff, need); dose += Math.max(0, eff - need);
-          used.add(x);
-        });
-      }
-      const nxt = isMeal ? bol.find(x => x.ts > m.ts && !used.has(x)) : next;
-      const end = Math.min(m.ts + 300 * 6e4, now, nxt ? nxt.ts : Infinity);
-      const win = all.filter(r => r.ts > m.ts + 20 * 6e4 && r.ts <= end);
-      if (!win.length) return skip('sin lecturas del sensor');
-      const low = win.reduce((a, r) => (r.mgdl < a.mgdl ? r : a));
-      const hypo = low.mgdl < 70, G = hypo ? low.mgdl : ref.mgdl, w = hypo ? 2 : 1;
-      if (hypo && now - low.ts <= 7 * DAY) {
-        const f = 1 + (low.mgdl < 54 ? 0.15 : 0.10);
-        if (isMeal) S.fastIcr = Math.max(S.fastIcr, f); else S.fastIsf = Math.max(S.fastIsf, f);
-        if (!S.lastHypo || low.mgdl < S.lastHypo.mgdl) S.lastHypo = { mgdl: low.mgdl, ts: low.ts };
-      }
-      if (isMeal) {
-        const corr = (m.bg > 0 ? Math.max(0, (m.bg - target) / isf) : 0) + corrX;
-        const ideal = Math.max(0, dose - corr) + (G - (target + 20)) / isf;
-        const ratio = clampN(carbs / Math.max(ideal, 0.3), icr * 0.4, icr * 2.5);
-        for (let k = 0; k < w; k++) S.ratios.push(ratio);
-        S.mealsN++;
-      } else {
-        const drop = m.bg - G;
-        if (drop > 0) { for (let k = 0; k < w; k++) S.isfs.push(drop / m.dose); S.corrN++; }
-        else skip('la glucosa no bajó tras la corrección');
-      }
-    });
       const kind = m.kind || 'comida', next = bol[i + 1];
       if (kind === 'comida' && m.carbs >= 10 && icr > 0 && isf > 0 && target > 0) {
         const r = rs.find(x => x.context === 'post2h' && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4) || sensorAt(m.ts + 120 * 6e4, 15);

@@ -84,7 +84,7 @@ export function computeStats(all, now = Date.now(), settings = {}, sensorPts = [
   const icr = parseFloat(settings.icr), isf = parseFloat(settings.isf), target = parseFloat(settings.target);
   const E = all.filter((e) => e.ts >= now - 28 * DAY && e.ts <= now + 6e5).sort((a, b) => a.ts - b.ts);
   const manual = E.filter((e) => e.type === "reading");
-  const meals = E.filter((e) => e.type === "meal");
+  const meals = E.filter((e) => e.type === "meal" && (e.kind || "comida") === "comida");
   const basals = E.filter((e) => e.type === "basal");
   const charts = E.filter((e) => e.type === "chart");
   const sens = sensorPts.filter((p) => p.ts >= now - 28 * DAY && p.ts <= now + 6e5);

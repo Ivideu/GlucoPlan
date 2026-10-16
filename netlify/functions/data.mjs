@@ -31,6 +31,7 @@ function cleanEntry(e, id) {
     note: txt(e.note, 300),
   };
   if (e.type === "meal") {
+    out.hasPhoto = !!e.hasPhoto;
     out.carbs = num(e.carbs, 0, 500) ?? 0; // sin comida = 0 g
     out.bg = num(e.bg, 20, 600);
     out.dose = num(e.dose, 0, 100); // dosis REAL que se pinchó la persona
@@ -90,13 +91,28 @@ export default async (req) => {
         const settings = await s.get("settings", { type: "json" });
         return reply(200, { settings: settings || null });
       }
+      if (url.searchParams.get("what") === "photos") {
+        const ids = (url.searchParams.get("ids") || "").split(",").filter((i) => /^[\w-]{1,64}$/.test(i)).slice(0, 20);
+        const photos = {};
+        await Promise.all(ids.map(async (id) => {
+          const d = await s.get(`photos/${id}`).catch(() => null);
+          if (d) photos[id] = d;
+        }));
+        return reply(200, { photos });
+      }
       const months = Math.min(12, Math.max(1, parseInt(url.searchParams.get("months") || "2", 10) || 2));
       return reply(200, { entries: await loadEntries(months) });
     }
 
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-
+      if (body.photo) {
+        const { id, data } = body.photo;
+        if (!/^[\w-]{1,64}$/.test(String(id)) || typeof data !== "string" || !data.startsWith("data:image/jpeg;base64,") || data.length > 200000)
+          return reply(400, { error: "Foto no válida" });
+        await s.set(`photos/${id}`, data);
+        return reply(200, { ok: true });
+      }
       if (body.settings) {
         const clean = {};
         for (const k of SETTING_KEYS) clean[k] = txt(body.settings[k], 20);
@@ -141,6 +157,7 @@ export default async (req) => {
       const key = `entries/${monthKey(ts)}`;
       const list = (await s.get(key, { type: "json" })) || [];
       await s.setJSON(key, list.filter((e) => e.id !== id));
+      await s.delete(`photos/${id}`).catch(() => {});
       return reply(200, { ok: true });
     }
 

@@ -435,10 +435,10 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
         </div>
       </aside>
     </div>
-    <div class="card">
+        <div class="card">
       <div class="head">
         <h2>Últimas comidas</h2>
-        <button class="btn ghost small" id="csvBtn" type="button">Descargar CSV</button>
+        <button class="btn ghost small" id="pdfBtn" type="button">Descargar PDF</button>
       </div>
       <div id="histBox" style="margin-top:8px"></div>
     </div>
@@ -676,7 +676,9 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
   const isCloud = () => !!getKey();
   const isLocalMode = () => { try { return localStorage.getItem(KEY + ':local') === '1'; } catch { return false; } };
 
-  let items = [];
+  let items = [];   
+  let mealPhoto = null;   // miniatura de la foto del plato actual
+  function resetPhotoBox() { mealPhoto = null; $('#preview').hidden = true; $('#preview').removeAttribute('src'); $('#dropText').hidden = false; $('#file').value = ''; }
   let nextId = 1;
   let entries = [];
   let chartDays = 1;
@@ -1238,14 +1240,68 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     const box = $('#histBox');
     if (!meals.length) { box.innerHTML = '<p class="empty">Todavía no has guardado comidas.</p>'; return; }
     box.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hidratos</th><th>Glucemia</th><th>Fiasp</th></tr></thead><tbody>` +
-      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
+      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}${h.hasPhoto ? ' 📷' : ''}</td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
   }
-  $('#csvBtn').addEventListener('click', () => {
-    const rows = ['fecha,tipo,hidratos_g,glucemia_mgdl,insulina_u,gym,nota',
-      ...entries.map(e => [new Date(e.ts).toISOString(), e.type, e.carbs ?? '', e.mgdl ?? e.bg ?? '', e.dose ?? e.units ?? '', e.gym ? 1 : 0, '"' + String(e.note || '').replace(/"/g, '""') + '"'].join(','))];
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type:'text/csv' }));
-    a.download = 'glucoplan-historial.csv'; a.click();
+
+    /* ---------- PDF de últimas comidas ---------- */
+  const loadJsPdf = () => window.jspdf ? Promise.resolve(window.jspdf) : new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = () => ok(window.jspdf);
+    s.onerror = () => ko(new Error('No se pudo cargar el generador de PDF. Comprueba tu conexión'));
+    document.head.appendChild(s);
+  });
+  const imgSize = src => new Promise(ok => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.onerror = () => ok(null); i.src = src; });
+  async function fetchPhotos(meals) {
+    const ids = meals.filter(m => m.hasPhoto).map(m => m.id);
+    if (!ids.length || !isCloud()) return {};
+    try { return (await api('/api/data?what=photos&ids=' + ids.join(','))).photos || {}; } catch { return {}; }
+  }
+  $('#pdfBtn').addEventListener('click', async () => {
+    const btn = $('#pdfBtn');
+    const meals = entries.filter(e => e.type === 'meal').slice(0, 12);
+    if (!meals.length) { toast('Todavía no hay comidas', 'err'); return; }
+    btn.disabled = true; btn.textContent = 'Generando…';
+    try {
+      const [{ jsPDF }, photos] = await Promise.all([loadJsPdf(), fetchPhotos(meals)]);
+      const sizes = {};
+      await Promise.all(Object.entries(photos).map(async ([id, src]) => { sizes[id] = await imgSize(src); }));
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const M = 14, X = { foto: M, fecha: M + 36, hc: M + 82, bg: M + 114, fi: M + 152 };
+      let y = 22;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(31, 48, 64);
+      doc.text('Últimas comidas', M, y);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(100);
+      doc.text('GlucoPlan · generado el ' + new Date().toLocaleString('es-ES', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }), M, y + 6);
+      y += 16;
+      const head = () => {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(100);
+        [['Foto', X.foto], ['Fecha', X.fecha], ['Hidratos', X.hc], ['Glucemia', X.bg], ['Fiasp', X.fi]].forEach(([t, x]) => doc.text(t, x, y));
+        doc.setDrawColor(190); doc.line(M, y + 2.5, 210 - M, y + 2.5);
+        y += 5;
+      };
+      head();
+      meals.forEach(m => {
+        const photo = photos[m.id], h = photo ? 24 : 10;
+        if (y + h > 282) { doc.addPage(); y = 22; head(); }
+        if (photo && sizes[m.id]) {
+          const [w0, h0] = sizes[m.id], k = Math.min(32 / w0, 20 / h0);
+          try { doc.addImage(photo, 'JPEG', M, y + (h - h0 * k) / 2, w0 * k, h0 * k); } catch {}
+        }
+        const ty = y + h / 2 + 1.5;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30);
+        doc.text(new Date(m.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }), X.fecha, ty);
+        doc.text(fmt(m.carbs || 0) + ' g', X.hc, ty);
+        doc.text(m.bg ? fmt(m.bg) + ' mg/dL' : '-', X.bg, ty);
+        doc.text(fmt(m.dose || 0) + ' U', X.fi, ty);
+        doc.setDrawColor(225); doc.line(M, y + h, 210 - M, y + h);
+        y += h;
+      });
+      doc.setFontSize(8); doc.setTextColor(120);
+      doc.text('Registro personal. No sustituye la indicación de tu endocrino.', M, Math.min(y + 8, 290));
+      doc.save('glucoplan-ultimas-comidas.pdf');
+    } catch (err) { toast(err.message, 'err'); }
+    btn.disabled = false; btn.textContent = 'Descargar PDF';
   });
 
     /* Ficha única de Hoy: solo glucosa, café o snack, corrección (Comida lleva a su pestaña) */
@@ -1562,6 +1618,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     if (!file) return;
     try {
       const dataUrl = await compress(file, 1024, 0.78);
+      mealPhoto = await compress(file, 360, 0.65);
       $('#preview').src = dataUrl; $('#preview').hidden = false; $('#dropText').hidden = true;
       if (!isCloud()) { setStatus('#status', 'err', 'Para analizar la foto con IA, entra con tu clave (Ajustes > Cerrar sesión y vuelve a entrar). Mientras, añade los alimentos a mano.'); return; }
       setStatus('#status', 'info', '<span class="spin"></span>Analizando el plato…');
@@ -1691,6 +1748,22 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     const b = $('#saveMeal');
     if (b) b.addEventListener('click', async () => {
       const typed = numOrNull($('#realDose').value);
+      const dose = typed == null ? r.dose : typed;
+      if (!(dose >= 0 && dose <= 100)) { toast('Revisa la dosis que te pones', 'err'); return; }
+      try {
+        const entry = { id: uid(), type:'meal', kind: mealKind, carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose, suggested: r.dose, absorb: absorbStr || autoAbsorb(), gym: gymToday() };
+        if (mealPhoto && isCloud() && mealKind === 'comida' && entry.carbs > 0) {
+          try { await api('/api/data', { method:'POST', body: JSON.stringify({ photo: { id: entry.id, data: mealPhoto } }) }); entry.hasPhoto = true; }
+          catch { toast('No se pudo guardar la foto; se guarda la comida sin ella', 'err'); }
+        }
+        await addEntry(entry);
+        const wasCorr = mealKind === 'correccion';
+        resetPhotoBox();
+        realDoseStr = null; mealKind = 'comida'; absorbStr = null; bgTouched = false; $('#bg').dataset.auto = ''; calc();
+        toast(wasCorr ? 'Corrección guardada. Mide a las 3 o 4 horas' : 'Guardado. Mide tu glucosa a las 2 horas');
+      } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
+    });
+    const typed = numOrNull($('#realDose').value);
       const dose = typed == null ? r.dose : typed;
       if (!(dose >= 0 && dose <= 100)) { toast('Revisa la dosis que te pones', 'err'); return; }
       try {

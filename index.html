@@ -1240,7 +1240,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     const box = $('#histBox');
     if (!meals.length) { box.innerHTML = '<p class="empty">Todavía no has guardado comidas.</p>'; return; }
     box.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hidratos</th><th>Glucemia</th><th>Fiasp</th></tr></thead><tbody>` +
-      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}${h.hasPhoto ? ' 📷' : ''}</td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
+      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}${h.hasPhoto ? ' 📷' : ''}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
   }
 
     /* ---------- PDF de últimas comidas ---------- */
@@ -1763,17 +1763,9 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
         toast(wasCorr ? 'Corrección guardada. Mide a las 3 o 4 horas' : 'Guardado. Mide tu glucosa a las 2 horas');
       } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
     });
-    const typed = numOrNull($('#realDose').value);
-      const dose = typed == null ? r.dose : typed;
-      if (!(dose >= 0 && dose <= 100)) { toast('Revisa la dosis que te pones', 'err'); return; }
-      try {
-        await addEntry({ type:'meal', kind: mealKind, carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose, suggested: r.dose, absorb: absorbStr || autoAbsorb(), gym: gymToday() });
-        const wasCorr = mealKind === 'correccion';
-        realDoseStr = null; mealKind = 'comida'; absorbStr = null; bgTouched = false; $('#bg').dataset.auto = ''; calc();
-        toast(wasCorr ? 'Corrección guardada. Mide a las 3 o 4 horas' : 'Guardado. Mide tu glucosa a las 2 horas');
-      } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
-    });
+
   }
+  
     /* ---------- Glucosa automática en la pestaña Comida ---------- */
   function autoFillBg() {
     const el = $('#bg');

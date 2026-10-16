@@ -1692,14 +1692,21 @@ details.day>.log{padding-bottom:10px}
     for (const p of sensor) { const d = Math.abs(p.ts - ts); if (d < bd) { bd = d; best = p; } }
     return best;
   };
-  const SLOTS = [
-    { id: 'desayuno', name: 'Desayuno', test: h => h >= 5 && h < 12 },
-    { id: 'comida', name: 'Comida', test: h => h >= 12 && h < 17 },
+   const SLOTS = [
+    { id: 'desayuno', name: 'Desayuno', byDay: true, test: h => h >= 5 && h < 12 },
+    { id: 'comida', name: 'Comida', byDay: true, test: h => h >= 12 && h < 17 },
     { id: 'cena', name: 'Cena', test: h => h >= 17 && h < 22 },
     { id: 'noche', name: 'Acostarse y madrugada', test: h => h >= 22 || h < 5 }
   ];
   const slotOf = ts => SLOTS.find(s => s.test(new Date(ts).getHours())) || SLOTS[3];
-  let adaptMemo = { key: '', val: null };
+  // Viernes, sábado y domingo (menos actividad) se aprenden aparte en desayuno y comida
+  const dayType = ts => ([5, 6, 0].includes(new Date(ts).getDay()) ? 'fin' : 'lab');
+  const GROUPS = [];
+  SLOTS.forEach(s => {
+    if (s.byDay) [['lab', 'lun-jue'], ['fin', 'vie-dom']].forEach(([dt, lbl]) => GROUPS.push({ key: s.id + '_' + dt, id: s.id, name: `${s.name} (${lbl})` }));
+    else GROUPS.push({ key: s.id, id: s.id, name: s.name });
+  });
+  const groupKeyOf = ts => { const s = slotOf(ts); return s.byDay ? s.id + '_' + dayType(ts) : s.id; };
 
   function adaptModel() {
     const st = store.settings, now = Date.now();
@@ -1710,7 +1717,7 @@ details.day>.log{padding-bottom:10px}
     const icr = parseFloat(st.icr), isf = parseFloat(st.isf), target = parseFloat(st.target);
     const on = st.adaptOn !== '0';
     const slots = {};
-    SLOTS.forEach(s => { slots[s.id] = { id: s.id, name: s.name, mealsN: 0, corrN: 0, ratios: [], isfs: [], fastIcr: 1, fastIsf: 1, lastHypo: null, icrMul: 1, isfMul: 1, icr, isf }; });
+    GROUPS.forEach(g => { slots[g.key] = { id: g.key, name: g.name, mealsN: 0, corrN: 0, ratios: [], isfs: [], fastIcr: 1, fastIsf: 1, lastHypo: null, icrMul: 1, isfMul: 1, icr, isf }; });
     const M = { on, ready: icr > 0 && isf > 0 && target > 0, slots, icr, isf, target, lows14: 0, diag: null };
     if (!M.ready) { adaptMemo = { key, val: M }; return M; }
 
@@ -1733,7 +1740,7 @@ details.day>.log{padding-bottom:10px}
     bol.forEach((m, i) => {
       if (used.has(m)) return;
       if (gymDays.has(dayStr(m.ts))) return skip('día de gym');   // los días de gym tienen su propio ajuste
-      const kind = m.kind || 'comida', next = bol[i + 1], S = slots[slotOf(m.ts).id];
+      const kind = m.kind || 'comida', next = bol[i + 1], S = slots[groupKeyOf(m.ts)];
       const isMeal = kind !== 'correccion' && m.carbs >= 10;
       const isCorr = kind === 'correccion' && m.bg >= 130;
       if (!isMeal && !isCorr) return skip(kind === 'correccion' ? 'corrección con glucosa menor de 130' : 'toma de menos de 10 g');
@@ -1780,8 +1787,8 @@ details.day>.log{padding-bottom:10px}
     });
 
     const lows = M.lows14 > 0;
-    SLOTS.forEach(sl => {
-      const S = slots[sl.id];
+    GROUPS.forEach(g => {
+      const S = slots[g.key];
       let im = 1, sm = 1;
       if (S.mealsN >= 3) { const k = S.ratios.length; im = 1 + (median(S.ratios) / icr - 1) * k / (k + 4); }
       if (S.corrN >= 2) { const k = S.isfs.length; sm = 1 + (median(S.isfs) / isf - 1) * k / (k + 3); }
@@ -1797,8 +1804,8 @@ details.day>.log{padding-bottom:10px}
     return M;
   }
   function adaptNow() {
-    const M = adaptModel(), sl = slotOf(Date.now()), S = M.slots[sl.id];
-    return { slot: sl, icr: S.icr, isf: S.isf, icrMul: S.icrMul, isfMul: S.isfMul, adjusted: M.ready && M.on && (S.icrMul !== 1 || S.isfMul !== 1), S };
+    const M = adaptModel(), S = M.slots[groupKeyOf(Date.now())];
+    return { slot: { name: S.name }, icr: S.icr, isf: S.isf, icrMul: S.icrMul, isfMul: S.isfMul, adjusted: M.ready && M.on && (S.icrMul !== 1 || S.isfMul !== 1), S };
   }
 
   function renderLearn() {
@@ -1810,15 +1817,15 @@ details.day>.log{padding-bottom:10px}
     h += `<p class="sub">Compara cada dosis con cómo acabas 2 a 5 horas después (sensor o lecturas). Ajusta el ratio y la sensibilidad de cada franja, con un máximo de ±25 % sobre los valores de tu endocrino, y reacciona enseguida a una glucosa baja. ${M.on ? 'Ajuste automático activado.' : '<b>Ajuste automático desactivado:</b> se usan solo tus valores de Ajustes.'}</p>`;
     const pctTxt = mul => { const p = Math.round((1 / mul - 1) * 100); return (p > 0 ? '+' : '') + p + ' %'; };
     h += `<div style="overflow-x:auto"><table><thead><tr><th>Franja</th><th>Ratio (g por U)</th><th>Sensibilidad (mg/dL por U)</th><th>Estado</th></tr></thead><tbody>` +
-      SLOTS.map(sl => {
-        const S = M.slots[sl.id];
+       GROUPS.map(sl => {
+        const S = M.slots[sl.key];
         let state = 'Sin cambios';
         if (!M.on) state = 'Solo tus valores';
         else if (S.fastIcr > 1 || S.fastIsf > 1) state = `⚠️ Bajada reciente (${S.lastHypo ? S.lastHypo.mgdl : '?'} mg/dL): menos insulina`;
         else if (S.icrMul > 1) state = `Menos insulina en comidas (${pctTxt(S.icrMul)})`;
         else if (S.icrMul < 1) state = `Más insulina en comidas (${pctTxt(S.icrMul)})`;
         else if (S.mealsN < 3) state = `Faltan datos (${S.mealsN} de 3 comidas)`;
-        return `<tr><td><b>${sl.name}</b></td><td>${fmt(M.icr)} → <b>${fmt(S.icr)}</b><small style="display:block;color:var(--muted)">${S.mealsN} comidas válidas</small></td><td>${fmt(M.isf)} → <b>${fmt(S.isf)}</b><small style="display:block;color:var(--muted)">${S.corrN} correcciones válidas</small></td><td>${state}</td></tr>`;
+        return `<tr><td><b>${sl.name}</b>${sl.key === groupKeyOf(Date.now()) ? '<span class="tag">ahora</span>' : ''}</td><td>${fmt(M.icr)} → <b>${fmt(S.icr)}</b><small style="display:block;color:var(--muted)">${S.mealsN} comidas válidas</small></td><td>${fmt(M.isf)} → <b>${fmt(S.isf)}</b><small style="display:block;color:var(--muted)">${S.corrN} correcciones válidas</small></td><td>${state}</td></tr>`;
       }).join('') + `</tbody></table></div>`;
     h += `<div class="actions" style="margin-top:12px"><button class="btn small violet" type="button" data-act="toggle">${M.on ? 'Desactivar' : 'Activar'} ajuste automático</button><button class="btn small ghost" type="button" data-act="reset">Reiniciar aprendizaje</button></div>`;
     if (M.diag) {
@@ -1962,8 +1969,8 @@ details.day>.log{padding-bottom:10px}
     h += `<h2>Ajustes usados en la app</h2><p>Ratio: ${s.icr || '—'} g por unidad · Sensibilidad: ${s.isf || '—'} mg/dL por unidad · Objetivo: ${s.target || '—'} mg/dL · Salto de pluma: ${s.step || '—'} U · Toujeo habitual: ${s.basal || '—'} U.</p>`;
     const M = adaptModel();
     if (M.ready && M.on) {
-      const ch = SLOTS.filter(sl => M.slots[sl.id].icrMul !== 1 || M.slots[sl.id].isfMul !== 1);
-      if (ch.length) h += `<p class="fine">Ajustes aprendidos por la app (revisar con el endocrino): ` + ch.map(sl => `${sl.name.toLowerCase()}: ratio ${M.slots[sl.id].icr} g/U, sensibilidad ${M.slots[sl.id].isf} mg/dL por U`).join(' · ') + '.</p>';
+      const ch = GROUPS.filter(g => M.slots[g.key].icrMul !== 1 || M.slots[g.key].isfMul !== 1);
+      if (ch.length) h += `<p class="fine">Ajustes aprendidos por la app (revisar con el endocrino): ` + ch.map(g => `${g.name.toLowerCase()}: ratio ${M.slots[g.key].icr} g/U, sensibilidad ${M.slots[g.key].isf} mg/dL por U`).join(' · ') + '.</p>';
     }
 
     // Observaciones

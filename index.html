@@ -264,7 +264,6 @@ details.day>.log{padding-bottom:10px}
 </style>
 </head>
 <body>
-<body>
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
@@ -1741,7 +1740,7 @@ details.day>.log{padding-bottom:10px}
     else GROUPS.push({ key: s.id, id: s.id, name: s.name });
   });
   const groupKeyOf = ts => { const s = slotOf(ts); return s.byDay ? s.id + '_' + dayType(ts) : s.id; };
-
+  let adaptMemo = { key: null, val: null };
   function adaptModel() {
     const st = store.settings, now = Date.now();
     const key = [entries.length, entries.reduce((a, e) => a + e.ts % 997 + (e.dose || 0) * 7 + (e.carbs || 0), 0), sensor.length,
@@ -2186,7 +2185,5 @@ details.day>.log{padding-bottom:10px}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) { loadEntries(true); syncSensor(); } });
 })();
 </script>
-</body>
-</html>
 </body>
 </html>

@@ -313,37 +313,36 @@ details.day>.log{padding-bottom:10px}
         </div>
       </div>
     </div>
-
     <div class="cols">
       <div class="stack">
-        <div class="card">
-          <h2>Anotar glucosa e insulina</h2>
-          <p class="sub">Apunta la glucosa, la insulina que te has puesto, o las dos cosas. La lectura de 2 horas después de comer es la que más enseña al coach.</p>
+                <div class="card">
+          <h2>Anotar</h2>
+          <p class="sub" id="r-sub"></p>
+          <div class="chips" id="rMode" role="group" aria-label="¿Qué anotas?" style="margin-bottom:14px">
+            <button class="chip" type="button" data-m="glucosa" aria-pressed="true">Solo glucosa</button>
+            <button class="chip" type="button" data-m="snack" aria-pressed="false">Café o snack</button>
+            <button class="chip" type="button" data-m="correccion" aria-pressed="false">Corrección</button>
+            <button class="chip" type="button" data-m="comida" aria-pressed="false">Comida ›</button>
+          </div>
+          <div class="chips" id="qNotes" style="margin-bottom:12px" hidden>
+            <button class="chip" type="button" aria-pressed="false">Café con leche</button>
+            <button class="chip" type="button" aria-pressed="false">Merienda</button>
+            <button class="chip" type="button" aria-pressed="false">Sobre azúcar</button>
+          </div>
           <div class="fgrid">
             <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"><span class="hint" id="r-hint"></span></div>
-            <div class="field"><label for="r-ins">Insulina Fiasp (U)</label><input id="r-ins" type="number" step="0.5" min="0" max="100" inputmode="decimal" placeholder="Opcional"></div>
+            <div class="field" id="f-ins" hidden><label for="r-ins">Insulina Fiasp (U)</label><input id="r-ins" type="number" step="0.5" min="0" max="100" inputmode="decimal"><span class="hint" id="r-ins-hint"></span></div>
+            <div class="field" id="f-carbs" hidden><label for="r-carbs">Hidratos (g)</label><input id="r-carbs" type="number" step="1" min="0" max="100" inputmode="decimal"><span class="hint">Se rellenan al elegir; puedes cambiarlos.</span></div>
           </div>
           <div class="fgrid" style="margin-top:12px">
             <div class="field"><label for="r-when">Momento</label><input id="r-when" type="datetime-local"></div>
-            <div class="field"><label for="r-ctx">Tipo de lectura</label>
-              <select id="r-ctx">
-                <option value="post2h">2 horas después de comer</option>
-                <option value="pre_comida">Antes de comer</option>
-                <option value="ayunas">En ayunas</option>
-                <option value="pre_gym">Antes del gimnasio</option>
-                <option value="post_gym">Después del gimnasio</option>
-                <option value="noche">Antes de dormir o madrugada</option>
-                <option value="otro">Otro</option>
-              </select></div>
+            <div class="field" id="f-ctx"><label for="r-ctx">Tipo de lectura</label>
+              <select id="r-ctx"><option value="otro">Otros</option></select>
+              <span class="hint">Propuesto según la hora. Cámbialo si no encaja.</span></div>
           </div>
           <div class="chips" style="margin-top:8px"><button class="chip" type="button" id="r-now">Usar la hora actual</button></div>
           <div class="field" style="margin-top:12px"><label for="r-note">Nota (opcional)</label>
-            <div class="chips" id="qNotes" style="margin-bottom:8px">
-              <button class="chip" type="button" aria-pressed="false">Café con leche</button>
-              <button class="chip" type="button" aria-pressed="false">Merienda</button>
-              <button class="chip" type="button" aria-pressed="false">Sobre azúcar</button>
-            </div>
-            <input id="r-note" name="glucoplan-nota" autocomplete="off" maxlength="120" placeholder="O escribe lo que quieras">
+            <input id="r-note" name="glucoplan-nota" autocomplete="off" maxlength="120" placeholder="Escribe lo que quieras">
           </div>
           <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar</button></div>
         </div>
@@ -1050,7 +1049,7 @@ details.day>.log{padding-bottom:10px}
     }
     return h + '<p class="fine">Estimación orientativa. No se descuenta de las correcciones y no sustituye la pauta de tu endocrino.</p></div>';
   }
-  let corrTyped = null;
+  let corrTyped = null, corrSuggested = 0;
   function renderCorr() {
     const box = $('#corrCard'); if (!box) return;
     if (document.activeElement && document.activeElement.id === 'corrDose') return;
@@ -1099,7 +1098,7 @@ details.day>.log{padding-bottom:10px}
       if (last && age <= 60 && last.mgdl > 250) h += '<div class="warn danger" style="margin-top:8px">Glucemia alta: mide cetonas y sigue la pauta que tengas para corrección.</div>';
       box.innerHTML = h; return;
     }
-
+    corrSuggested = units;
     h += `<div class="tj" style="margin-top:14px"><div class="u">${fmt(units)}<small>U extra sugeridas</small></div></div>
       <div class="break">
         <div><span>Para bajar de ${fmt(last.mgdl)} a ${fmt(target)}</span><span>${fmt(parts.plain)} U</span></div>
@@ -1237,59 +1236,103 @@ details.day>.log{padding-bottom:10px}
     a.download = 'glucoplan-historial.csv'; a.click();
   });
 
-  /* Hora y notas rápidas */
-  let whenTouched = false, quickKind = null;
-  const setNow = () => { if (!whenTouched) $('#r-when').value = toLocalInput(Date.now()); };
-  $('#r-when').addEventListener('input', () => { whenTouched = true; });
+    /* Ficha única de Hoy: solo glucosa, café o snack, corrección (Comida lleva a su pestaña) */
+  let whenTouched = false, ctxTouched = false, insAuto = false, mode = 'glucosa';
+  const SNACK_G = { 'Café con leche': 6, 'Merienda': 12, 'Sobre azúcar': 12 };
+  const SUBS = {
+    glucosa: 'Apunta tu glucosa. La lectura de 2 horas después de comer es la que más enseña al coach.',
+    snack: 'Un café con leche, una merienda o un sobre de azúcar. Los hidratos se rellenan solos y la insulina es opcional.',
+    correccion: 'Una dosis para bajar una glucosa alta, sin comer.'
+  };
+  const readTs = () => (whenTouched ? new Date($('#r-when').value).getTime() : Date.now());
+
+  // Propone el tipo de lectura: si hace 1 h 15 min a 3 h 30 min que anotaste una comida, es «2 h después»; si no, según la hora
+  function ctxFor(ts) {
+    const m = entries.filter(e => e.type === 'meal' && (e.kind || 'comida') === 'comida' && e.carbs >= 10 && ts - e.ts >= 75 * 6e4 && ts - e.ts <= 210 * 6e4)
+      .sort((a, b) => b.ts - a.ts)[0];
+    if (m) {
+      const mh = new Date(m.ts).getHours();
+      return mh >= 22 || mh < 5 ? 'otro' : mh < 12 ? 'post2h_desayuno' : mh < 17 ? 'post2h' : 'post2h_cena';
+    }
+    const h = new Date(ts).getHours();
+    return h >= 5 && h < 11 ? 'ayunas' : h >= 11 && h < 17 ? 'pre_comida' : h >= 17 && h < 22 ? 'pre_cena' : 'otro';
+  }
+  function autoCtx() {
+    if (ctxTouched) return;
+    const ts = readTs();
+    if (isFinite(ts)) $('#r-ctx').value = ctxFor(ts);
+  }
+  const setNow = () => { if (!whenTouched) $('#r-when').value = toLocalInput(Date.now()); autoCtx(); };
+  $('#r-when').addEventListener('input', () => { whenTouched = true; autoCtx(); });
   $('#r-now').addEventListener('click', () => { whenTouched = false; setNow(); });
-  const QUICK = { 'Café con leche':'cafe', 'Merienda':'comida', 'Sobre azúcar':'cafe' };
+  $('#r-ctx').addEventListener('change', () => { ctxTouched = true; });
+  $('#r-ins').addEventListener('input', () => { insAuto = false; $('#r-ins-hint').textContent = ''; });
+
+  function setMode(m) {
+    if (m === 'comida') { showTab('comida'); return; }
+    mode = m;
+    $$('#rMode .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.m === m)));
+    const glu = m === 'glucosa', snack = m === 'snack', corr = m === 'correccion';
+    $('#qNotes').hidden = !snack; $('#f-carbs').hidden = !snack;
+    $('#f-ins').hidden = glu; $('#f-ctx').hidden = !glu;
+    $('#r-sub').textContent = SUBS[m];
+    const ins = $('#r-ins'), hint = $('#r-ins-hint');
+    if (glu || insAuto) { ins.value = ''; insAuto = false; }
+    hint.textContent = '';
+    if (!snack) { $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false')); $('#r-carbs').value = ''; }
+    if (corr && !(numOrNull(ins.value) > 0)) {
+      if (corrSuggested > 0) { ins.value = corrSuggested; insAuto = true; hint.textContent = `Sugerida por la app: ${fmt(corrSuggested)} U. Cámbiala por lo que te pongas de verdad.`; }
+      else hint.textContent = 'Ahora mismo la app no sugiere corrección: escribe lo que te pongas.';
+    }
+  }
+  $$('#rMode .chip').forEach(c => c.addEventListener('click', () => setMode(c.dataset.m)));
+
   $$('#qNotes .chip').forEach(c => c.addEventListener('click', () => {
     const on = c.getAttribute('aria-pressed') !== 'true';
     $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
-    const labels = Object.keys(QUICK), n = $('#r-note'), cur = n.value.trim();
+    const n = $('#r-note'), cur = n.value.trim(), labels = Object.keys(SNACK_G);
     if (on) {
-      c.setAttribute('aria-pressed', 'true'); quickKind = QUICK[c.textContent];
+      c.setAttribute('aria-pressed', 'true');
       n.value = !cur || labels.includes(cur) ? c.textContent : cur + ', ' + c.textContent;
-    } else { quickKind = null; if (cur === c.textContent) n.value = ''; }
+      $('#r-carbs').value = SNACK_G[c.textContent.trim()];
+    } else { if (cur === c.textContent) n.value = ''; $('#r-carbs').value = ''; }
   }));
 
   $('#saveReading').addEventListener('click', async () => {
     const btn = $('#saveReading');
     if (btn.disabled) return;
-    const mgdl = numOrNull($('#r-val').value);
-    const units = numOrNull($('#r-ins').value);
-    if (mgdl == null && !(units > 0) && !quickKind) { toast('Escribe la glucosa o la insulina', 'err'); return; }
+    const mgdl = numOrNull($('#r-val').value), units = numOrNull($('#r-ins').value), carbs = numOrNull($('#r-carbs').value);
     if (mgdl != null && !(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
     if (units != null && !(units >= 0 && units <= 100)) { toast('Revisa las unidades de insulina', 'err'); return; }
-    const ts = whenTouched ? new Date($('#r-when').value).getTime() : Date.now();
+    if (carbs != null && !(carbs >= 0 && carbs <= 100)) { toast('Revisa los hidratos (0 a 100 g)', 'err'); return; }
+    if (mode === 'glucosa' && mgdl == null) { toast('Escribe la glucosa', 'err'); return; }
+    if (mode === 'correccion' && (mgdl == null || !(units > 0))) { toast('Escribe la glucosa y la insulina que te pones', 'err'); return; }
+    if (mode === 'snack' && !(carbs > 0) && !(units > 0)) { toast('Elige un café o snack, o escribe los hidratos', 'err'); return; }
+    const ts = readTs();
     if (!isFinite(ts)) { toast('Elige la fecha y la hora', 'err'); return; }
     if (ts > Date.now() + 5 * 6e4) { toast('La hora no puede ser futura', 'err'); return; }
     const note = $('#r-note').value.trim(), gym = gymToday();
-    const kind = quickKind || 'correccion';
     btn.disabled = true;
     try {
-      const chipEl = $('#qNotes .chip[aria-pressed="true"]');
-      if (chipEl) {
-        // Un solo registro: el snack con sus hidratos de absorción rápida (la glucosa que escribas va dentro como glucemia)
-        const SNACK_G = { 'Café con leche': 6, 'Merienda': 12, 'Sobre azúcar': 12 };
-        await addEntry({ type:'meal', kind, carbs: SNACK_G[chipEl.textContent.trim()] ?? 12, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb: 'rapida', note, gym, ts });
-      } else if (mgdl != null) {
-        // Un solo registro: glucosa y, si la hay, la insulina
-        const e = { type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts };
-        if (units > 0) { e.dose = units; e.kind = kind; }
-        await addEntry(e);
+      if (mode === 'snack') {
+        await addEntry({ type:'meal', kind:'cafe', carbs: carbs || 0, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb:'rapida', note, gym, ts });
+      } else if (mode === 'correccion') {
+        await addEntry({ type:'reading', mgdl, context: ctxFor(ts), dose: units, kind:'correccion', note, gym, ts });
       } else {
-        await addEntry({ type:'meal', kind, carbs: 0, bg: null, dose: units, suggested: null, note, gym, ts });
+        await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts });
       }
-      ['#r-val', '#r-ins', '#r-note'].forEach(id => { $(id).value = ''; });
+      ['#r-val', '#r-ins', '#r-note', '#r-carbs'].forEach(id => { $(id).value = ''; });
       $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
-      quickKind = null; whenTouched = false; setNow();
+      whenTouched = false; ctxTouched = false; insAuto = false; setNow();
       rValTouched = false; $('#r-val').dataset.auto = ''; autoFillReading();
+      setMode(mode);
       toast(mgdl != null && mgdl < 70 ? 'Guardado. Glucosa baja: trátala según tu pauta' : 'Guardado' + (units > 0 ? ': ' + fmt(units) + ' U' : ''), mgdl != null && mgdl < 70 ? 'err' : 'ok');
     } catch (err) { toast(err.message, 'err'); }
     btn.disabled = false;
   });
   $('#r-val').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
+  setMode('glucosa');
+
 
   /* ---------- Gráfica ---------- */
   function drawChart(el, days, anim, dayStart) {
@@ -1617,15 +1660,7 @@ details.day>.log{padding-bottom:10px}
         <input id="realDose" type="number" step="${parseFloat(store.settings.step) || 0.5}" min="0" inputmode="decimal" value="${realDoseStr ?? r.dose}">
         <span class="hint">Pon la dosis real. La app aprende de lo que te pones, no de lo que sugiere.</span>
       </div>
-      <div class="field" style="margin:10px 0 12px">
-        <label for="mealKind">Qué es</label>
-        <select id="mealKind">
-          <option value="comida" ${mealKind === 'comida' ? 'selected' : ''}>Comida</option>
-          <option value="cafe" ${mealKind === 'cafe' ? 'selected' : ''}>Café con leche u otro snack</option>
-          <option value="correccion" ${mealKind === 'correccion' ? 'selected' : ''}>Corrección de hiperglucemia (sin comer)</option>
-        </select>
-        ${mealKind === 'correccion' && !(r.bg > 0) ? '<span class="hint">Para que aprenda tu sensibilidad, apunta la glucemia actual arriba.</span>' : ''}
-      </div>
+
       <div class="field" style="margin:0 0 12px">
         <label for="absorb">Absorción de los hidratos</label>
         <select id="absorb">
@@ -1635,12 +1670,11 @@ details.day>.log{padding-bottom:10px}
         </select>
         <span class="hint">Se propone según los alimentos; cámbiala si quieres. La corrección de «Hoy» la usa para saber cuántos hidratos te quedan por absorber.</span>
       </div>
-      <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 && mealKind !== 'correccion' ? 'disabled' : ''}>Guardar esta toma de insulina</button>
+      <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 ? 'disabled' : ''}>Guardar esta toma de insulina</button>
       <p class="fine">Fiasp: pínchate unos 2 minutos antes de comer, o hasta 20 minutos después de empezar. Redondeado a saltos de ${fmt(parseFloat(store.settings.step))} U.</p>`;
     animateNum($('#doseNum'), r.dose, { from: shownDose, dec: r.dose % 1 ? 1 : 0, ms: 450 });
     shownDose = r.dose;
     $('#realDose').addEventListener('input', e => { realDoseStr = e.target.value; });
-    $('#mealKind').addEventListener('change', e => { mealKind = e.target.value; calc(); });
     $('#absorb').addEventListener('change', e => { absorbStr = e.target.value; });
     const b = $('#saveMeal');
     if (b) b.addEventListener('click', async () => {

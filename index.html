@@ -1940,11 +1940,6 @@ details.day>.log{padding-bottom:10px}
         return `<tr><td><b>${sl.name}</b></td><td>${fmt(M.icr)} → <b>${fmt(S.icr)}</b><small style="display:block;color:var(--muted)">${S.mealsN} comidas válidas</small></td><td>${fmt(M.isf)} → <b>${fmt(S.isf)}</b><small style="display:block;color:var(--muted)">${S.corrN} correcciones válidas</small></td><td>${state}</td></tr>`;
       }).join('') + `</tbody></table></div>`;
     h += `<div class="actions" style="margin-top:12px"><button class="btn small violet" type="button" data-act="toggle">${M.on ? 'Desactivar' : 'Activar'} ajuste automático</button><button class="btn small ghost" type="button" data-act="reset">Reiniciar aprendizaje</button></div>`;
-        if (M.diag) {
-      const sk = Object.entries(M.diag.skip).map(([k, n]) => `${k}: ${n}`).join(' · ');
-      const rst = Number(store.settings.adaptFrom) > 0 ? ` Aprendizaje reiniciado el ${new Date(Number(store.settings.adaptFrom)).toLocaleDateString('es-ES')}: solo cuentan las dosis posteriores.` : '';
-      h += `<p class="hint" style="margin-top:10px"><b>Diagnóstico:</b> ${M.diag.dosis} dosis analizadas con ${M.diag.lecturas} lecturas disponibles.${sk ? ' Descartadas → ' + sk + '.' : ''}${rst}</p>`;
-    }
     h += `<p class="fine">Cada comida o corrección solo cuenta si hay una lectura a la hora de evaluarla y no hay otra insulina en medio. Los días de gym no se usan. Son ajustes estadísticos con pocos datos: revísalos con tu endocrino, sobre todo si se alejan de tus valores.</p>`;
     box.innerHTML = h;
   }

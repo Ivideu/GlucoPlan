@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GlucoPlan</title>
 <meta name="theme-color" content="#F5F7F8">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GlucoPlan">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -261,11 +267,6 @@ details.day>summary::-webkit-details-marker{display:none}
 details.day>summary .dl::before{content:"▸";display:inline-block;margin-right:8px;color:var(--muted);transition:transform .2s}
 details.day[open]>summary .dl::before{transform:rotate(90deg)}
 details.day>.log{padding-bottom:10px}
-details.fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
-details.fold>summary::-webkit-details-marker{display:none}
-details.fold>summary h2{margin-right:auto}
-details.fold>summary .chev{flex:0 0 auto;width:9px;height:9px;margin:0 4px 3px 2px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .25s}
-details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
 </style>
 </head>
 <body>
@@ -317,36 +318,37 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
         </div>
       </div>
     </div>
+
     <div class="cols">
       <div class="stack">
-                <div class="card">
-          <h2>Anotar</h2>
-          <p class="sub" id="r-sub"></p>
-          <div class="chips" id="rMode" role="group" aria-label="¿Qué anotas?" style="margin-bottom:14px">
-            <button class="chip" type="button" data-m="glucosa" aria-pressed="true">Solo glucosa</button>
-            <button class="chip" type="button" data-m="snack" aria-pressed="false">Café o snack</button>
-            <button class="chip" type="button" data-m="correccion" aria-pressed="false">Corrección</button>
-            <button class="chip" type="button" data-m="comida" aria-pressed="false">Comida ›</button>
-          </div>
-          <div class="chips" id="qNotes" style="margin-bottom:12px" hidden>
-            <button class="chip" type="button" aria-pressed="false">Café con leche</button>
-            <button class="chip" type="button" aria-pressed="false">Merienda</button>
-            <button class="chip" type="button" aria-pressed="false">Sobre azúcar</button>
-          </div>
+        <div class="card">
+          <h2>Anotar glucosa e insulina</h2>
+          <p class="sub">Apunta la glucosa, la insulina que te has puesto, o las dos cosas. La lectura de 2 horas después de comer es la que más enseña al coach.</p>
           <div class="fgrid">
             <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"><span class="hint" id="r-hint"></span></div>
-            <div class="field" id="f-ins" hidden><label for="r-ins">Insulina Fiasp (U)</label><input id="r-ins" type="number" step="0.5" min="0" max="100" inputmode="decimal"><span class="hint" id="r-ins-hint"></span></div>
-            <div class="field" id="f-carbs" hidden><label for="r-carbs">Hidratos (g)</label><input id="r-carbs" type="number" step="1" min="0" max="100" inputmode="decimal"><span class="hint">Se rellenan al elegir; puedes cambiarlos.</span></div>
+            <div class="field"><label for="r-ins">Insulina Fiasp (U)</label><input id="r-ins" type="number" step="0.5" min="0" max="100" inputmode="decimal" placeholder="Opcional"></div>
           </div>
           <div class="fgrid" style="margin-top:12px">
             <div class="field"><label for="r-when">Momento</label><input id="r-when" type="datetime-local"></div>
-            <div class="field" id="f-ctx"><label for="r-ctx">Tipo de lectura</label>
-              <select id="r-ctx"><option value="otro">Otros</option></select>
-              <span class="hint">Propuesto según la hora. Cámbialo si no encaja.</span></div>
+            <div class="field"><label for="r-ctx">Tipo de lectura</label>
+              <select id="r-ctx">
+                <option value="post2h">2 horas después de comer</option>
+                <option value="pre_comida">Antes de comer</option>
+                <option value="ayunas">En ayunas</option>
+                <option value="pre_gym">Antes del gimnasio</option>
+                <option value="post_gym">Después del gimnasio</option>
+                <option value="noche">Antes de dormir o madrugada</option>
+                <option value="otro">Otro</option>
+              </select></div>
           </div>
           <div class="chips" style="margin-top:8px"><button class="chip" type="button" id="r-now">Usar la hora actual</button></div>
           <div class="field" style="margin-top:12px"><label for="r-note">Nota (opcional)</label>
-            <input id="r-note" name="glucoplan-nota" autocomplete="off" maxlength="120" placeholder="Escribe lo que quieras">
+            <div class="chips" id="qNotes" style="margin-bottom:8px">
+              <button class="chip" type="button" aria-pressed="false">Café con leche</button>
+              <button class="chip" type="button" aria-pressed="false">Merienda</button>
+              <button class="chip" type="button" aria-pressed="false">Sobre azúcar</button>
+            </div>
+            <input id="r-note" name="glucoplan-nota" autocomplete="off" maxlength="120" placeholder="O escribe lo que quieras">
           </div>
           <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar</button></div>
         </div>
@@ -373,14 +375,10 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
             Tu glucosa suele subir con la musculación. La app lo tiene en cuenta en el cálculo y en el coach. Mide antes y después del gym, y vigila bajadas tardías unas horas después.
           </div>
         </div>
-  <details class="card fold" id="recentFold">
-  <summary>
-    <h2>Registro reciente</h2>
-    <span class="hint" id="recentInfo"></span>
-    <span class="chev" aria-hidden="true"></span>
-  </summary>
-  <div class="log" id="entryLogHoy" style="margin-top:14px"></div>
-</details>
+        <div class="card">
+          <h2>Registro reciente</h2>
+          <div class="log" id="entryLogHoy" style="margin-top:12px"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -435,14 +433,13 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
         </div>
       </aside>
     </div>
-        <details class="card fold" id="histFold">
-      <summary>
+    <div class="card">
+      <div class="head">
         <h2>Últimas comidas</h2>
-        <button class="btn ghost small" id="pdfBtn" type="button">Descargar PDF</button>
-        <span class="chev" aria-hidden="true"></span>
-      </summary>
-      <div id="histBox" style="margin-top:14px"></div>
-    </details>
+        <button class="btn ghost small" id="csvBtn" type="button">Descargar CSV</button>
+      </div>
+      <div id="histBox" style="margin-top:8px"></div>
+    </div>
   </section>
 
   <!-- GLUCOSA -->
@@ -677,9 +674,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
   const isCloud = () => !!getKey();
   const isLocalMode = () => { try { return localStorage.getItem(KEY + ':local') === '1'; } catch { return false; } };
 
-  let items = [];   
-  let mealPhoto = null;   // miniatura de la foto del plato actual
-  function resetPhotoBox() { mealPhoto = null; $('#preview').hidden = true; $('#preview').removeAttribute('src'); $('#dropText').hidden = false; $('#file').value = ''; }
+  let items = [];
   let nextId = 1;
   let entries = [];
   let chartDays = 1;
@@ -1024,7 +1019,6 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     });
     return { iob, cob };
   }
-
   /* Toujeo (glargina U300): estimación orientativa. NO se resta a las correcciones. */
   const TJ_HOURS = 36;   // la ficha técnica indica que actúa hasta unas 36 h, sin pico
   function basalInfo(now) {
@@ -1060,7 +1054,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     }
     return h + '<p class="fine">Estimación orientativa. No se descuenta de las correcciones y no sustituye la pauta de tu endocrino.</p></div>';
   }
-  let corrTyped = null, corrSuggested = 0;
+  let corrTyped = null;
   function renderCorr() {
     const box = $('#corrCard'); if (!box) return;
     if (document.activeElement && document.activeElement.id === 'corrDose') return;
@@ -1109,7 +1103,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
       if (last && age <= 60 && last.mgdl > 250) h += '<div class="warn danger" style="margin-top:8px">Glucemia alta: mide cetonas y sigue la pauta que tengas para corrección.</div>';
       box.innerHTML = h; return;
     }
-    corrSuggested = units;
+
     h += `<div class="tj" style="margin-top:14px"><div class="u">${fmt(units)}<small>U extra sugeridas</small></div></div>
       <div class="break">
         <div><span>Para bajar de ${fmt(last.mgdl)} a ${fmt(target)}</span><span>${fmt(parts.plain)} U</span></div>
@@ -1142,7 +1136,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
       } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
     });
   }
-    /* ---------- Gym ---------- */
+  /* ---------- Gym ---------- */
   function renderGym() {
     const on = gymToday();
     $('#gymSwitch').setAttribute('aria-checked', on);
@@ -1224,11 +1218,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
   }
   $('#entryLog').addEventListener('toggle', ev => { const d = ev.target; if (d.dataset && d.dataset.day) dayOpen[d.dataset.day] = d.open; }, true);
   $('#entryLog').addEventListener('click', ev => { if (ev.target.closest('#moreDays')) { logDays += 7; renderEntries(); } });
-  function renderEntries() {
-  fillLog('#entryLogHoy', 6); groupedLog($('#entryLog'));
-  const info = $('#recentInfo'), last = entries[0];
-  if (info) info.textContent = last ? 'Último: ' + whenLabel(last.ts) : 'Sin registros';
-}
+  function renderEntries() { fillLog('#entryLogHoy', 6); groupedLog($('#entryLog')); }
   ['#entryLogHoy', '#entryLog'].forEach(sel => $(sel).addEventListener('click', async ev => {
     const btn = ev.target.closest('.x'); if (!btn) return;
     const e = entries.find(x => x.id === btn.closest('.row').dataset.id);
@@ -1241,167 +1231,69 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     const box = $('#histBox');
     if (!meals.length) { box.innerHTML = '<p class="empty">Todavía no has guardado comidas.</p>'; return; }
     box.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hidratos</th><th>Glucemia</th><th>Fiasp</th></tr></thead><tbody>` +
-      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}${h.hasPhoto ? ' 📷' : ''}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
+      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
   }
-  $('#pdfBtn').addEventListener('click', e => e.preventDefault());
-    /* ---------- PDF de últimas comidas ---------- */
-  const loadJsPdf = () => window.jspdf ? Promise.resolve(window.jspdf) : new Promise((ok, ko) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload = () => ok(window.jspdf);
-    s.onerror = () => ko(new Error('No se pudo cargar el generador de PDF. Comprueba tu conexión'));
-    document.head.appendChild(s);
-  });
-  const imgSize = src => new Promise(ok => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.onerror = () => ok(null); i.src = src; });
-  async function fetchPhotos(meals) {
-    const ids = meals.filter(m => m.hasPhoto).map(m => m.id);
-    if (!ids.length || !isCloud()) return {};
-    try { return (await api('/api/data?what=photos&ids=' + ids.join(','))).photos || {}; } catch { return {}; }
-  }
-  $('#pdfBtn').addEventListener('click', async () => {
-    const btn = $('#pdfBtn');
-    const meals = entries.filter(e => e.type === 'meal').slice(0, 12);
-    if (!meals.length) { toast('Todavía no hay comidas', 'err'); return; }
-    btn.disabled = true; btn.textContent = 'Generando…';
-    try {
-      const [{ jsPDF }, photos] = await Promise.all([loadJsPdf(), fetchPhotos(meals)]);
-      const sizes = {};
-      await Promise.all(Object.entries(photos).map(async ([id, src]) => { sizes[id] = await imgSize(src); }));
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      const M = 14, X = { foto: M, fecha: M + 36, hc: M + 82, bg: M + 114, fi: M + 152 };
-      let y = 22;
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(31, 48, 64);
-      doc.text('Últimas comidas', M, y);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(100);
-      doc.text('GlucoPlan · generado el ' + new Date().toLocaleString('es-ES', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }), M, y + 6);
-      y += 16;
-      const head = () => {
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(100);
-        [['Foto', X.foto], ['Fecha', X.fecha], ['Hidratos', X.hc], ['Glucemia', X.bg], ['Fiasp', X.fi]].forEach(([t, x]) => doc.text(t, x, y));
-        doc.setDrawColor(190); doc.line(M, y + 2.5, 210 - M, y + 2.5);
-        y += 5;
-      };
-      head();
-      meals.forEach(m => {
-        const photo = photos[m.id], h = photo ? 24 : 10;
-        if (y + h > 282) { doc.addPage(); y = 22; head(); }
-        if (photo && sizes[m.id]) {
-          const [w0, h0] = sizes[m.id], k = Math.min(32 / w0, 20 / h0);
-          try { doc.addImage(photo, 'JPEG', M, y + (h - h0 * k) / 2, w0 * k, h0 * k); } catch {}
-        }
-        const ty = y + h / 2 + 1.5;
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30);
-        doc.text(new Date(m.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }), X.fecha, ty);
-        doc.text(fmt(m.carbs || 0) + ' g', X.hc, ty);
-        doc.text(m.bg ? fmt(m.bg) + ' mg/dL' : '-', X.bg, ty);
-        doc.text(fmt(m.dose || 0) + ' U', X.fi, ty);
-        doc.setDrawColor(225); doc.line(M, y + h, 210 - M, y + h);
-        y += h;
-      });
-      doc.setFontSize(8); doc.setTextColor(120);
-      doc.text('Registro personal. No sustituye la indicación de tu endocrino.', M, Math.min(y + 8, 290));
-      doc.save('glucoplan-ultimas-comidas.pdf');
-    } catch (err) { toast(err.message, 'err'); }
-    btn.disabled = false; btn.textContent = 'Descargar PDF';
+  $('#csvBtn').addEventListener('click', () => {
+    const rows = ['fecha,tipo,hidratos_g,glucemia_mgdl,insulina_u,gym,nota',
+      ...entries.map(e => [new Date(e.ts).toISOString(), e.type, e.carbs ?? '', e.mgdl ?? e.bg ?? '', e.dose ?? e.units ?? '', e.gym ? 1 : 0, '"' + String(e.note || '').replace(/"/g, '""') + '"'].join(','))];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([rows.join('\n')], { type:'text/csv' }));
+    a.download = 'glucoplan-historial.csv'; a.click();
   });
 
-    /* Ficha única de Hoy: solo glucosa, café o snack, corrección (Comida lleva a su pestaña) */
-  let whenTouched = false, ctxTouched = false, insAuto = false, mode = 'glucosa';
-  const SNACK_G = { 'Café con leche': 6, 'Merienda': 12, 'Sobre azúcar': 12 };
-  const SUBS = {
-    glucosa: 'Apunta tu glucosa. La lectura de 2 horas después de comer es la que más enseña al coach.',
-    snack: 'Un café con leche, una merienda o un sobre de azúcar. Los hidratos se rellenan solos y la insulina es opcional.',
-    correccion: 'Una dosis para bajar una glucosa alta, sin comer.'
-  };
-  const readTs = () => (whenTouched ? new Date($('#r-when').value).getTime() : Date.now());
-
-  // Propone el tipo de lectura: si hace 1 h 15 min a 3 h 30 min que anotaste una comida, es «2 h después»; si no, según la hora
-  function ctxFor(ts) {
-    const m = entries.filter(e => e.type === 'meal' && (e.kind || 'comida') === 'comida' && e.carbs >= 10 && ts - e.ts >= 75 * 6e4 && ts - e.ts <= 210 * 6e4)
-      .sort((a, b) => b.ts - a.ts)[0];
-    if (m) {
-      const mh = new Date(m.ts).getHours();
-      return mh >= 22 || mh < 5 ? 'otro' : mh < 12 ? 'post2h_desayuno' : mh < 17 ? 'post2h' : 'post2h_cena';
-    }
-    const h = new Date(ts).getHours();
-    return h >= 5 && h < 11 ? 'ayunas' : h >= 11 && h < 17 ? 'pre_comida' : h >= 17 && h < 22 ? 'pre_cena' : 'otro';
-  }
-  function autoCtx() {
-    if (ctxTouched) return;
-    const ts = readTs();
-    if (isFinite(ts)) $('#r-ctx').value = ctxFor(ts);
-  }
-  const setNow = () => { if (!whenTouched) $('#r-when').value = toLocalInput(Date.now()); autoCtx(); };
-  $('#r-when').addEventListener('input', () => { whenTouched = true; autoCtx(); });
+  /* Hora y notas rápidas */
+  let whenTouched = false, quickKind = null;
+  const setNow = () => { if (!whenTouched) $('#r-when').value = toLocalInput(Date.now()); };
+  $('#r-when').addEventListener('input', () => { whenTouched = true; });
   $('#r-now').addEventListener('click', () => { whenTouched = false; setNow(); });
-  $('#r-ctx').addEventListener('change', () => { ctxTouched = true; });
-  $('#r-ins').addEventListener('input', () => { insAuto = false; $('#r-ins-hint').textContent = ''; });
-
-  function setMode(m) {
-    if (m === 'comida') { showTab('comida'); return; }
-    mode = m;
-    $$('#rMode .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.m === m)));
-    const glu = m === 'glucosa', snack = m === 'snack', corr = m === 'correccion';
-    $('#qNotes').hidden = !snack; $('#f-carbs').hidden = !snack;
-    $('#f-ins').hidden = glu; $('#f-ctx').hidden = !glu;
-    $('#r-sub').textContent = SUBS[m];
-    const ins = $('#r-ins'), hint = $('#r-ins-hint');
-    if (glu || insAuto) { ins.value = ''; insAuto = false; }
-    hint.textContent = '';
-    if (!snack) { $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false')); $('#r-carbs').value = ''; }
-    if (corr && !(numOrNull(ins.value) > 0)) {
-      if (corrSuggested > 0) { ins.value = corrSuggested; insAuto = true; hint.textContent = `Sugerida por la app: ${fmt(corrSuggested)} U. Cámbiala por lo que te pongas de verdad.`; }
-      else hint.textContent = 'Ahora mismo la app no sugiere corrección: escribe lo que te pongas.';
-    }
-  }
-  $$('#rMode .chip').forEach(c => c.addEventListener('click', () => setMode(c.dataset.m)));
-
+  const QUICK = { 'Café con leche':'cafe', 'Merienda':'comida', 'Sobre azúcar':'cafe' };
   $$('#qNotes .chip').forEach(c => c.addEventListener('click', () => {
     const on = c.getAttribute('aria-pressed') !== 'true';
     $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
-    const n = $('#r-note'), cur = n.value.trim(), labels = Object.keys(SNACK_G);
+    const labels = Object.keys(QUICK), n = $('#r-note'), cur = n.value.trim();
     if (on) {
-      c.setAttribute('aria-pressed', 'true');
+      c.setAttribute('aria-pressed', 'true'); quickKind = QUICK[c.textContent];
       n.value = !cur || labels.includes(cur) ? c.textContent : cur + ', ' + c.textContent;
-      $('#r-carbs').value = SNACK_G[c.textContent.trim()];
-    } else { if (cur === c.textContent) n.value = ''; $('#r-carbs').value = ''; }
+    } else { quickKind = null; if (cur === c.textContent) n.value = ''; }
   }));
 
   $('#saveReading').addEventListener('click', async () => {
     const btn = $('#saveReading');
     if (btn.disabled) return;
-    const mgdl = numOrNull($('#r-val').value), units = numOrNull($('#r-ins').value), carbs = numOrNull($('#r-carbs').value);
+    const mgdl = numOrNull($('#r-val').value);
+    const units = numOrNull($('#r-ins').value);
+    if (mgdl == null && !(units > 0) && !quickKind) { toast('Escribe la glucosa o la insulina', 'err'); return; }
     if (mgdl != null && !(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
     if (units != null && !(units >= 0 && units <= 100)) { toast('Revisa las unidades de insulina', 'err'); return; }
-    if (carbs != null && !(carbs >= 0 && carbs <= 100)) { toast('Revisa los hidratos (0 a 100 g)', 'err'); return; }
-    if (mode === 'glucosa' && mgdl == null) { toast('Escribe la glucosa', 'err'); return; }
-    if (mode === 'correccion' && (mgdl == null || !(units > 0))) { toast('Escribe la glucosa y la insulina que te pones', 'err'); return; }
-    if (mode === 'snack' && !(carbs > 0) && !(units > 0)) { toast('Elige un café o snack, o escribe los hidratos', 'err'); return; }
-    const ts = readTs();
+    const ts = whenTouched ? new Date($('#r-when').value).getTime() : Date.now();
     if (!isFinite(ts)) { toast('Elige la fecha y la hora', 'err'); return; }
     if (ts > Date.now() + 5 * 6e4) { toast('La hora no puede ser futura', 'err'); return; }
     const note = $('#r-note').value.trim(), gym = gymToday();
+    const kind = quickKind || 'correccion';
     btn.disabled = true;
     try {
-      if (mode === 'snack') {
-        await addEntry({ type:'meal', kind:'cafe', carbs: carbs || 0, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb:'rapida', note, gym, ts });
-      } else if (mode === 'correccion') {
-        await addEntry({ type:'reading', mgdl, context: ctxFor(ts), dose: units, kind:'correccion', note, gym, ts });
+      const chipEl = $('#qNotes .chip[aria-pressed="true"]');
+      if (chipEl) {
+        // Un solo registro: el snack con sus hidratos de absorción rápida (la glucosa que escribas va dentro como glucemia)
+        const SNACK_G = { 'Café con leche': 6, 'Merienda': 12, 'Sobre azúcar': 12 };
+        await addEntry({ type:'meal', kind, carbs: SNACK_G[chipEl.textContent.trim()] ?? 12, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb: 'rapida', note, gym, ts });
+      } else if (mgdl != null) {
+        // Un solo registro: glucosa y, si la hay, la insulina
+        const e = { type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts };
+        if (units > 0) { e.dose = units; e.kind = kind; }
+        await addEntry(e);
       } else {
-        await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts });
+        await addEntry({ type:'meal', kind, carbs: 0, bg: null, dose: units, suggested: null, note, gym, ts });
       }
-      ['#r-val', '#r-ins', '#r-note', '#r-carbs'].forEach(id => { $(id).value = ''; });
+      ['#r-val', '#r-ins', '#r-note'].forEach(id => { $(id).value = ''; });
       $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
-      whenTouched = false; ctxTouched = false; insAuto = false; setNow();
+      quickKind = null; whenTouched = false; setNow();
       rValTouched = false; $('#r-val').dataset.auto = ''; autoFillReading();
-      setMode(mode);
       toast(mgdl != null && mgdl < 70 ? 'Guardado. Glucosa baja: trátala según tu pauta' : 'Guardado' + (units > 0 ? ': ' + fmt(units) + ' U' : ''), mgdl != null && mgdl < 70 ? 'err' : 'ok');
     } catch (err) { toast(err.message, 'err'); }
     btn.disabled = false;
   });
   $('#r-val').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
-  setMode('glucosa');
-
 
   /* ---------- Gráfica ---------- */
   function drawChart(el, days, anim, dayStart) {
@@ -1540,6 +1432,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
       p.hidden = !on; p.classList.remove('enter');
       if (on) { void p.offsetWidth; p.classList.add('enter'); }
     });
+    history.replaceState(null, '', '#' + name);
     if (name === 'coach') renderLearn();
     renderCharts(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1601,7 +1494,16 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     } catch (err) { setStatus('#status', 'err', 'No se pudo buscar (' + esc(err.message) + '). Elige uno de la lista e indica los gramos.'); }
     btn.disabled = false;
   });
-  let bgTouched = false;     // true si has escrito tú la glucemia en la pestaña Comida
+  $('#addBtnOld')?.addEventListener('click', () => {
+    const name = $('#foodIn').value.trim();
+    const grams = parseFloat($('#gramsIn').value);
+    const f = FOODS.find(x => x[0].toLowerCase() === name.toLowerCase());
+    if (!f || !(grams > 0)) { setStatus('#status', 'err', 'Elige un alimento de la lista e indica los gramos.'); return; }
+    items.push({ id: nextId++, name: f[0], grams, cp100: f[1], conf: '' });
+    $('#foodIn').value = ''; $('#gramsIn').value = '';
+    $('#status').innerHTML = '';
+    renderItems();
+  });
   $('#extra').addEventListener('input', calc);
   $('#bg').addEventListener('input', () => { bgTouched = true; $('#bg').dataset.auto = ''; calc(); });
 
@@ -1619,7 +1521,6 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     if (!file) return;
     try {
       const dataUrl = await compress(file, 1024, 0.78);
-      mealPhoto = await compress(file, 360, 0.65);
       $('#preview').src = dataUrl; $('#preview').hidden = false; $('#dropText').hidden = true;
       if (!isCloud()) { setStatus('#status', 'err', 'Para analizar la foto con IA, entra con tu clave (Ajustes > Cerrar sesión y vuelve a entrar). Mientras, añade los alimentos a mano.'); return; }
       setStatus('#status', 'info', '<span class="spin"></span>Analizando el plato…');
@@ -1629,6 +1530,37 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
       setStatus('#status', 'ok', 'Estimación lista. Revisa los gramos de cada alimento antes de pinchar.' + (data.notas ? '<br>' + esc(data.notas) : ''));
       renderItems();
     } catch (err) { setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.'); }
+  });
+  $('#chartFile')?.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compress(file, 1600, 0.85);
+      $('#chartPreview').src = dataUrl; $('#chartPreview').hidden = false; $('#chartDropText').hidden = true;
+      if (!isCloud()) { setStatus('#chartStatus', 'err', 'Para leer la gráfica con IA, entra con tu clave. También puedes rellenar los datos a mano.'); fillChart({}); return; }
+      setStatus('#chartStatus', 'info', '<span class="spin"></span>Leyendo la gráfica…');
+      const d = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'glucose', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
+      fillChart(d);
+      setStatus('#chartStatus', 'ok', 'Datos extraídos. Corrige lo que no coincida con tu app y guarda.');
+    } catch (err) { setStatus('#chartStatus', 'err', 'No se pudo leer la gráfica (' + esc(err.message) + '). Puedes rellenar los datos a mano.'); fillChart({}); }
+  });
+  const CF = { periodo:'#c-periodo', media_mgdl:'#c-media', tir_pct:'#c-tir', bajo_pct:'#c-bajo', alto_pct:'#c-alto', hipos:'#c-hipos', min_mgdl:'#c-min', max_mgdl:'#c-max' };
+  let chartPatterns = [];
+  function fillChart(d) {
+    Object.entries(CF).forEach(([k, sel]) => { $(sel).value = d[k] ?? ''; });
+    chartPatterns = d.patrones || [];
+    $('#chartPatterns').innerHTML = chartPatterns.map(p => `<li>${esc(p)}</li>`).join('');
+    $('#c-note').value = '';
+    $('#chartForm').hidden = false;
+  }
+  $('#saveChart')?.addEventListener('click', async () => {
+    const summary = { periodo: $('#c-periodo').value, patrones: chartPatterns };
+    ['media_mgdl','tir_pct','bajo_pct','alto_pct','hipos','min_mgdl','max_mgdl'].forEach(k => { summary[k] = numOrNull($(CF[k]).value); });
+    try {
+      await addEntry({ type:'chart', summary, note: $('#c-note').value });
+      $('#chartForm').hidden = true; $('#chartPreview').hidden = true; $('#chartDropText').hidden = false; $('#chartFile').value = '';
+      setStatus('#chartStatus', '', ''); toast('Gráfica guardada en tu historial');
+    } catch (err) { setStatus('#chartStatus', 'err', esc(err.message)); }
   });
 
   /* ---------- Cálculo de dosis ---------- */
@@ -1730,7 +1662,15 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
         <input id="realDose" type="number" step="${parseFloat(store.settings.step) || 0.5}" min="0" inputmode="decimal" value="${realDoseStr ?? r.dose}">
         <span class="hint">Pon la dosis real. La app aprende de lo que te pones, no de lo que sugiere.</span>
       </div>
-
+      <div class="field" style="margin:10px 0 12px">
+        <label for="mealKind">Qué es</label>
+        <select id="mealKind">
+          <option value="comida" ${mealKind === 'comida' ? 'selected' : ''}>Comida</option>
+          <option value="cafe" ${mealKind === 'cafe' ? 'selected' : ''}>Café con leche u otro snack</option>
+          <option value="correccion" ${mealKind === 'correccion' ? 'selected' : ''}>Corrección de hiperglucemia (sin comer)</option>
+        </select>
+        ${mealKind === 'correccion' && !(r.bg > 0) ? '<span class="hint">Para que aprenda tu sensibilidad, apunta la glucemia actual arriba.</span>' : ''}
+      </div>
       <div class="field" style="margin:0 0 12px">
         <label for="absorb">Absorción de los hidratos</label>
         <select id="absorb">
@@ -1740,11 +1680,12 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
         </select>
         <span class="hint">Se propone según los alimentos; cámbiala si quieres. La corrección de «Hoy» la usa para saber cuántos hidratos te quedan por absorber.</span>
       </div>
-      <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 ? 'disabled' : ''}>Guardar esta toma de insulina</button>
+      <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 && mealKind !== 'correccion' ? 'disabled' : ''}>Guardar esta toma de insulina</button>
       <p class="fine">Fiasp: pínchate unos 2 minutos antes de comer, o hasta 20 minutos después de empezar. Redondeado a saltos de ${fmt(parseFloat(store.settings.step))} U.</p>`;
     animateNum($('#doseNum'), r.dose, { from: shownDose, dec: r.dose % 1 ? 1 : 0, ms: 450 });
     shownDose = r.dose;
     $('#realDose').addEventListener('input', e => { realDoseStr = e.target.value; });
+    $('#mealKind').addEventListener('change', e => { mealKind = e.target.value; calc(); });
     $('#absorb').addEventListener('change', e => { absorbStr = e.target.value; });
     const b = $('#saveMeal');
     if (b) b.addEventListener('click', async () => {
@@ -1752,22 +1693,26 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
       const dose = typed == null ? r.dose : typed;
       if (!(dose >= 0 && dose <= 100)) { toast('Revisa la dosis que te pones', 'err'); return; }
       try {
-        const entry = { id: uid(), type:'meal', kind: mealKind, carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose, suggested: r.dose, absorb: absorbStr || autoAbsorb(), gym: gymToday() };
-        if (mealPhoto && isCloud() && mealKind === 'comida' && entry.carbs > 0) {
-          try { await api('/api/data', { method:'POST', body: JSON.stringify({ photo: { id: entry.id, data: mealPhoto } }) }); entry.hasPhoto = true; }
-          catch { toast('No se pudo guardar la foto; se guarda la comida sin ella', 'err'); }
-        }
-        await addEntry(entry);
+        await addEntry({ type:'meal', kind: mealKind, carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose, suggested: r.dose, absorb: absorbStr || autoAbsorb(), gym: gymToday() });
         const wasCorr = mealKind === 'correccion';
-        resetPhotoBox();
         realDoseStr = null; mealKind = 'comida'; absorbStr = null; bgTouched = false; $('#bg').dataset.auto = ''; calc();
         toast(wasCorr ? 'Corrección guardada. Mide a las 3 o 4 horas' : 'Guardado. Mide tu glucosa a las 2 horas');
       } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
     });
-
   }
-  
-    /* ---------- Glucosa automática en la pestaña Comida ---------- */
+
+  /* ---------- Aprendizaje automático ---------- */
+  const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  // Lectura del sensor más cercana a un momento (solo si ya ha pasado)
+  const sensorAt = (ts, tolMin) => {
+    if (ts > Date.now()) return null;
+    let best = null, bd = tolMin * 6e4 + 1;
+    for (const p of sensor) { const d = Math.abs(p.ts - ts); if (d < bd) { bd = d; best = p; } }
+    return best;
+  };
+
+  /* ---------- Glucosa automática para calcular ---------- */
+  let bgTouched = false;
   function autoFillBg() {
     const el = $('#bg');
     if (!el || bgTouched || document.activeElement === el) return;
@@ -1791,35 +1736,29 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     el.textContent = `Automática: ${ab.v} mg/dL ${ab.sensor ? 'del sensor' : 'de tu última lectura'}, de hace ${min} min${t ? ' · ' + t.a + ' ' + t.t.toLowerCase() : ''}. Escribe otro valor para cambiarla.`;
   }
 
-  /* ---------- Aprendizaje automático por franja del día ---------- */
+  /* ---------- Aprendizaje por franja del día y por tipo de día ---------- */
   // Compara cada dosis con la glucosa 2 h después (comidas) o 3 h y media después (correcciones).
+  // Desayuno y comida se aprenden por separado de lunes a jueves y de viernes a domingo (menos actividad física).
+  // Si un grupo aún no tiene datos suficientes, usa los de todos los días de esa franja.
   // Si hay una glucosa baja en el camino, esa dosis cuenta doble y la franja baja la insulina enseguida.
   // Cambios limitados a ±25 % (±30 % tras una bajada) sobre los valores de Ajustes.
-  const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-  const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
-  // Lectura del sensor más cercana a un momento (solo si ya ha pasado)
-  const sensorAt = (ts, tolMin) => {
-    if (ts > Date.now()) return null;
-    let best = null, bd = tolMin * 6e4 + 1;
-    for (const p of sensor) { const d = Math.abs(p.ts - ts); if (d < bd) { bd = d; best = p; } }
-    return best;
-  };
-   const SLOTS = [
-    { id: 'desayuno', name: 'Desayuno', byDay: true, test: h => h >= 5 && h < 12 },
-    { id: 'comida', name: 'Comida', byDay: true, test: h => h >= 12 && h < 17 },
+  const SLOTS = [
+    { id: 'desayuno', name: 'Desayuno', test: h => h >= 5 && h < 12, byDay: true },
+    { id: 'comida', name: 'Comida', test: h => h >= 12 && h < 17, byDay: true },
     { id: 'cena', name: 'Cena', test: h => h >= 17 && h < 22 },
     { id: 'noche', name: 'Acostarse y madrugada', test: h => h >= 22 || h < 5 }
   ];
+  const isWeekend = ts => [5, 6, 0].includes(new Date(ts).getDay());   // viernes, sábado y domingo
   const slotOf = ts => SLOTS.find(s => s.test(new Date(ts).getHours())) || SLOTS[3];
-  // Viernes, sábado y domingo (menos actividad) se aprenden aparte en desayuno y comida
-  const dayType = ts => ([5, 6, 0].includes(new Date(ts).getDay()) ? 'fin' : 'lab');
-  const GROUPS = [];
+  const keyOf = ts => { const s = slotOf(ts); return s.byDay ? s.id + (isWeekend(ts) ? '_finde' : '_semana') : s.id; };
+  const ROWS = [];
   SLOTS.forEach(s => {
-    if (s.byDay) [['lab', 'lun-jue'], ['fin', 'vie-dom']].forEach(([dt, lbl]) => GROUPS.push({ key: s.id + '_' + dt, id: s.id, name: `${s.name} (${lbl})` }));
-    else GROUPS.push({ key: s.id, id: s.id, name: s.name });
+    if (s.byDay) { ROWS.push({ key: s.id + '_semana', slot: s.id, name: s.name + ' · lun a jue' }); ROWS.push({ key: s.id + '_finde', slot: s.id, name: s.name + ' · vie a dom' }); }
+    else ROWS.push({ key: s.id, slot: s.id, name: s.name });
   });
-  const groupKeyOf = ts => { const s = slotOf(ts); return s.byDay ? s.id + '_' + dayType(ts) : s.id; };
-  let adaptMemo = { key: null, val: null };
+  const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+  let adaptMemo = { key: '', val: null };
+
   function adaptModel() {
     const st = store.settings, now = Date.now();
     const key = [entries.length, entries.reduce((a, e) => a + e.ts % 997 + (e.dose || 0) * 7 + (e.carbs || 0), 0), sensor.length,
@@ -1828,9 +1767,11 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
 
     const icr = parseFloat(st.icr), isf = parseFloat(st.isf), target = parseFloat(st.target);
     const on = st.adaptOn !== '0';
-    const slots = {};
-    GROUPS.forEach(g => { slots[g.key] = { id: g.key, name: g.name, mealsN: 0, corrN: 0, ratios: [], isfs: [], fastIcr: 1, fastIsf: 1, lastHypo: null, icrMul: 1, isfMul: 1, icr, isf }; });
-    const M = { on, ready: icr > 0 && isf > 0 && target > 0, slots, icr, isf, target, lows14: 0, diag: null };
+    const mk = () => ({ mealsN: 0, corrN: 0, ratios: [], isfs: [], fastIcr: 1, fastIsf: 1, lastHypo: null });
+    const slots = {}, pool = {};
+    ROWS.forEach(r => { slots[r.key] = { ...mk(), id: r.key, name: r.name, icrMul: 1, isfMul: 1, icr, isf, usedPool: false }; });
+    SLOTS.forEach(s => { pool[s.id] = mk(); });
+    const M = { on, ready: icr > 0 && isf > 0 && target > 0, slots, icr, isf, target, lows14: 0 };
     if (!M.ready) { adaptMemo = { key, val: M }; return M; }
 
     const from = Math.max(now - 60 * DAY, Number(st.adaptFrom) || 0);
@@ -1852,16 +1793,15 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     bol.forEach((m, i) => {
       if (used.has(m)) return;
       if (gymDays.has(dayStr(m.ts))) return skip('día de gym');   // los días de gym tienen su propio ajuste
-      const kind = m.kind || 'comida', next = bol[i + 1], S = slots[groupKeyOf(m.ts)];
+      const kind = m.kind || 'comida', next = bol[i + 1], S = slots[keyOf(m.ts)], P = pool[slotOf(m.ts).id];
       const isMeal = kind !== 'correccion' && m.carbs >= 10;
       const isCorr = kind === 'correccion' && m.bg >= 130;
       if (!isMeal && !isCorr) return skip(kind === 'correccion' ? 'corrección con glucosa menor de 130' : 'toma de menos de 10 g');
       const t = m.ts + (isMeal ? 120 : 210) * 6e4;
-      if (t > now) return skip('aún no ha pasado el tiempo de evaluación');
+      if (t > now) return skip('aún no han pasado 2 h');
       if (isCorr && next && next.ts < t - 15 * 6e4) return skip('otra insulina de por medio');
       const ref = near(t, 20);
       if (!ref) return skip('sin lectura a la hora de evaluar');
-
       // Dosis extra tomadas después de la comida (corrección, café con leche...): se suman a la comida en vez de descartarla
       let carbs = m.carbs || 0, dose = m.dose, corrX = 0;
       if (isMeal) {
@@ -1882,31 +1822,35 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
       const hypo = low.mgdl < 70, G = hypo ? low.mgdl : ref.mgdl, w = hypo ? 2 : 1;
       if (hypo && now - low.ts <= 7 * DAY) {
         const f = 1 + (low.mgdl < 54 ? 0.15 : 0.10);
-        if (isMeal) S.fastIcr = Math.max(S.fastIcr, f); else S.fastIsf = Math.max(S.fastIsf, f);
+        [S, P].forEach(X => { if (isMeal) X.fastIcr = Math.max(X.fastIcr, f); else X.fastIsf = Math.max(X.fastIsf, f); });
         if (!S.lastHypo || low.mgdl < S.lastHypo.mgdl) S.lastHypo = { mgdl: low.mgdl, ts: low.ts };
       }
       if (isMeal) {
         const corr = (m.bg > 0 ? Math.max(0, (m.bg - target) / isf) : 0) + corrX;
         const ideal = Math.max(0, dose - corr) + (G - (target + 20)) / isf;
         const ratio = clampN(carbs / Math.max(ideal, 0.3), icr * 0.4, icr * 2.5);
-        for (let k = 0; k < w; k++) S.ratios.push(ratio);
-        S.mealsN++;
+        for (let k = 0; k < w; k++) { S.ratios.push(ratio); P.ratios.push(ratio); }
+        S.mealsN++; P.mealsN++;
       } else {
         const drop = m.bg - G;
-        if (drop > 0) { for (let k = 0; k < w; k++) S.isfs.push(drop / m.dose); S.corrN++; }
+        if (drop > 0) { for (let k = 0; k < w; k++) { S.isfs.push(drop / m.dose); P.isfs.push(drop / m.dose); } S.corrN++; P.corrN++; }
         else skip('la glucosa no bajó tras la corrección');
       }
     });
 
     const lows = M.lows14 > 0;
-    GROUPS.forEach(g => {
-      const S = slots[g.key];
+    ROWS.forEach(r => {
+      const S = slots[r.key], P = pool[r.slot];
+      // Usa los datos de su propio grupo de días; si aún son pocos, los de todos los días de esa franja
+      const srcM = S.mealsN >= 3 ? S : P, srcC = S.corrN >= 2 ? S : P;
+      S.usedPool = (S.mealsN < 3 && P.mealsN >= 3) || (S.corrN < 2 && P.corrN >= 2);
       let im = 1, sm = 1;
-      if (S.mealsN >= 3) { const k = S.ratios.length; im = 1 + (median(S.ratios) / icr - 1) * k / (k + 4); }
-      if (S.corrN >= 2) { const k = S.isfs.length; sm = 1 + (median(S.isfs) / isf - 1) * k / (k + 3); }
+      if (srcM.mealsN >= 3) { const k = srcM.ratios.length; im = 1 + (median(srcM.ratios) / icr - 1) * k / (k + 4); }
+      if (srcC.corrN >= 2) { const k = srcC.isfs.length; sm = 1 + (median(srcC.isfs) / isf - 1) * k / (k + 3); }
       if (im < 1 && lows) im = 1;                             // no se sube la insulina si ha habido bajas
       if (sm < 1 && lows) sm = 1;
-      im = Math.max(im, S.fastIcr); sm = Math.max(sm, S.fastIsf);
+      if (srcM.fastIcr > 1) im = Math.max(im, srcM.fastIcr);    // tras una bajada reciente, menos insulina enseguida
+      if (srcC.fastIsf > 1) sm = Math.max(sm, srcC.fastIsf);
       S.icrMul = on ? clampN(im, 0.75, 1.3) : 1;
       S.isfMul = on ? clampN(sm, 0.75, 1.3) : 1;
       S.icr = Math.round(icr * S.icrMul * 10) / 10;
@@ -1916,28 +1860,30 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     return M;
   }
   function adaptNow() {
-    const M = adaptModel(), S = M.slots[groupKeyOf(Date.now())];
-    return { slot: { name: S.name }, icr: S.icr, isf: S.isf, icrMul: S.icrMul, isfMul: S.isfMul, adjusted: M.ready && M.on && (S.icrMul !== 1 || S.isfMul !== 1), S };
+    const M = adaptModel(), k = keyOf(Date.now()), S = M.slots[k], row = ROWS.find(r => r.key === k);
+    return { slot: row, icr: S.icr, isf: S.isf, icrMul: S.icrMul, isfMul: S.isfMul, adjusted: M.ready && M.on && (S.icrMul !== 1 || S.isfMul !== 1), S };
   }
 
   function renderLearn() {
     const box = $('#learnCard'); if (!box) return;
+    const M = adaptModel();
     let h = `<div class="eyebrow">Aprendizaje automático</div><h2>Ajuste por franja del día</h2>`;
     if (isCloud() && sensorInfo.state === 'idle') { box.innerHTML = h + '<p class="sub"><span class="spin"></span>Cargando las lecturas del sensor…</p>'; return; }
-    const M = adaptModel();
     if (!M.ready) { box.innerHTML = h + '<p class="sub">Pon tu ratio insulina/hidratos, tu factor de sensibilidad y tu glucemia objetivo en Ajustes para empezar a aprender.</p>'; return; }
-    h += `<p class="sub">Compara cada dosis con cómo acabas 2 a 5 horas después (sensor o lecturas). Ajusta el ratio y la sensibilidad de cada franja, con un máximo de ±25 % sobre los valores de tu endocrino, y reacciona enseguida a una glucosa baja. ${M.on ? 'Ajuste automático activado.' : '<b>Ajuste automático desactivado:</b> se usan solo tus valores de Ajustes.'}</p>`;
+    h += `<p class="sub">Compara cada dosis con cómo acabas 2 a 5 horas después (sensor o lecturas). Ajusta el ratio y la sensibilidad de cada franja, con un máximo de ±25 % sobre los valores de tu endocrino, y reacciona enseguida a una glucosa baja. El desayuno y la comida se aprenden aparte de viernes a domingo, cuando haces menos actividad física. ${M.on ? 'Ajuste automático activado.' : '<b>Ajuste automático desactivado:</b> se usan solo tus valores de Ajustes.'}</p>`;
     const pctTxt = mul => { const p = Math.round((1 / mul - 1) * 100); return (p > 0 ? '+' : '') + p + ' %'; };
+    const nowKey = keyOf(Date.now());
     h += `<div style="overflow-x:auto"><table><thead><tr><th>Franja</th><th>Ratio (g por U)</th><th>Sensibilidad (mg/dL por U)</th><th>Estado</th></tr></thead><tbody>` +
-       GROUPS.map(sl => {
-        const S = M.slots[sl.key];
+      ROWS.map(r => {
+        const S = M.slots[r.key];
         let state = 'Sin cambios';
         if (!M.on) state = 'Solo tus valores';
         else if (S.fastIcr > 1 || S.fastIsf > 1) state = `⚠️ Bajada reciente (${S.lastHypo ? S.lastHypo.mgdl : '?'} mg/dL): menos insulina`;
         else if (S.icrMul > 1) state = `Menos insulina en comidas (${pctTxt(S.icrMul)})`;
         else if (S.icrMul < 1) state = `Más insulina en comidas (${pctTxt(S.icrMul)})`;
         else if (S.mealsN < 3) state = `Faltan datos (${S.mealsN} de 3 comidas)`;
-        return `<tr><td><b>${sl.name}</b>${sl.key === groupKeyOf(Date.now()) ? '<span class="tag">ahora</span>' : ''}</td><td>${fmt(M.icr)} → <b>${fmt(S.icr)}</b><small style="display:block;color:var(--muted)">${S.mealsN} comidas válidas</small></td><td>${fmt(M.isf)} → <b>${fmt(S.isf)}</b><small style="display:block;color:var(--muted)">${S.corrN} correcciones válidas</small></td><td>${state}</td></tr>`;
+        if (M.on && S.usedPool && S.mealsN < 3) state += '. Usa los datos de todos los días';
+        return `<tr${r.key === nowKey ? ' style="background:rgba(111,207,191,.1)"' : ''}><td><b>${r.name}</b>${r.key === nowKey ? '<small style="display:block;color:var(--muted)">ahora</small>' : ''}</td><td>${fmt(M.icr)} → <b>${fmt(S.icr)}</b><small style="display:block;color:var(--muted)">${S.mealsN} comidas válidas</small></td><td>${fmt(M.isf)} → <b>${fmt(S.isf)}</b><small style="display:block;color:var(--muted)">${S.corrN} correcciones válidas</small></td><td>${state}</td></tr>`;
       }).join('') + `</tbody></table></div>`;
     h += `<div class="actions" style="margin-top:12px"><button class="btn small violet" type="button" data-act="toggle">${M.on ? 'Desactivar' : 'Activar'} ajuste automático</button><button class="btn small ghost" type="button" data-act="reset">Reiniciar aprendizaje</button></div>`;
     if (M.diag) {
@@ -1945,7 +1891,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
       const rst = Number(store.settings.adaptFrom) > 0 ? ` Aprendizaje reiniciado el ${new Date(Number(store.settings.adaptFrom)).toLocaleDateString('es-ES')}: solo cuentan las dosis posteriores.` : '';
       h += `<p class="hint" style="margin-top:10px"><b>Diagnóstico:</b> ${M.diag.dosis} dosis analizadas con ${M.diag.lecturas} lecturas disponibles.${sk ? ' Descartadas → ' + sk + '.' : ''}${rst}</p>`;
     }
-    h += `<p class="fine">Cada comida o corrección solo cuenta si hay una lectura a la hora de evaluarla. Si después de la comida te pones otra insulina (por ejemplo una corrección), se suma a la comida. Los días de gym no se usan. Son ajustes estadísticos con pocos datos: revísalos con tu endocrino, sobre todo si se alejan de tus valores.</p>`;
+    h += `<p class="fine">Cada comida o corrección solo cuenta si hay una lectura a la hora de evaluarla. Si te pones otra insulina o tomas un snack después, se suma a la comida. Los días de gym no se usan. Son ajustes estadísticos con pocos datos: revísalos con tu endocrino, sobre todo si se alejan de tus valores.</p>`;
     box.innerHTML = h;
   }
   $('#learnCard').addEventListener('click', async ev => {
@@ -2077,13 +2023,8 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
       }
     }
 
-    // Ajustes y aprendizaje
+    // Ajustes
     h += `<h2>Ajustes usados en la app</h2><p>Ratio: ${s.icr || '—'} g por unidad · Sensibilidad: ${s.isf || '—'} mg/dL por unidad · Objetivo: ${s.target || '—'} mg/dL · Salto de pluma: ${s.step || '—'} U · Toujeo habitual: ${s.basal || '—'} U.</p>`;
-    const M = adaptModel();
-    if (M.ready && M.on) {
-      const ch = GROUPS.filter(g => M.slots[g.key].icrMul !== 1 || M.slots[g.key].isfMul !== 1);
-      if (ch.length) h += `<p class="fine">Ajustes aprendidos por la app (revisar con el endocrino): ` + ch.map(g => `${g.name.toLowerCase()}: ratio ${M.slots[g.key].icr} g/U, sensibilidad ${M.slots[g.key].isf} mg/dL por U`).join(' · ') + '.</p>';
-    }
 
     // Observaciones
     const obs = [];
@@ -2146,8 +2087,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     h += `<div class="card"><h2>Evaluación de 28 días</h2>`;
     if (d.alerta) h += `<div class="status err" style="margin-bottom:10px">${esc(d.alerta)}</div>`;
     if (d.resumen) h += `<p style="margin-top:10px">${esc(d.resumen)}</p>`;
-    const bajas = s.episodios_bajos != null ? stat(s.episodios_bajos, 'episodios bajo 70') : stat(s.bajas_menos_70, 'lecturas bajo 70');
-    h += `<div class="stats">${stat(s.lecturas, 'lecturas')}${stat(s.comidas, 'comidas guardadas')}${stat(s.media_lecturas != null ? s.media_lecturas + ' mg/dL' : null, 'media de lecturas')}${bajas}${stat(s.dias_gym, 'días de gym')}${stat(s.tras_comida && s.tras_comida.subida_media != null ? (s.tras_comida.subida_media > 0 ? '+' : '') + s.tras_comida.subida_media : null, 'cambio medio tras comer')}</div></div>`;
+    h += `<div class="stats">${stat(s.lecturas, 'lecturas')}${stat(s.comidas, 'comidas guardadas')}${stat(s.media_lecturas != null ? s.media_lecturas + ' mg/dL' : null, 'media de lecturas')}${stat(s.bajas_menos_70, 'lecturas bajo 70')}${stat(s.dias_gym, 'días de gym')}${stat(s.tras_comida && s.tras_comida.subida_media != null ? (s.tras_comida.subida_media > 0 ? '+' : '') + s.tras_comida.subida_media : null, 'cambio medio tras comer')}</div></div>`;
 
     if (ob && ob.filas && ob.filas.length) {
       h += `<div class="card"><h3>Tus objetivos (según tu endocrino)</h3><div style="overflow-x:auto"><table><thead><tr><th></th><th>Indicador</th><th>Tu dato</th><th>Objetivo</th></tr></thead><tbody>` +
@@ -2158,7 +2098,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
     if (rt && rt.franjas) {
       const lab = { alta: '⚠️ Sube después', baja: '⚠️ Baja después', objetivo: '✅ En objetivo', pocos_datos: '⬜ Faltan datos' };
       h += `<div class="card"><h3>Ratio por comida</h3>
-        <p class="sub" style="margin-bottom:8px">Solo cuentan comidas de 10 g de hidratos o más, con glucosa previa entre 70 y 180, una lectura a las 2 h (tuya o del sensor) y sin otra insulina en medio. Mínimo 3 por comida.</p>
+        <p class="sub" style="margin-bottom:8px">Solo cuentan comidas de 10 g de hidratos o más, con glucosa previa entre 70 y 180, una lectura "2 h después de comer" y sin otra insulina en medio. Mínimo 3 por comida.</p>
         <div style="overflow-x:auto"><table><thead><tr><th>Comida</th><th>Válidas</th><th>Ratio que usas</th><th>Glucosa a las 2 h</th><th>Resultado</th></tr></thead><tbody>` +
         rt.franjas.map(f => `<tr><td><b>${esc(f.franja)}</b><small style="display:block;color:var(--muted)">${esc(f.horas)}</small></td><td>${f.validas} de ${f.comidas}</td><td>${f.ui_r != null ? fmt(f.ui_r) + ' UI/r<small style="display:block;color:var(--muted)">' + fmt(f.g_ui) + ' g/UI</small>' : '—'}</td><td>${f.post_mediana != null ? fmt(f.post_mediana) + ' mg/dL<small style="display:block;color:var(--muted)">' + f.post_alta_pct + ' % >180 · ' + f.post_baja_pct + ' % <70</small>' : '—'}</td><td>${lab[f.estado] || ''}</td></tr>`).join('') +
         `</tbody></table></div>` +
@@ -2175,14 +2115,13 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
         <p class="hint">Correcciones válidas: ${se.correcciones_validas}. ${se.dti_fiable ? '' : 'La dosis total estimada todavía no es fiable: anota todas tus dosis varios días. '}${esc(se.nota || '')}</p></div>`;
     }
 
-    const g = s.gym_antes_despues, t = s.toujeo, gd = s.gym_dias;
-    if (g || t || gd) {
+    const g = s.gym_antes_despues, t = s.toujeo;
+    if (g || t) {
       h += `<div class="card"><h3>Gym y Toujeo</h3><ul class="plain">`;
-      if (g && g.n) h += `<li>Gym: en ${g.suben} de ${g.n} sesiones con lectura antes y después, la glucosa subió. Cambio medio: ${g.cambio_medio > 0 ? '+' : ''}${g.cambio_medio} mg/dL.</li>`;
-      if (gd) h += `<li>Días de gym (${gd.dias_gym}): media ${gd.media_gym} mg/dL, ${gd.tir_gym} % en rango, ${gd.bajas_gym} episodio${gd.bajas_gym === 1 ? '' : 's'} bajo 70. Días sin gym: media ${gd.media_sin} mg/dL, ${gd.tir_sin} % en rango, ${gd.bajas_sin} episodio${gd.bajas_sin === 1 ? '' : 's'}.</li>`;
+      if (g) h += g.n ? `<li>Gym: en ${g.suben} de ${g.n} sesiones con lectura antes y después, la glucosa subió. Cambio medio: ${g.cambio_medio > 0 ? '+' : ''}${g.cambio_medio} mg/dL.</li>` : `<li>Gym: anota la glucosa "antes del gym" y "después del gym" para ver cuánto te sube.</li>`;
       if (t) h += t.registros ? `<li>Toujeo: ${t.registros} registros, media de ${t.dosis_media} U, hora habitual ${t.hora_media}, variación entre días de ${t.variacion_horaria_min} min.</li>` : `<li>Toujeo: registra la hora de cada puesta para ver tu regularidad.</li>`;
-      if (s.ayunas && s.ayunas.n) h += `<li>Antes de desayunar (${s.ayunas.n} lecturas): mediana de ${s.ayunas.mediana} mg/dL.</li>`;
-      if (s.madrugada && s.madrugada.n) h += `<li>De madrugada (${s.madrugada.n} lecturas): mediana de ${s.madrugada.mediana} mg/dL.</li>`;
+      if (s.ayunas && s.ayunas.n) h += `<li>En ayunas (${s.ayunas.n} lecturas): mediana de ${s.ayunas.mediana} mg/dL.</li>`;
+      if (s.madrugada && s.madrugada.n) h += `<li>De madrugada o antes de dormir (${s.madrugada.n} lecturas): mediana de ${s.madrugada.mediana} mg/dL.</li>`;
       h += `</ul></div>`;
     }
     if (d.senales && d.senales.length) h += `<div class="card"><h3>Señales detectadas</h3><ul class="plain">${d.senales.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
@@ -2213,7 +2152,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
   $('#saveSet').addEventListener('click', async () => {
     Object.entries(map).forEach(([k, sel]) => { store.settings[k] = $(sel).value.trim(); });
     if (!store.settings.basal) store.settings.basal = '28';
-    save(); renderToujeo(); calc(); renderLearn();
+    save(); renderToujeo(); calc();
     if (isCloud()) {
       try { await pushSettings(); setStatus('#setStatus', 'ok', 'Ajustes guardados y sincronizados.'); toast('Ajustes sincronizados'); }
       catch (err) { setStatus('#setStatus', 'err', 'Guardados en este dispositivo, pero no se pudieron sincronizar: ' + esc(err.message)); }
@@ -2221,7 +2160,7 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
   });
   $('#logoutBtn').addEventListener('click', () => {
     try { localStorage.removeItem(KEY + ':key'); localStorage.removeItem(KEY + ':local'); } catch {}
-    entries = []; sensor = []; sensorInfo = { state: 'idle' }; renderSync(); renderAll(); openLogin();
+    entries = []; sensor = []; renderSync(); renderAll(); openLogin();
   });
 
   /* ---------- Acceso ---------- */
@@ -2249,8 +2188,8 @@ details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
 
   /* ---------- Inicio y refresco automático ---------- */
   fillSettings(); renderSync(); renderItems(); renderAll(); setNow();
-  const hashTab = location.hash.slice(1);
-  showTab(TABS.includes(hashTab) ? hashTab : 'hoy');
+  const h = location.hash.slice(1);
+  showTab(TABS.includes(h) ? h : 'hoy');
   (async () => {
     if (isCloud()) {
       try { await pullSettings(); await loadEntries(); syncSensor(); }

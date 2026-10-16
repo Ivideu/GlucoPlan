@@ -1771,6 +1771,7 @@ details.day>.log{padding-bottom:10px}
         else skip('la glucosa no bajó tras la corrección');
       }
     });
+    bol.forEach((m, i) => {
       const kind = m.kind || 'comida', next = bol[i + 1];
       if (kind === 'comida' && m.carbs >= 10 && icr > 0 && isf > 0 && target > 0) {
         const r = rs.find(x => x.context === 'post2h' && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4) || sensorAt(m.ts + 120 * 6e4, 15);

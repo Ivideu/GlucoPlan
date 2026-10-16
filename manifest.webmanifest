@@ -1,0 +1,16 @@
+{
+  "name": "GlucoPlan",
+  "short_name": "GlucoPlan",
+  "description": "Diabetes tipo 1: dosis, glucosa, Toujeo y coach de datos",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F7F8",
+  "theme_color": "#F5F7F8",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

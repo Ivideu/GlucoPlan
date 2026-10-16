@@ -1,0 +1,2268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GlucoPlan</title>
+<meta name="theme-color" content="#F5F7F8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F5F7F8; --ink:#1F3040; --muted:#62778A; --line:rgba(40,70,95,.12);
+  --glass:rgba(255,255,255,.85); --glass2:#FFFFFF;
+  --teal:#74CDBF; --cyan:#8CBEE0; --violet:#A9A3E3; --amber:#E6BE80; --rose:#E597A5; --green:#86CFA2;
+  --display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --body:'Figtree','Segoe UI',system-ui,-apple-system,sans-serif;
+  --grad:linear-gradient(135deg,#8ADBCD,#9CC8E6);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:90px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;padding:env(safe-area-inset-top,0) 0 0}
+h1,h2,h3{font-family:var(--display);line-height:1.12;margin:0;letter-spacing:-.015em}
+h2{font-size:1.45rem} h3{font-size:1.1rem}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px;border-radius:8px}
+[hidden]{display:none!important}
+
+/* Fondo aurora */
+.aurora{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.aurora i{position:absolute;width:58vmax;height:58vmax;border-radius:50%;filter:blur(100px);opacity:.5;animation:drift 24s ease-in-out infinite alternate}
+.aurora i:nth-child(1){background:#CDEBE6;top:-22vmax;left:-14vmax}
+.aurora i:nth-child(2){background:#DDD9F4;right:-20vmax;top:6vmax;animation-delay:-8s}
+.aurora i:nth-child(3){background:#D2E6F5;bottom:-28vmax;left:18vw;animation-delay:-15s}
+@keyframes drift{to{transform:translate(7vmax,5vmax) scale(1.18)}}
+
+.app{max-width:1080px;margin:0 auto;padding:18px 16px 110px}
+@media(min-width:761px){.app{padding-bottom:56px}}
+
+/* Cabecera */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 16px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:14px;background:var(--grad);display:grid;place-items:center;
+  box-shadow:0 6px 18px rgba(40,70,95,.16);animation:bob 4s ease-in-out infinite}
+.logo svg{width:24px;height:24px;stroke:#10312E;fill:#10312E}
+@keyframes bob{50%{transform:translateY(-3px)}}
+.brand h1{font-size:1.7rem;font-weight:800}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:7px 14px;font-size:.85rem;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.pill.on{color:#2F7A4D} .pill.on .dot{background:var(--green);box-shadow:0 0 0 0 rgba(127,203,154,.6);animation:ping 2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 9px rgba(127,203,154,0)}100%{box-shadow:0 0 0 0 rgba(127,203,154,0)}}
+
+/* Navegación */
+.nav{position:sticky;top:8px;z-index:10;display:flex;gap:4px;justify-content:center;width:fit-content;max-width:100%;margin:0 auto 22px;
+  padding:6px;border-radius:999px;background:rgba(255,255,255,.9);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.tab{display:flex;align-items:center;gap:8px;border:0;background:transparent;border-radius:999px;padding:10px 18px;font-weight:600;color:var(--muted);cursor:pointer;transition:color .2s,background .2s}
+.tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--grad);color:#10312E}
+@media(max-width:760px){
+  .nav{position:fixed;top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0));left:12px;right:12px;width:auto;margin:0;justify-content:space-around;box-shadow:0 8px 28px rgba(40,70,95,.16)}
+  .tab{flex-direction:column;gap:2px;padding:8px 10px;font-size:.72rem;flex:1;border-radius:18px}
+}
+
+/* Tarjetas */
+.card{box-shadow:0 2px 12px rgba(40,70,95,.06);position:relative;background:var(--glass);border:1px solid var(--line);border-radius:24px;padding:22px;overflow:hidden;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:transform .25s,border-color .25s}
+.card::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(111,207,191,.13),transparent 60%)}
+.card:hover{border-color:rgba(40,70,95,.18)}
+.card:hover::before{opacity:1}
+.card + .card{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.stack > .card + .card{margin-top:0}
+.cols{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;align-items:start;margin-top:16px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+.sub{color:var(--muted);margin:4px 0 14px}
+.hint{color:var(--muted);font-size:.85rem}
+.eyebrow{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:#2E8B7A;font-weight:700;margin-bottom:6px}
+
+.tabpanel.enter > *{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.tabpanel.enter > *:nth-child(2){animation-delay:.06s}
+.tabpanel.enter > *:nth-child(3){animation-delay:.12s}
+.tabpanel.enter > *:nth-child(4){animation-delay:.18s}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* Botones y campos */
+.btn{border:0;border-radius:14px;padding:12px 20px;font-weight:700;cursor:pointer;background:var(--grad);color:#10312E;
+  box-shadow:0 6px 18px rgba(40,70,95,.14);transition:transform .15s,box-shadow .2s,filter .2s}
+.btn:hover{filter:brightness(1.08);box-shadow:0 8px 22px rgba(40,70,95,.16)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);box-shadow:none}
+.btn.ghost:hover{border-color:var(--teal);color:#2E8B7A}
+.btn.violet{background:linear-gradient(135deg,#BDB7EE,#A5CBE9);color:#2B2A5C;box-shadow:0 6px 18px rgba(40,70,95,.14)}
+.btn.small{padding:7px 14px;font-size:.88rem;border-radius:12px}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-weight:600;font-size:.9rem;color:#3E5366}
+input,select,textarea{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;width:100%;transition:border-color .2s,background .2s}
+input:focus,select:focus{border-color:#4FB3A2;background:#fff;outline:none}
+select option{background:#fff;color:var(--ink)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--glass);border-radius:999px;padding:7px 15px;font-weight:600;font-size:.9rem;cursor:pointer;color:var(--muted);transition:all .2s}
+.chip:hover{color:var(--ink);border-color:rgba(40,70,95,.3)}
+.chip[aria-pressed="true"]{background:rgba(111,207,191,.15);border-color:var(--teal);color:#2E8B7A}
+
+.status{margin-top:12px;border-radius:14px;padding:11px 14px;font-size:.93rem}
+.status.info{background:rgba(123,184,222,.12);color:#2D6F95}
+.status.err{background:rgba(224,138,154,.13);color:#A8394F}
+.status.ok{background:rgba(127,203,154,.12);color:#2F7A4D}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:260px 1fr;gap:26px;align-items:center;padding:26px;
+  background:linear-gradient(135deg,rgba(111,207,191,.06),rgba(157,149,224,.06)),var(--glass)}
+@media(max-width:700px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.ring{position:relative;width:236px;height:236px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .track{fill:none;stroke:rgba(40,70,95,.08);stroke-width:14}
+.ring .arc{fill:none;stroke:var(--teal);stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset 1.3s cubic-bezier(.2,.9,.2,1),stroke .6s;filter:drop-shadow(0 0 3px currentColor)}
+.ring .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .val{font-family:var(--display);font-weight:800;font-size:4rem;line-height:1}
+.ring .unit{color:var(--muted);font-size:.85rem}
+.ring .st{margin-top:1px;font-weight:700;font-size:.9rem}
+.greet h2{font-size:1.9rem;font-weight:800}
+.greet .date{color:var(--muted);text-transform:capitalize;margin-top:2px}
+.greet .meta{margin-top:10px;color:#3E5366}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}
+@media(max-width:520px){.mini{grid-template-columns:1fr 1fr}}
+.mini div{background:rgba(40,70,95,.06);border-radius:16px;padding:12px;text-align:left}
+.mini b{display:block;font-family:var(--display);font-size:1.55rem;line-height:1.1}
+.mini span{color:var(--muted);font-size:.78rem}
+
+/* Toujeo */
+.tj{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.tj .u{font-family:var(--display);font-weight:800;font-size:2.4rem;line-height:1}
+.tj .u small{font-size:1rem;color:var(--muted);font-weight:500;margin-left:4px}
+.bar{height:10px;border-radius:99px;background:rgba(40,70,95,.08);margin:14px 0 8px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#9D95E0,#7BB8DE);transition:width 1s cubic-bezier(.2,.9,.2,1)}
+.tjs-soon .bar i{background:linear-gradient(90deg,#E0B473,#FF8A4D)}
+.tjs-over .bar i{background:linear-gradient(90deg,#E08A9A,#FF8A4D)}
+.tjnote{font-size:.92rem;color:#3E5366}
+.tjs-over .tjnote{color:#A8394F}
+.tjs-soon .tjnote{color:#8A5A10}
+
+/* Gym */
+.switch{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;border:1.5px solid var(--line);background:rgba(40,70,95,.04);border-radius:18px;padding:14px 16px;cursor:pointer;text-align:left;transition:all .25s}
+.switch .t b{display:block;font-family:var(--display);font-size:1.15rem}
+.switch .t span{color:var(--muted);font-size:.86rem}
+.knob{flex:0 0 auto;width:54px;height:30px;border-radius:99px;background:rgba(40,70,95,.14);position:relative;transition:background .25s}
+.knob::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.switch[aria-checked="true"]{border-color:var(--violet);background:linear-gradient(135deg,rgba(157,149,224,.2),rgba(123,184,222,.1))}
+.switch[aria-checked="true"] .knob{background:linear-gradient(135deg,#9D95E0,#7BB8DE)}
+.switch[aria-checked="true"] .knob::after{transform:translateX(24px)}
+.gyminfo{margin-top:12px;font-size:.92rem;color:#3E5366;background:rgba(157,149,224,.1);border-radius:14px;padding:11px 14px}
+
+/* Gráfica */
+.chart{position:relative;margin-top:6px}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart .axis{fill:var(--muted);font-size:11px}
+.chart .draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.4s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.chart .pt{transition:r .15s}
+.tip{position:absolute;pointer-events:none;transform:translate(-50%,-110%);background:rgba(255,255,255,.98);border:1px solid var(--line);border-radius:12px;padding:7px 11px;font-size:.82rem;white-space:nowrap;z-index:3;box-shadow:0 8px 24px rgba(40,70,95,.15)}
+.tip b{font-family:var(--display);font-size:1rem}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+.stat{background:rgba(40,70,95,.06);border-radius:16px;padding:12px}
+.stat b{display:block;font-family:var(--display);font-size:1.6rem;line-height:1.1}
+.stat span{color:var(--muted);font-size:.82rem}
+
+/* Registro */
+.log{display:grid;gap:8px}
+.log .row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:rgba(40,70,95,.05);border-radius:14px;padding:10px 12px;animation:rise .4s both}
+.log .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:1.05rem}
+.ic.reading{background:rgba(111,207,191,.15)} .ic.meal{background:rgba(224,180,115,.16)} .ic.basal{background:rgba(157,149,224,.2)} .ic.day{background:rgba(123,184,222,.16)} .ic.chart{background:rgba(40,70,95,.1)}
+.log small{display:block;color:var(--muted)}
+.log .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.25rem;border-radius:10px;padding:2px 9px}
+.log .x:hover{background:rgba(224,138,154,.18);color:#B83A52}
+.tag{display:inline-block;background:rgba(157,149,224,.2);color:#5B54A8;border-radius:8px;padding:1px 8px;font-size:.76rem;font-weight:700;margin-left:6px}
+.empty{color:var(--muted);padding:8px 2px}
+
+/* Comida */
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;border:2px dashed rgba(111,207,191,.4);
+  border-radius:20px;background:rgba(111,207,191,.06);padding:26px 16px;min-height:180px;cursor:pointer;overflow:hidden;position:relative;transition:background .2s,border-color .2s}
+.drop:hover{background:rgba(111,207,191,.12);border-color:var(--teal)}
+.drop img{max-width:100%;max-height:300px;border-radius:14px;display:block}
+.drop .cam{font-size:2.3rem}
+.drop strong{font-family:var(--display);font-size:1.15rem}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0}
+.items{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+.item{display:grid;grid-template-columns:1fr 92px 64px 32px;gap:8px;align-items:center;background:rgba(40,70,95,.05);border-radius:14px;padding:8px 10px;animation:rise .35s both}
+.item .name small{display:block;color:var(--muted)}
+.item .name small.low{color:#8A5A10;font-weight:700}
+.item input{text-align:right;padding:6px 8px}
+.item .c{text-align:right;font-weight:700}
+.item .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.2rem;border-radius:8px}
+.item .x:hover{background:rgba(224,138,154,.18);color:#B83A52}
+.add{display:grid;grid-template-columns:1fr 100px auto;gap:8px;margin-top:6px}
+@media(max-width:480px){.add{grid-template-columns:1fr 80px}.add .btn{grid-column:1/-1}.item{grid-template-columns:1fr 78px 54px 28px}}
+.dose{background:linear-gradient(160deg,rgba(111,207,191,.09),rgba(123,184,222,.05)),var(--glass);border-color:rgba(111,207,191,.3);position:sticky;top:84px}
+@media(max-width:860px){.dose{position:static}}
+.dose .big{font-family:var(--display);font-weight:800;font-size:5.4rem;line-height:1;margin:8px 0 2px;background:linear-gradient(135deg,#2E8B7A,#3B80AE);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dose .big small{font-size:1.4rem;font-weight:500;margin-left:8px;-webkit-text-fill-color:var(--muted)}
+.break{display:grid;gap:6px;margin:14px 0;font-size:.95rem}
+.break div{display:flex;justify-content:space-between;border-bottom:1px dashed rgba(40,70,95,.15);padding-bottom:5px}
+.warns{display:grid;gap:8px;margin:12px 0}
+.warn{border-radius:14px;padding:10px 13px;font-size:.92rem;background:rgba(224,180,115,.13);color:#8A5A10}
+.warn.danger{background:rgba(224,138,154,.15);color:#A8394F;font-weight:600}
+.warn.gym{background:rgba(157,149,224,.16);color:#4F4A9A}
+.fine{font-size:.82rem;color:var(--muted);margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
+ul.plain{margin:8px 0 0;padding-left:18px}
+ul.plain li{margin:5px 0}
+.sug{border-left:4px solid var(--teal);background:rgba(40,70,95,.05);border-radius:0 14px 14px 0;padding:10px 14px;margin-top:10px}
+.sug.alta{border-color:var(--rose)} .sug.media{border-color:var(--amber)}
+.sug small{display:block;color:var(--muted);margin-top:2px}
+.settings{max-width:640px}
+.settings .field{margin-top:14px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.foot{margin-top:30px;padding:16px;border-radius:16px;background:var(--glass);border:1px solid var(--line);color:var(--muted);font-size:.85rem}
+
+/* Ventanas */
+.modal{position:fixed;inset:0;background:rgba(40,60,80,.32);backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;z-index:50;animation:fade .25s}
+.modal .box{background:#fff;border:1px solid var(--line);border-radius:26px;padding:26px;max-width:460px;width:100%;max-height:92vh;overflow:auto;animation:rise .35s cubic-bezier(.2,.8,.2,1)}
+.modal .actions{margin-top:18px}
+@keyframes fade{from{opacity:0}}
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0));z-index:60;display:grid;gap:8px;justify-items:center;pointer-events:none}
+@media(min-width:761px){.toasts{bottom:28px}}
+.toast{background:#fff;border:1px solid var(--line);border-radius:999px;padding:11px 20px;font-weight:600;box-shadow:0 8px 24px rgba(40,70,95,.16);animation:pop .4s cubic-bezier(.3,1.5,.5,1)}
+.toast.ok{border-color:rgba(127,203,154,.5)} .toast.err{border-color:rgba(224,138,154,.5);color:#A8394F}
+.toast.out{opacity:0;transform:translateY(10px);transition:all .3s}
+@keyframes pop{from{opacity:0;transform:translateY(20px) scale(.9)}}
+.report{position:fixed;inset:0;z-index:70;background:#fff;overflow:auto;padding:18px}
+.report .sheet{max-width:820px;margin:0 auto}
+.report h1{font-size:1.6rem}
+.report h2{font-size:1.1rem;margin:20px 0 6px}
+.rtools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+@media print{
+  body>*:not(#reportBox){display:none!important}
+  .report{position:static;overflow:visible;padding:0}
+  .rtools{display:none}
+  h2{break-after:avoid} table,svg{break-inside:avoid}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.chart .draw{stroke-dashoffset:0}}
+details.day{background:rgba(40,70,95,.04);border-radius:16px;padding:0 10px;margin-bottom:8px}
+details.day>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:12px 4px;font-weight:700}
+details.day>summary::-webkit-details-marker{display:none}
+details.day>summary .dl::before{content:"▸";display:inline-block;margin-right:8px;color:var(--muted);transition:transform .2s}
+details.day[open]>summary .dl::before{transform:rotate(90deg)}
+details.day>.log{padding-bottom:10px}
+details.fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary h2{margin-right:auto}
+details.fold>summary .chev{flex:0 0 auto;width:9px;height:9px;margin:0 4px 3px 2px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .25s}
+details.fold[open]>summary .chev{transform:rotate(-135deg);margin-bottom:-3px}
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5s6.5 7 6.5 12a6.5 6.5 0 0 1-13 0c0-5 6.5-12 6.5-12z"/></svg></div>
+      <h1>GlucoPlan</h1>
+    </div>
+    <div class="pill" id="syncState"><span class="dot"></span><span id="syncText"></span></div>
+  </header>
+
+  <nav class="nav" role="tablist" aria-label="Secciones">
+    <button class="tab" role="tab" data-tab="hoy" aria-selected="true"><span class="ic"></span>Hoy</button>
+    <button class="tab" role="tab" data-tab="comida" aria-selected="false"><span class="ic"></span>Comida</button>
+    <button class="tab" role="tab" data-tab="glucosa" aria-selected="false"><span class="ic"></span>Glucosa</button>
+    <button class="tab" role="tab" data-tab="coach" aria-selected="false"><span class="ic"></span>Coach</button>
+    <button class="tab" role="tab" data-tab="ajustes" aria-selected="false"><span class="ic"></span>Ajustes</button>
+  </nav>
+
+  <!-- HOY -->
+  <section id="tab-hoy" class="tabpanel" role="tabpanel">
+    <div class="card hero">
+      <div class="ring">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="track" cx="100" cy="100" r="82"/>
+          <circle class="arc" id="ringArc" cx="100" cy="100" r="82"/>
+        </svg>
+        <div class="mid">
+          <div class="val" id="ringVal">—</div>
+          <div class="unit">mg/dL</div>
+          <div class="st" id="ringState">Sin lecturas</div>
+          <div id="ringTrend" style="margin-top:1px;font-weight:700;font-size:.82rem;line-height:1.25"></div>
+        </div>
+      </div>
+      <div class="greet">
+        <h2 id="greet">Hola</h2>
+        <p class="date" id="dateLine"></p>
+        <p class="meta" id="ringMeta">Anota tu primera lectura para empezar.</p>
+        <p class="hint" id="sensorLine" style="margin-top:4px"></p>
+        <div class="mini">
+          <div><b id="hs-media">—</b><span>media 7 días</span></div>
+          <div><b id="hs-tir">—</b><span>en rango 7 días</span></div>
+          <div><b id="hs-low">—</b><span>bajas (&lt; 70)</span></div>
+          <div><b id="hs-meals">—</b><span>comidas hoy</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="stack">
+                <div class="card">
+          <h2>Anotar</h2>
+          <p class="sub" id="r-sub"></p>
+          <div class="chips" id="rMode" role="group" aria-label="¿Qué anotas?" style="margin-bottom:14px">
+            <button class="chip" type="button" data-m="glucosa" aria-pressed="true">Solo glucosa</button>
+            <button class="chip" type="button" data-m="snack" aria-pressed="false">Café o snack</button>
+            <button class="chip" type="button" data-m="correccion" aria-pressed="false">Corrección</button>
+            <button class="chip" type="button" data-m="comida" aria-pressed="false">Comida ›</button>
+          </div>
+          <div class="chips" id="qNotes" style="margin-bottom:12px" hidden>
+            <button class="chip" type="button" aria-pressed="false">Café con leche</button>
+            <button class="chip" type="button" aria-pressed="false">Merienda</button>
+            <button class="chip" type="button" aria-pressed="false">Sobre azúcar</button>
+          </div>
+          <div class="fgrid">
+            <div class="field"><label for="r-val">Glucosa (mg/dL)</label><input id="r-val" type="number" inputmode="decimal" min="20" max="600"><span class="hint" id="r-hint"></span></div>
+            <div class="field" id="f-ins" hidden><label for="r-ins">Insulina Fiasp (U)</label><input id="r-ins" type="number" step="0.5" min="0" max="100" inputmode="decimal"><span class="hint" id="r-ins-hint"></span></div>
+            <div class="field" id="f-carbs" hidden><label for="r-carbs">Hidratos (g)</label><input id="r-carbs" type="number" step="1" min="0" max="100" inputmode="decimal"><span class="hint">Se rellenan al elegir; puedes cambiarlos.</span></div>
+          </div>
+          <div class="fgrid" style="margin-top:12px">
+            <div class="field"><label for="r-when">Momento</label><input id="r-when" type="datetime-local"></div>
+            <div class="field" id="f-ctx"><label for="r-ctx">Tipo de lectura</label>
+              <select id="r-ctx"><option value="otro">Otros</option></select>
+              <span class="hint">Propuesto según la hora. Cámbialo si no encaja.</span></div>
+          </div>
+          <div class="chips" style="margin-top:8px"><button class="chip" type="button" id="r-now">Usar la hora actual</button></div>
+          <div class="field" style="margin-top:12px"><label for="r-note">Nota (opcional)</label>
+            <input id="r-note" name="glucoplan-nota" autocomplete="off" maxlength="120" placeholder="Escribe lo que quieras">
+          </div>
+          <div class="actions" style="margin-top:14px"><button class="btn" id="saveReading" type="button">Guardar</button></div>
+        </div>
+        <div class="card">
+          <div class="head"><h2>Últimas 24 horas</h2><button class="btn ghost small" type="button" id="toGlucosa">Ver más</button></div>
+          <div class="chart" id="chartHoy"></div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card" id="corrCard"></div>
+        <div class="card" id="toujeoCard">
+          <div class="eyebrow">Insulina basal</div>
+          <div id="toujeoBox"></div>
+          <button class="btn violet block" id="tjOpen" type="button" style="margin-top:14px">Registrar Toujeo</button>
+        </div>
+        <div class="card">
+          <div class="eyebrow">Entrenamiento</div>
+          <button class="switch" id="gymSwitch" type="button" role="switch" aria-checked="false">
+            <span class="t"><b>Hoy he ido al gym</b><span>Musculación y cardio</span></span>
+            <span class="knob" aria-hidden="true"></span>
+          </button>
+          <div class="gyminfo" id="gymInfo" hidden>
+            Tu glucosa suele subir con la musculación. La app lo tiene en cuenta en el cálculo y en el coach. Mide antes y después del gym, y vigila bajadas tardías unas horas después.
+          </div>
+        </div>
+  <details class="card fold" id="recentFold">
+  <summary>
+    <h2>Registro reciente</h2>
+    <span class="hint" id="recentInfo"></span>
+    <span class="chev" aria-hidden="true"></span>
+  </summary>
+  <div class="log" id="entryLogHoy" style="margin-top:14px"></div>
+</details>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMIDA -->
+  <section id="tab-comida" class="tabpanel" role="tabpanel" hidden>
+    <div class="cols" style="margin-top:0">
+      <div class="stack">
+        <div class="card">
+          <h2>Foto del plato</h2>
+          <p class="sub">Haz una foto antes de comer. La IA estima alimentos, gramos, hidratos, proteínas y grasas; tú los revisas.</p>
+          <div class="drop">
+            <img id="preview" alt="Vista previa del plato" hidden>
+            <div id="dropText">
+              <div class="cam" aria-hidden="true">📷</div>
+              <strong>Hacer o elegir una foto</strong>
+              <p class="hint">Plato entero, buena luz y desde arriba mejora la estimación.</p>
+            </div>
+            <input type="file" id="file" accept="image/*" capture="environment" aria-label="Hacer o elegir una foto del plato">
+          </div>
+          <div id="status"></div>
+        </div>
+        <div class="card">
+          <h2>Alimentos del plato</h2>
+          <p class="sub">Ajusta los gramos o añade alimentos a mano si la foto no acierta.</p>
+          <div class="items" id="items"></div>
+          <div id="macros"></div>
+          <div class="add">
+            <input id="foodIn" list="foodList" placeholder="Cualquier alimento o plato (la IA lo busca)" aria-label="Alimento">
+            <input id="gramsIn" type="number" inputmode="decimal" min="0" placeholder="g (opcional)" aria-label="Gramos">
+            <button class="btn ghost" id="addBtn" type="button">Añadir</button>
+          </div>
+          <datalist id="foodList"></datalist>
+          <div class="row2">
+            <div class="field">
+              <label for="extra">Hidratos extra (g)</label>
+              <input id="extra" type="number" inputmode="decimal" min="0" placeholder="0">
+              <span class="hint">Etiquetas, salsas, postre…</span>
+            </div>
+            <div class="field">
+              <label for="bg">Glucemia actual (mg/dL)</label>
+              <input id="bg" type="number" inputmode="decimal" min="0" placeholder="Automática">
+              <span class="hint" id="bgHint">Sensor o glucómetro.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside>
+        <div class="card dose" aria-live="polite">
+          <h2>Dosis de Fiasp</h2>
+          <div id="doseBox"></div>
+        </div>
+      </aside>
+    </div>
+        <details class="card fold" id="histFold">
+      <summary>
+        <h2>Últimas comidas</h2>
+        <button class="btn ghost small" id="pdfBtn" type="button">Descargar PDF</button>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div id="histBox" style="margin-top:14px"></div>
+    </details>
+  </section>
+
+  <!-- GLUCOSA -->
+  <section id="tab-glucosa" class="tabpanel" role="tabpanel" hidden>
+    <div class="card">
+      <div class="head">
+        <h2>Tu glucosa</h2>
+        <div class="chips" id="rangePills">
+          <button class="chip" type="button" data-r="1" aria-pressed="true">24 h</button>
+          <button class="chip" type="button" data-r="0" aria-pressed="false">Día</button>
+          <button class="chip" type="button" data-r="7" aria-pressed="false">7 días</button>
+          <button class="chip" type="button" data-r="28" aria-pressed="false">28 días</button>
+        </div>
+      </div>
+    <div class="head" id="dayNav" hidden style="justify-content:center;gap:14px;margin-top:10px">
+      <button class="btn ghost small" type="button" id="dayPrev" aria-label="Día anterior">‹ Anterior</button>
+      <b id="dayLabel" style="min-width:190px;text-align:center;text-transform:capitalize"></b>
+      <button class="btn ghost small" type="button" id="dayNext" aria-label="Día siguiente">Siguiente ›</button>
+    </div>
+      <div class="stats" id="gStats"></div>
+      <div class="chart" id="chartMain"></div>
+      <div class="legend">
+        <span><i style="background:rgba(127,203,154,.35)"></i>Rango 70 a 180</span>
+        <span><i style="background:rgba(157,149,224,.5)"></i>Día de gym</span>
+        <span><i style="background:#9D95E0;transform:rotate(45deg)"></i>Toujeo</span>
+        <span><i style="background:#E0B473;border-radius:50%"></i>Comida</span>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <h2>Registro</h2>
+      <div class="log" id="entryLog" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- COACH -->
+  <section id="tab-coach" class="tabpanel" role="tabpanel" hidden>
+    <div class="card" id="learnCard"></div>
+    <div class="card">
+      <h2>Coach de datos</h2>
+      <p class="sub">Analiza tus últimos 28 días con los criterios que te dio tu endocrino: objetivos, ratio de cada comida, sensibilidad, Toujeo y gym. Cuando haya datos suficientes hace la evaluación completa; mientras tanto te dice qué te falta anotar. No cambia tus ajustes ni tu dosis por sí solo.</p>
+      <div class="actions"><button class="btn" id="coachBtn" type="button">Analizar mis datos</button><button class="btn violet" id="reportBtn" type="button">Informe para mi endocrino</button></div>
+      <div id="coachStatus"></div>
+    </div>
+    <div id="coachOut"></div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="tab-ajustes" class="tabpanel" role="tabpanel" hidden>
+    <div class="card settings">
+      <h2>Tus ajustes de insulina</h2>
+      <p class="sub">Pon aquí los valores que te haya indicado tu endocrino. Se sincronizan entre tus dispositivos.</p>
+      <div class="field">
+        <label for="s-icr">Ratio insulina/hidratos: 1 unidad cubre cuántos gramos</label>
+        <input id="s-icr" type="number" step="0.1" min="1" inputmode="decimal" placeholder="Ej.: 10 (pregunta a tu endocrino)">
+      </div>
+      <div class="field">
+        <label for="s-isf">Factor de sensibilidad: 1 unidad baja cuántos mg/dL</label>
+        <input id="s-isf" type="number" step="1" min="1" inputmode="decimal" placeholder="30">
+      </div>
+      <div class="field">
+        <label for="s-target">Glucemia objetivo (mg/dL)</label>
+        <input id="s-target" type="number" step="1" min="70" inputmode="decimal" placeholder="Ej.: 110">
+      </div>
+      <div class="field">
+        <label for="s-step">Salto de tu pluma</label>
+        <select id="s-step"><option value="0.5">0,5 unidades</option><option value="1">1 unidad</option></select>
+      </div>
+      <div class="field">
+        <label for="s-max">Aviso de dosis máxima (unidades, opcional)</label>
+        <input id="s-max" type="number" step="0.5" min="0" inputmode="decimal" placeholder="Te avisa si el cálculo la supera">
+      </div>
+      <div class="field">
+        <label for="s-gym">Ajuste de la dosis de comida los días de gym (%)</label>
+        <input id="s-gym" type="number" step="5" min="-50" max="50" inputmode="decimal" placeholder="0">
+        <span class="hint">Positivo sube la dosis, negativo la baja. Como la musculación suele subirte la glucosa, no se reduce nada por defecto. Pon un valor solo si tu endocrino te lo ha indicado.</span>
+      </div>
+      <div class="field">
+        <label for="s-basal">Toujeo habitual (unidades)</label>
+        <input id="s-basal" type="number" step="1" min="0" inputmode="decimal">
+        <span class="hint">Se propone al registrar la puesta; podrás cambiarla cada vez.</span>
+      </div>
+      <div class="actions" style="margin-top:20px">
+        <button class="btn" id="saveSet" type="button">Guardar ajustes</button>
+        <button class="btn ghost" id="logoutBtn" type="button">Cerrar sesión</button>
+      </div>
+      <div id="setStatus"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    GlucoPlan es una herramienta de apoyo y no sustituye la indicación de tu endocrino. Las estimaciones de la foto son aproximadas: revisa los gramos antes de pinchar. Ante hipoglucemias, glucemias muy altas o cualquier duda, sigue tu pauta médica.
+  </footer>
+</div>
+
+<!-- TOUJEO -->
+<div class="modal" id="tjModal" role="dialog" aria-modal="true" aria-labelledby="tjTitle" hidden>
+  <div class="box">
+    <h2 id="tjTitle">¿Cuándo te pusiste el Toujeo?</h2>
+    <p class="sub">Si se te olvidó anotarlo, elige la hora real.</p>
+    <div class="field"><label for="tj-units">Unidades</label><input id="tj-units" type="number" step="1" min="1" inputmode="decimal"></div>
+    <div class="field" style="margin-top:12px"><label for="tj-when">Fecha y hora</label><input id="tj-when" type="datetime-local"></div>
+    <div class="chips" style="margin-top:12px" id="tjQuick">
+      <button class="chip" type="button" data-m="0">Ahora</button>
+      <button class="chip" type="button" data-m="60">Hace 1 h</button>
+      <button class="chip" type="button" data-m="180">Hace 3 h</button>
+      <button class="chip" type="button" data-m="1440">Ayer a esta hora</button>
+    </div>
+    <div id="tjStatus"></div>
+    <div class="actions">
+      <button class="btn violet" id="tjSave" type="button">Guardar</button>
+      <button class="btn ghost" id="tjCancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDITAR REGISTRO -->
+<div class="modal" id="edModal" role="dialog" aria-modal="true" aria-labelledby="edTitle" hidden>
+  <div class="box">
+    <h2 id="edTitle">Editar registro</h2>
+    <p class="sub">Cambia lo que necesites: hora, valores o nota.</p>
+    <div id="edFields" class="stack" style="gap:12px"></div>
+    <div id="edStatus"></div>
+    <div class="actions">
+      <button class="btn" id="edSave" type="button">Guardar cambios</button>
+      <button class="btn ghost" id="edCancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACCESO -->
+<div class="modal" id="login" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
+  <div class="box">
+    <h2 id="loginTitle">Entra en GlucoPlan</h2>
+    <p class="sub">Escribe la clave que pusiste en Netlify (variable APP_PASSWORD). Con la misma clave verás los mismos datos en el móvil y en el ordenador.</p>
+    <input type="text" name="username" value="glucoplan" autocomplete="username" hidden>
+    <div class="field">
+      <label for="pw">Clave de acceso</label>
+      <input id="pw" type="password" autocomplete="current-password">
+    </div>
+    <div id="loginStatus"></div>
+    <div class="actions">
+      <button class="btn" id="loginBtn" type="button">Entrar</button>
+      <button class="btn ghost" id="localBtn" type="button">Usar sin sincronizar</button>
+    </div>
+    <p class="hint" style="margin-top:12px">Sin sincronizar, el historial se queda solo en este dispositivo y no hay análisis con IA.</p>
+  </div>
+</div>
+<div class="report" id="reportBox" hidden>
+  <div class="sheet">
+    <div class="rtools">
+      <button class="btn small" id="rPrint" type="button">Imprimir o guardar PDF</button>
+      <div class="chips" id="rRange">
+        <button class="chip" type="button" data-d="14" aria-pressed="true">14 días</button>
+        <button class="chip" type="button" data-d="28" aria-pressed="false">28 días</button>
+      </div>
+      <button class="btn ghost small" id="rClose" type="button">Cerrar</button>
+    </div>
+    <div id="reportBody"></div>
+  </div>
+</div>
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const KEY = 'glucoplan:v2';
+  const DAY = 864e5;
+  const fmt = n => Number(n).toLocaleString('es-ES', { maximumFractionDigits: 1 });
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const pad = n => String(n).padStart(2, '0');
+  const dayStr = ts => new Date(ts).toLocaleDateString('sv-SE');
+  const todayKey = () => dayStr(Date.now());
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const numOrNull = v => (v === '' || v == null || !isFinite(Number(v)) ? null : Number(v));
+  const clock = ts => new Date(ts).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+  const toLocalInput = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const whenLabel = ts => {
+    const d = dayStr(ts);
+    if (d === todayKey()) return 'hoy a las ' + clock(ts);
+    if (d === dayStr(Date.now() - DAY)) return 'ayer a las ' + clock(ts);
+    return new Date(ts).toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' }) + ' a las ' + clock(ts);
+  };
+  const fmtDur = ms => { const h = Math.floor(ms / 36e5), m = Math.floor(ms % 36e5 / 6e4); return h ? `${h} h ${m} min` : `${m} min`; };
+
+  const ICONS = {
+    hoy:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    comida:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    glucosa:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+    coach:'<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',
+    ajustes:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'
+  };
+  $$('.tab').forEach(t => { $('.ic', t).innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[t.dataset.tab]}</svg>`; });
+
+  const FOODS = [
+    ['Arroz blanco cocido',28],['Arroz integral cocido',23],['Pasta cocida',31],['Pasta integral cocida',26],
+    ['Pan blanco',50],['Pan integral',41],['Patata cocida',17],['Patatas fritas',35],['Boniato cocido',20],
+    ['Lentejas cocidas',17],['Garbanzos cocidos',20],['Judías blancas cocidas',16],['Avena en copos',60],
+    ['Cereales de desayuno',75],['Galletas tipo María',75],['Yogur natural',5],['Yogur griego natural',4],
+    ['Leche',5],['Plátano',21],['Manzana',12],['Naranja',9],['Kiwi',11],['Fresas y frutos rojos',7],['Uvas',17],
+    ['Pizza',33],['Hummus',14],['Wrap de trigo',48],['Zumo de naranja',10],['Refresco de cola',11],
+    ['Café con leche',4],['Chocolate negro 70 %',30],['Aguacate',2],['Huevo',1],['Pechuga de pollo',0]
+  ];
+  // Textos para mostrar en frases (incluye los tipos antiguos, para no perder el historial)
+  const CTX = {
+    ayunas:'antes de desayunar', post2h_desayuno:'2 h después de desayunar',
+    pre_comida:'antes de comer', post2h:'2 h después de comer',
+    pre_cena:'antes de cenar', post2h_cena:'2 h después de cenar',
+    otro:'otro momento',
+    pre_gym:'antes del gym', post_gym:'después del gym', noche:'noche o madrugada'
+  };
+  // Opciones que se ofrecen al anotar o editar una lectura
+  const CTX_OPTS = {
+    ayunas:'Antes de desayunar', post2h_desayuno:'2 horas después de desayunar',
+    pre_comida:'Antes de comer', post2h:'2 horas después de comer',
+    pre_cena:'Antes de cenar', post2h_cena:'2 horas después de cenar',
+    otro:'Otros'
+  };
+  $('#r-ctx').innerHTML = Object.entries(CTX_OPTS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+
+  /* ---------- Estado local ---------- */
+  const defaults = { icr:'', isf:'30', target:'', step:'0.5', maxDose:'', gymAdj:'', basal:'28', adaptOn:'1', adaptFrom:'0' };
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY)) || {};
+      return { settings:{ ...defaults, ...(d.settings || {}) }, entries:d.entries || [] };
+    } catch { return { settings:{ ...defaults }, entries:[] }; }
+  }
+  const store = load();
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ settings: store.settings, entries: store.entries })); } catch {} };
+  const getKey = () => { try { return localStorage.getItem(KEY + ':key') || ''; } catch { return ''; } };
+  const isCloud = () => !!getKey();
+  const isLocalMode = () => { try { return localStorage.getItem(KEY + ':local') === '1'; } catch { return false; } };
+
+  let items = [];   
+  let mealPhoto = null;   // miniatura de la foto del plato actual
+  function resetPhotoBox() { mealPhoto = null; $('#preview').hidden = true; $('#preview').removeAttribute('src'); $('#dropText').hidden = false; $('#file').value = ''; }
+  let nextId = 1;
+  let entries = [];
+  let chartDays = 1;
+  function startOfDay(ts) { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  let chartDay = startOfDay(Date.now());   // día que se muestra cuando se pulsa «Día»
+  const chartRange = () => {
+    if (chartDays !== 0) return { from: Date.now() - chartDays * DAY, to: Date.now() };
+    const e = new Date(chartDay); e.setDate(e.getDate() + 1);
+    return { from: chartDay, to: e.getTime() };
+  };
+
+  /* ---------- Avisos ---------- */
+  function toast(msg, type = 'ok') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type; t.textContent = msg;
+    $('#toasts').appendChild(t);
+    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 320); }, 2600);
+  }
+  function setStatus(sel, type, html) { $(sel).innerHTML = html ? `<div class="status ${type}">${html}</div>` : ''; }
+
+  function animateNum(el, to, { from = 0, dec = 0, ms = 700 } = {}) {
+    if (!el) return;
+    const t0 = performance.now();
+    const f = v => v.toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || from === to) { el.textContent = f(to); return; }
+    const step = now => {
+      const p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = f(from + (to - from) * e);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- API ---------- */
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { ...opts, headers: { 'Content-Type':'application/json', 'x-app-key': getKey(), ...(opts.headers || {}) } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || ('Error ' + res.status));
+    return data;
+  }
+
+  function renderSync(extra) {
+    const el = $('#syncState');
+    if (isCloud()) { el.className = 'pill on'; $('#syncText').textContent = 'Sincronizado' + (extra ? ' · ' + extra : ''); }
+    else { el.className = 'pill'; $('#syncText').textContent = 'Modo local: sin sincronizar'; }
+  }
+
+  /* ---------- Sensor Libre (vía LibreLinkUp) ---------- */
+  let sensor = [];          // lecturas del sensor, mezcladas con las manuales
+  let sensorTrend = null;   // flecha del sensor: 1 baja rápido, 2 baja, 3 estable, 4 sube, 5 sube rápido
+  let sensorInfo = { state: 'idle' };
+  let syncing = false;
+  const readings = () => entries.filter(e => e.type === 'reading').concat(sensor).sort((a, b) => b.ts - a.ts);
+
+  // Tendencia en 7 niveles a partir de cuánto cambia la glucosa por minuto
+  const TREND7 = {
+    3: { a: '⇈', t: 'Subida muy rápida' }, 2: { a: '↑', t: 'Subida media' }, 1: { a: '↗', t: 'Subida pequeña' },
+    0: { a: '→', t: 'Estable' },
+    '-1': { a: '↘', t: 'Bajada pequeña' }, '-2': { a: '↓', t: 'Bajada media' }, '-3': { a: '⇊', t: 'Bajada muy rápida' }
+  };
+  const levelOf = r => (r >= 3 ? 3 : r >= 2 ? 2 : r >= 1 ? 1 : r <= -3 ? -3 : r <= -2 ? -2 : r <= -1 ? -1 : 0);
+  function trendNow() {
+    const rs = readings(), last = rs[0];
+    if (!last || Date.now() - last.ts > 30 * 6e4) return null;
+    let ref = null, best = 1e9;
+    for (const r of rs) {
+      const m = (last.ts - r.ts) / 6e4;
+      if (m > 30) break;
+      if (m >= 8 && Math.abs(m - 15) < best) { best = Math.abs(m - 15); ref = r; }
+    }
+    let rate = null;
+    if (ref) rate = (last.mgdl - ref.mgdl) / ((last.ts - ref.ts) / 6e4);
+    else if (last.sensor && sensorTrend) rate = { 5: 3, 4: 1.5, 3: 0, 2: -1.5, 1: -3 }[sensorTrend];
+    if (rate == null) return null;
+    const level = levelOf(rate);
+    return { level, rate, ...TREND7[level] };
+  }
+  function renderTrend() {
+    const el = $('#ringTrend'); if (!el) return;
+    const t = trendNow();
+    if (!t) { el.innerHTML = ''; return; }
+    const col = Math.abs(t.level) >= 3 ? '#B83A52' : Math.abs(t.level) === 2 ? '#9A6A14' : '#2E8B7A';
+    const rate = Math.abs(t.rate) < 0.05 ? '0' : (t.rate > 0 ? '+' : '') + fmt(Math.round(t.rate * 10) / 10);
+    el.innerHTML = `<span style="color:${col}"><span style="font-size:1.25rem;margin-right:4px">${t.a}</span>${t.t}</span><br><span style="color:var(--muted);font-weight:500">${rate} mg/dL/min</span>`;
+  }
+  function renderSensorLine() {
+    renderTrend();
+    const el = $('#sensorLine'); if (!el) return;
+    const i = sensorInfo;
+    if (i.state === 'off') { el.textContent = 'Sensor Libre sin conectar: faltan LIBRE_EMAIL y LIBRE_PASSWORD en Netlify.'; return; }
+    if (!i.lastTs) { el.textContent = i.msg ? 'Sensor Libre: ' + i.msg : ''; return; }
+    const min = Math.max(0, Math.round((Date.now() - i.lastTs) / 6e4));
+    el.textContent = `Sensor Libre · lectura de hace ${min < 1 ? 'menos de 1 min' : min + ' min'}` +
+      (min > 20 ? '. Sin datos recientes: comprueba que LibreLink está subiendo lecturas.' : '') + (i.msg ? ' · ' + i.msg : '');
+  }
+  async function syncSensor() {
+    if (!isCloud() || syncing) return;
+    syncing = true;
+    try {
+      const d = await api('/api/libre?days=28');
+      if (d.configured === false) { sensor = []; sensorInfo = { state: 'off' }; }
+      else {
+        sensor = (d.points || []).map(([ts, mgdl]) => ({ id: 's' + ts, type: 'reading', ts, mgdl, context: 'sensor', sensor: true }));
+        sensorTrend = d.trend || null;
+        sensorInfo = { state: d.aviso ? 'error' : 'ok', lastTs: d.lastTs, msg: d.aviso || '' };
+      }
+    } catch (err) { sensorInfo = { ...sensorInfo, state: 'error', msg: err.message }; }
+    syncing = false;
+    renderHero(); renderCorr(); renderCharts(false); renderSensorLine(); renderLearn();
+    const ae = document.activeElement && document.activeElement.id;
+    if (!['realDose', 'gramsIn', 'foodIn', 'extra', 'bg', 'corrDose'].includes(ae)) calc();
+  }
+
+  /* ---------- Registros ---------- */
+  const gymToday = () => entries.some(e => e.type === 'day' && e.gym && dayStr(e.ts) === todayKey());
+  const lastBasal = () => entries.find(e => e.type === 'basal');
+
+  function renderAll() {
+    renderHero(); renderSensorLine(); renderToujeo(); renderCorr(); renderGym(); renderEntries(); renderHist(); renderCharts(false); calc(); renderLearn();
+  }
+  async function loadEntries(silent) {
+    if (isCloud()) {
+      try { entries = (await api('/api/data?months=2')).entries || []; renderSync(clock(Date.now())); }
+      catch (e) { if (!silent) toast('No se pudo leer el historial: ' + e.message, 'err'); return; }
+    } else entries = store.entries.slice();
+    renderAll();
+  }
+  async function addEntry(e) {
+    e.ts = e.ts || Date.now();
+    e.id = e.id || uid();
+    if (isCloud()) {
+      const d = await api('/api/data', { method:'POST', body: JSON.stringify({ entry: e }) });
+      if (!entries.some(x => x.id === d.entry.id)) entries.push(d.entry);
+    } else {
+      entries.push(e);
+      store.entries = entries.slice().sort((a, b) => b.ts - a.ts).slice(0, 600); save();
+    }
+    entries.sort((a, b) => b.ts - a.ts);
+    renderAll();
+  }
+  async function updateEntry(e, changes) {
+    const merged = { ...e, ...changes };
+    if (isCloud()) {
+      const d = await api('/api/data', { method:'POST', body: JSON.stringify({ update: { id: e.id, oldTs: e.ts, entry: merged } }) });
+      entries = entries.map(x => x.id === e.id ? d.entry : x);
+    } else {
+      entries = entries.map(x => x.id === e.id ? merged : x);
+      store.entries = entries.slice().sort((a, b) => b.ts - a.ts).slice(0, 600); save();
+    }
+    entries.sort((a, b) => b.ts - a.ts);
+    renderAll();
+  }
+  async function removeEntry(e) {
+    if (isCloud()) await api(`/api/data?id=${encodeURIComponent(e.id)}&ts=${e.ts}`, { method:'DELETE' });
+    entries = entries.filter(x => x.id !== e.id);
+    if (!isCloud()) { store.entries = entries.slice(0, 600); save(); }
+    renderAll();
+  }
+
+  /* ---------- Hoy: anillo y estadísticas ---------- */
+  const C = 2 * Math.PI * 82;
+  const gColor = v => (v < 70 ? '#E08A9A' : v <= 180 ? '#6FCFBF' : v <= 250 ? '#E0B473' : '#E08A9A');
+  const gText = v => (v < 70 ? '#B83A52' : v <= 180 ? '#2E8B7A' : v <= 250 ? '#9A6A14' : '#B83A52');
+  const gState = v => (v < 70 ? 'Baja' : v <= 180 ? 'En rango' : v <= 250 ? 'Alta' : 'Muy alta');
+  let shown = { val: 0, media: 0, tir: 0, low: 0, meals: 0 };
+  /* Autorrelleno del campo "Glucosa" con la última lectura (la misma del anillo) */
+  let rValTouched = false;
+  function autoFillReading() {
+    const el = $('#r-val'), hint = $('#r-hint');
+    if (!el || rValTouched || document.activeElement === el) return;
+    const last = readings()[0];
+    if (last && Date.now() - last.ts <= 20 * 6e4) {
+      el.value = last.mgdl; el.dataset.auto = '1';
+      const min = Math.max(0, Math.round((Date.now() - last.ts) / 6e4));
+      hint.textContent = `Automática: ${last.sensor ? 'del sensor' : 'de tu última lectura'}, de hace ${min < 1 ? 'menos de 1' : min} min. Escribe otro valor para cambiarla.`;
+    } else {
+      if (el.dataset.auto === '1') { el.value = ''; el.dataset.auto = ''; }
+      hint.textContent = 'Sin lectura de menos de 20 min: escribe tu glucosa.';
+    }
+  }
+  $('#r-val').addEventListener('input', () => { rValTouched = true; $('#r-val').dataset.auto = ''; $('#r-hint').textContent = ''; });
+  function renderHero() {
+    const h = new Date().getHours();
+    $('#greet').textContent = h < 6 ? 'Buenas noches' : h < 14 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches';
+    $('#dateLine').textContent = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+    const arc = $('#ringArc');
+    arc.style.strokeDasharray = C;
+    const rs = readings();
+    const r = rs[0];
+    if (r) {
+      const frac = Math.min(1, Math.max(0.03, (r.mgdl - 40) / 260));
+      arc.style.strokeDashoffset = C * (1 - frac);
+      arc.style.stroke = gColor(r.mgdl); arc.style.color = gColor(r.mgdl);
+      animateNum($('#ringVal'), r.mgdl, { from: shown.val });
+      shown.val = r.mgdl;
+      const st = $('#ringState'); st.textContent = gState(r.mgdl); st.style.color = gText(r.mgdl);
+      let meta = `Última lectura ${whenLabel(r.ts)}${r.sensor ? ' (sensor)' : ', ' + (CTX[r.context] || '')}.`;
+      if (rs[1]) { const d = r.mgdl - rs[1].mgdl; meta += ` ${Math.abs(d) < 10 ? '→ estable' : d > 0 ? '↑ +' + d : '↓ ' + d} respecto a la anterior.`; }
+      $('#ringMeta').textContent = meta;
+    } else {
+      arc.style.strokeDashoffset = C; $('#ringVal').textContent = '—';
+      $('#ringState').textContent = 'Sin lecturas'; $('#ringState').style.color = '';
+      $('#ringMeta').textContent = 'Anota tu primera lectura para empezar.';
+    }
+    const w = rs.filter(x => x.ts >= Date.now() - 7 * DAY);
+    const media = w.length ? Math.round(w.reduce((a, x) => a + x.mgdl, 0) / w.length) : null;
+    const tir = w.length ? Math.round(w.filter(x => x.mgdl >= 70 && x.mgdl <= 180).length / w.length * 100) : null;
+    const low = w.filter(x => x.mgdl < 70).length;
+    const meals = entries.filter(e => e.type === 'meal' && dayStr(e.ts) === todayKey()).length;
+    const set = (id, v, key, suf = '') => {
+      const el = $(id);
+      if (v == null) { el.textContent = '—'; return; }
+      animateNum(el, v, { from: shown[key] }); shown[key] = v;
+      if (suf) setTimeout(() => { el.textContent = fmt(v) + suf; }, 720);
+    };
+    set('#hs-media', media, 'media'); set('#hs-tir', tir, 'tir', ' %'); set('#hs-low', low, 'low'); set('#hs-meals', meals, 'meals');
+    autoFillReading();
+  }
+
+  /* ---------- Toujeo ---------- */
+  function renderToujeo() {
+    const b = lastBasal();
+    const box = $('#toujeoBox'), card = $('#toujeoCard');
+    card.classList.remove('tjs-soon', 'tjs-over');
+    if (!b) {
+      box.innerHTML = `<div class="tj"><div class="u">${fmt(store.settings.basal || 0)}<small>U habituales</small></div></div>
+        <p class="tjnote" style="margin-top:10px">Aún no has registrado ninguna puesta. Anótala con su hora y se guardará en todos tus dispositivos.</p>`;
+      return;
+    }
+    const el = Date.now() - b.ts;
+    const pct = Math.min(100, el / DAY * 100);
+    const next = b.ts + DAY;
+    let note;
+    if (el < 22 * 36e5) note = `Próxima hacia ${whenLabel(next)} (en ${fmtDur(next - Date.now())}).`;
+    else if (el < DAY) { card.classList.add('tjs-soon'); note = `Se acerca la hora: ${whenLabel(next)} (en ${fmtDur(next - Date.now())}).`; }
+    else if (el < 27 * 36e5) { card.classList.add('tjs-soon'); note = `Han pasado ${fmtDur(el)}. Toca ponerla.`; }
+    else { card.classList.add('tjs-over'); note = `Han pasado ${fmtDur(el)}. ¿Se te ha olvidado? Si es así, sigue la pauta de tu endocrino para dosis olvidadas y anótala al ponértela.`; }
+    box.innerHTML = `<div class="tj"><div class="u">${fmt(b.units)}<small>U Toujeo</small></div><div class="hint">${whenLabel(b.ts)}</div></div>
+      <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100" aria-label="Tiempo desde la última Toujeo"><i style="width:${pct}%"></i></div>
+      <p class="tjnote"><b>Hace ${fmtDur(el)}.</b> ${note}</p>`;
+  }
+  function openToujeo() {
+    $('#tj-units').value = store.settings.basal || '';
+    $('#tj-when').value = toLocalInput(Date.now());
+    setStatus('#tjStatus', '', '');
+    $('#tjModal').hidden = false; $('#tj-units').focus();
+  }
+  $('#tjOpen').addEventListener('click', openToujeo);
+  $('#tjCancel').addEventListener('click', () => { $('#tjModal').hidden = true; });
+  $$('#tjQuick .chip').forEach(c => c.addEventListener('click', () => { $('#tj-when').value = toLocalInput(Date.now() - Number(c.dataset.m) * 6e4); }));
+  $('#tjSave').addEventListener('click', async () => {
+    const units = numOrNull($('#tj-units').value);
+    const ts = new Date($('#tj-when').value).getTime();
+    if (!(units > 0 && units <= 200)) { setStatus('#tjStatus', 'err', 'Escribe las unidades que te pusiste.'); return; }
+    if (!isFinite(ts)) { setStatus('#tjStatus', 'err', 'Elige la fecha y la hora.'); return; }
+    if (ts > Date.now() + 5 * 6e4) { setStatus('#tjStatus', 'err', 'La hora no puede ser futura.'); return; }
+    $('#tjSave').disabled = true;
+    try {
+      await addEntry({ type:'basal', units, ts });
+      store.settings.basal = String(units); save(); fillSettings();
+      if (isCloud()) pushSettings().catch(() => {});
+      $('#tjModal').hidden = true;
+      toast('Toujeo guardada: ' + fmt(units) + ' U, ' + whenLabel(ts));
+    } catch (err) { setStatus('#tjStatus', 'err', esc(err.message)); }
+    $('#tjSave').disabled = false;
+  });
+
+  /* ---------- Editar registros ---------- */
+  const KINDS = { comida:'Comida', cafe:'Café o snack', correccion:'Corrección' };
+  const EDIT = {
+    reading: [['mgdl','Glucosa (mg/dL)','num'], ['context','Tipo de lectura','sel', CTX_OPTS], ['dose','Insulina Fiasp (U)','num'], ['note','Nota','txt']],
+    meal: [['kind','Tipo','sel', KINDS], ['carbs','Hidratos (g)','num'], ['bg','Glucemia (mg/dL)','num'], ['dose','Insulina que te pusiste (U)','num'], ['note','Nota','txt']],
+    basal: [['units','Toujeo (U)','num'], ['note','Nota','txt']],
+    day: [['gym','Día de gym','chk'], ['note','Nota','txt']],
+    chart: [['note','Nota','txt']]
+  };
+  let editing = null;
+  function openEdit(e) {
+    editing = e;
+    const f = [`<div class="field"><label for="ed-ts">Fecha y hora</label><input id="ed-ts" type="datetime-local" value="${toLocalInput(e.ts)}"></div>`];
+    (EDIT[e.type] || []).forEach(([k, label, kind, opts]) => {
+      const v = e[k] ?? '';
+      if (kind === 'sel') f.push(`<div class="field"><label for="ed-${k}">${label}</label><select id="ed-${k}">${Object.entries(k === 'context' && e.context && !(e.context in opts) ? { ...opts, [e.context]: CTX[e.context] || e.context } : opts).map(([ov, ol]) => `<option value="${ov}" ${ov === (e[k] || (k === 'kind' ? 'comida' : 'otro')) ? 'selected' : ''}>${ol}</option>`).join('')}</select></div>`);
+      else if (kind === 'chk') f.push(`<label style="display:flex;gap:10px;align-items:center;font-weight:600"><input id="ed-${k}" type="checkbox" style="width:auto" ${e[k] ? 'checked' : ''}>${label}</label>`);
+      else f.push(`<div class="field"><label for="ed-${k}">${label}</label><input id="ed-${k}" name="ed-${k}" autocomplete="off" ${kind === 'num' ? 'type="number" step="0.5" inputmode="decimal"' : 'maxlength="300"'} value="${esc(v)}"></div>`);
+    });
+    $('#edFields').innerHTML = f.join('');
+    setStatus('#edStatus', '', '');
+    $('#edModal').hidden = false;
+  }
+  $('#edCancel').addEventListener('click', () => { $('#edModal').hidden = true; editing = null; });
+  $('#edSave').addEventListener('click', async () => {
+    const e = editing; if (!e) return;
+    const ts = new Date($('#ed-ts').value).getTime();
+    if (!isFinite(ts)) { setStatus('#edStatus', 'err', 'Elige la fecha y la hora.'); return; }
+    if (ts > Date.now() + 5 * 6e4) { setStatus('#edStatus', 'err', 'La hora no puede ser futura.'); return; }
+    const ch = { ts };
+    (EDIT[e.type] || []).forEach(([k, , kind]) => {
+      const el = $('#ed-' + k);
+      ch[k] = kind === 'chk' ? el.checked : kind === 'num' ? numOrNull(el.value) : el.value.trim();
+    });
+    if (e.type === 'reading') {
+      if (!(ch.mgdl >= 20 && ch.mgdl <= 600)) { setStatus('#edStatus', 'err', 'La glucosa debe estar entre 20 y 600.'); return; }
+      if (ch.dose != null && !(ch.dose >= 0 && ch.dose <= 100)) { setStatus('#edStatus', 'err', 'Revisa la insulina (0 a 100 U).'); return; }
+      if (ch.dose > 0) ch.kind = e.kind || 'correccion'; else { ch.dose = null; ch.kind = null; }
+    }
+    if (e.type === 'meal') {
+      if (ch.dose == null || ch.dose < 0 || ch.dose > 100) { setStatus('#edStatus', 'err', 'Revisa la insulina (0 a 100 U).'); return; }
+      if (ch.carbs == null) ch.carbs = 0;
+    }
+    if (e.type === 'basal' && !(ch.units > 0 && ch.units <= 200)) { setStatus('#edStatus', 'err', 'Revisa las unidades de Toujeo.'); return; }
+    $('#edSave').disabled = true;
+    try {
+      await updateEntry(e, ch);
+      $('#edModal').hidden = true; editing = null; toast('Registro actualizado');
+    } catch (err) { setStatus('#edStatus', 'err', esc(err.message)); }
+    $('#edSave').disabled = false;
+  });
+
+  /* ---------- Insulina activa (IOB), hidratos por absorber (COB) y corrección sugerida ---------- */
+  // Curva de Fiasp: empieza a los 5-10 min, pico a 1-3 h, desaparece a las 3-5 h. Se usa 5 h (lo más prudente).
+  const IOB_TABLE = [[0, 1], [15, .98], [30, .92], [60, .75], [90, .58], [120, .42], [180, .20], [240, .07], [300, 0]];
+  const iobFrac = min => {
+    if (min <= 0) return 1;
+    for (let i = 1; i < IOB_TABLE.length; i++) {
+      const [t1, f1] = IOB_TABLE[i], [t0, f0] = IOB_TABLE[i - 1];
+      if (min <= t1) return f0 + (f1 - f0) * (min - t0) / (t1 - t0);
+    }
+    return 0;
+  };
+  const ABS_MIN = { rapida: 120, mixta: 180, lenta: 300 };
+  function onBoard(at) {
+    let iob = 0, cob = 0;
+    entries.forEach(e => {
+      const min = (at - e.ts) / 6e4;
+      if (min < -5 || min > 300) return;
+      if ((e.type === 'meal' || e.type === 'reading') && e.dose > 0) iob += e.dose * iobFrac(min);
+      if (e.type === 'meal' && e.carbs > 0) {
+        const dur = ABS_MIN[e.absorb] || ABS_MIN.mixta;
+        if (min < dur) cob += e.carbs * (1 - Math.max(0, min) / dur);
+      }
+    });
+    return { iob, cob };
+  }
+
+  /* Toujeo (glargina U300): estimación orientativa. NO se resta a las correcciones. */
+  const TJ_HOURS = 36;   // la ficha técnica indica que actúa hasta unas 36 h, sin pico
+  function basalInfo(now) {
+    const b = lastBasal();
+    let h = '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed rgba(40,70,95,.18)">';
+    if (b) {
+      const left = Math.max(0, 1 - (now - b.ts) / (TJ_HOURS * 36e5));
+      h += `<div class="tj"><div class="u" style="font-size:1.7rem">${fmt(Math.round(b.units * left * 10) / 10)}<small>U de Toujeo activas</small></div><div class="hint">${Math.round(left * 100)} % de ${fmt(b.units)} U</div></div>`;
+    } else h += '<p class="hint">Registra tu Toujeo para estimar la basal activa.</p>';
+
+    // ¿Te está haciendo efecto? Tendencia en el último tramo sin Fiasp ni hidratos activos
+    let clearMin = 720;
+    for (let m = 0; m <= 720; m += 10) {
+      const o = onBoard(now - m * 6e4);
+      if (o.iob >= 0.1 || o.cob >= 1) { clearMin = m; break; }
+    }
+    const win = Math.min(clearMin, 360);
+    const pts = readings().filter(r => r.ts >= now - win * 6e4 && r.ts <= now);
+    if (clearMin < 180 || pts.length < 8) {
+      h += `<p class="hint" style="margin-top:8px">Efecto de la basal: aún no hay un tramo limpio. Hacen falta 3 h sin Fiasp ni hidratos activos y lecturas del sensor${clearMin < 180 ? ` (faltan unos ${fmtDur((180 - clearMin) * 6e4)})` : ''}.</p>`;
+    } else {
+      const t0 = pts[pts.length - 1].ts;
+      const xs = pts.map(r => (r.ts - t0) / 36e5), ys = pts.map(r => r.mgdl);
+      const mx = xs.reduce((a, v) => a + v, 0) / xs.length, my = ys.reduce((a, v) => a + v, 0) / ys.length;
+      const den = xs.reduce((a, v) => a + (v - mx) ** 2, 0);
+      const slope = den > 0 ? xs.reduce((a, v, i) => a + (v - mx) * (ys[i] - my), 0) / den : 0;
+      const s = Math.round(slope), hrs = fmt(Math.round(win / 6) / 10);
+      let msg, col = '#2E8B7A';
+      if (Math.abs(slope) <= 10) msg = 'Tu glucosa se mantiene estable: la basal parece cubrirte.';
+      else if (slope > 0) { col = '#9A6A14'; msg = 'Tu glucosa sube sin insulina rápida activa: la basal podría quedarse corta. Coméntalo con tu endocrino.'; }
+      else { col = '#9A6A14'; msg = 'Tu glucosa baja sin insulina rápida activa: vigila posibles bajadas' + (gymToday() ? ' (hoy has hecho gym).' : '. Coméntalo con tu endocrino si se repite.'); }
+      h += `<p class="tjnote" style="margin-top:8px"><b>Efecto de la basal:</b> en las últimas ${hrs} h sin Fiasp ni hidratos, ${s > 0 ? '+' : ''}${s} mg/dL por hora. <span style="color:${col}">${msg}</span></p>`;
+    }
+    return h + '<p class="fine">Estimación orientativa. No se descuenta de las correcciones y no sustituye la pauta de tu endocrino.</p></div>';
+  }
+  let corrTyped = null, corrSuggested = 0;
+  function renderCorr() {
+    const box = $('#corrCard'); if (!box) return;
+    if (document.activeElement && document.activeElement.id === 'corrDose') return;
+    const s = store.settings, now = Date.now();
+    const icr = parseFloat(s.icr), isfCfg = parseFloat(s.isf), target = parseFloat(s.target);
+    const step = parseFloat(s.step) || 0.5, max = parseFloat(s.maxDose);
+    let h = '<div class="eyebrow">Corrección de glucosa alta</div>';
+    if (!(icr > 0 && isfCfg > 0 && target > 0)) {
+      box.innerHTML = h + '<p class="sub">Pon tu ratio, tu factor de sensibilidad y tu glucemia objetivo en Ajustes para calcular correcciones.</p>';
+      return;
+    }
+    const { iob, cob } = onBoard(now);
+    let clear = 0;
+    for (let m = 0; m <= 300; m += 5) { if (onBoard(now + m * 6e4).iob < 0.1) { clear = m; break; } }
+
+    const adp = adaptNow();
+    const isf = adp.isf;
+    const learned = adp.isfMul !== 1 ? adp.isf : null;
+
+    const last = readings()[0];
+    const age = last ? (now - last.ts) / 6e4 : Infinity;
+    const doseTimes = entries.filter(e => (e.type === 'meal' || e.type === 'reading') && e.dose > 0).map(e => e.ts);
+    const sinceDose = doseTimes.length ? (now - Math.max(...doseTimes)) / 6e4 : Infinity;
+    const lowRecent = readings().some(r => r.mgdl < 70 && now - r.ts < 3 * 36e5);
+
+    h += `<div class="tj"><div class="u">${fmt(Math.round(iob * 10) / 10)}<small>U de Fiasp activa</small></div><div class="hint">${cob >= 1 ? fmt(Math.round(cob)) + ' g de hidratos por absorber' : 'sin hidratos por absorber'}</div></div>`;
+    h += `<p class="tjnote" style="margin-top:6px">${iob >= 0.1 ? 'Casi toda habrá actuado en ' + fmtDur(clear * 6e4) + '.' : 'No tienes insulina rápida activa.'}</p>`;
+    h += basalInfo(now);
+    let why = '', units = 0, parts = null;
+    if (!last || age > 60) why = 'Mide tu glucosa para calcular una corrección (la última lectura tiene más de 1 hora).';
+    else if (lowRecent || last.mgdl < 70) why = 'Has tenido una glucosa baja en las últimas 3 horas: no se propone corrección.';
+    else if ((trendNow() || {}).level <= -1) why = 'Tu glucosa está bajando: no se propone corrección ahora. Vuelve a mirar en unos minutos.';
+    else if (sinceDose < 120) why = `Hace ${fmtDur(sinceDose * 6e4)} que te pusiste insulina y aún no ha hecho su efecto principal. Espera ${fmtDur((120 - sinceDose) * 6e4)} y vuelve a medir.`;
+    else if (last.mgdl < Math.max(130, target + 40)) why = `Tu última glucosa (${fmt(last.mgdl)}) no necesita corrección.`;
+    else {
+      const plain = (last.mgdl - target) / isf;
+      const raw = plain - iob + cob / icr;
+      units = Math.min(Math.floor(raw / step + 1e-9) * step, Math.floor(plain / step + 1e-9) * step);
+      if (max > 0) units = Math.min(units, max);
+      if (!(units > 0)) { units = 0; why = 'Con la insulina que aún tienes activa, no hace falta añadir más ahora.'; }
+      else parts = { plain, cobU: cob / icr };
+    }
+
+    if (!parts) {
+      h += `<div class="warn" style="margin-top:12px">${esc(why)}</div>`;
+      if (last && age <= 60 && last.mgdl > 250) h += '<div class="warn danger" style="margin-top:8px">Glucemia alta: mide cetonas y sigue la pauta que tengas para corrección.</div>';
+      box.innerHTML = h; return;
+    }
+    corrSuggested = units;
+    h += `<div class="tj" style="margin-top:14px"><div class="u">${fmt(units)}<small>U extra sugeridas</small></div></div>
+      <div class="break">
+        <div><span>Para bajar de ${fmt(last.mgdl)} a ${fmt(target)}</span><span>${fmt(parts.plain)} U</span></div>
+        <div><span>Insulina que aún actúa</span><span>−${fmt(iob)} U</span></div>
+        ${cob >= 1 ? `<div><span>Hidratos por absorber (${fmt(Math.round(cob))} g)</span><span>+${fmt(parts.cobU)} U</span></div>` : ''}
+        <div><span>Sensibilidad usada</span><span>${fmt(isf)} mg/dL por U${learned && learned !== isfCfg ? ' (aprendida)' : ''}</span></div>
+      </div>`;
+    const w = [];
+    if (last.mgdl > 250) w.push(['danger', 'Glucemia alta: mide cetonas y sigue la pauta que tengas para corrección.']);
+    if (last.context === 'noche' || new Date().getHours() < 6) w.push(['', 'De madrugada las correcciones tienen más riesgo de hipoglucemia: sigue tu pauta nocturna.']);
+    if (gymToday()) w.push(['gym', 'Hoy has hecho gym: puede haber bajada tardía. Mide de nuevo en 2 o 3 horas.']);
+    h += w.length ? `<div class="warns">${w.map(x => `<div class="warn ${x[0]}">${esc(x[1])}</div>`).join('')}</div>` : '';
+    h += `<div class="field" style="margin-top:10px"><label for="corrDose">Insulina que me pongo (U)</label>
+        <input id="corrDose" name="corr-dosis" autocomplete="off" type="number" step="${step}" min="0" inputmode="decimal" value="${corrTyped ?? units}"></div>
+      <button class="btn violet block" id="corrSave" type="button" style="margin-top:10px">Registrar corrección</button>
+      <p class="fine">Estimación con la curva de Fiasp (actúa a los 5 a 10 min, pico entre 1 y 3 h, desaparece en 3 a 5 h). Redondeada hacia abajo a saltos de ${fmt(step)} U. Confírmala con la pauta de tu endocrino; mide a las 3 o 4 horas.</p>`;
+    box.innerHTML = h;
+
+    $('#corrDose').addEventListener('input', e => { corrTyped = e.target.value; });
+    $('#corrSave').addEventListener('click', async ev => {
+      const btn = ev.currentTarget;
+      const typed = numOrNull($('#corrDose').value);
+      if (!(typed > 0 && typed <= 100)) { toast('Revisa la dosis', 'err'); return; }
+      if (max > 0 && typed > max && !confirm(`Supera tu aviso de ${fmt(max)} U. ¿Registrar de todos modos?`)) return;
+      btn.disabled = true;
+      try {
+        await addEntry({ type: 'meal', kind: 'correccion', carbs: 0, bg: last.mgdl, dose: typed, suggested: units, gym: gymToday() });
+        corrTyped = null;
+        toast('Corrección guardada. Mide a las 3 o 4 horas');
+      } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
+    });
+  }
+    /* ---------- Gym ---------- */
+  function renderGym() {
+    const on = gymToday();
+    $('#gymSwitch').setAttribute('aria-checked', on);
+    $('#gymInfo').hidden = !on;
+  }
+  $('#gymSwitch').addEventListener('click', async () => {
+    try {
+      const own = entries.filter(e => e.type === 'day' && e.gym && dayStr(e.ts) === todayKey());
+      if (own.length) { for (const e of own) await removeEntry(e); toast('Gym desmarcado'); }
+      else { await addEntry({ type:'day', gym:true }); toast('Día de gym marcado. A por ello 💪'); }
+    } catch (err) { toast(err.message, 'err'); }
+  });
+
+  /* ---------- Registro ---------- */
+  function describe(e) {
+    const tags = e.gym ? '<span class="tag">gym</span>' : '';
+    if (e.type === 'meal') {
+      const lab = e.kind === 'cafe' ? 'Café / snack' : e.kind === 'correccion' ? 'Corrección' : 'Comida';
+      const sug = e.suggested != null && e.suggested !== e.dose ? ` (la app sugería ${fmt(e.suggested)})` : '';
+      return [ '🍽️', `<b>${lab}</b>: ${e.carbs ? fmt(e.carbs) + ' g de hidratos, ' : ''}Fiasp ${fmt(e.dose)} U${sug}${e.bg ? ', glucemia ' + fmt(e.bg) : ''}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
+    }
+    if (e.type === 'reading') {
+      const lab = e.kind === 'cafe' ? 'café / snack' : e.kind === 'comida' ? 'comida' : 'corrección';
+      const ins = e.dose > 0 ? `, ${lab} con Fiasp <b>${fmt(e.dose)} U</b>` : '';
+      return [ '🩸', `<b>${fmt(e.mgdl)} mg/dL</b> ${CTX[e.context] || ''}${ins}${tags}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
+    }
+    if (e.type === 'basal') return [ '💉', `<b>Toujeo ${fmt(e.units)} U</b>${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
+    if (e.type === 'chart') {
+      const s = e.summary || {};
+      return [ '📈', `<b>Gráfica</b> ${esc(s.periodo || '')}: media ${s.media_mgdl != null ? fmt(s.media_mgdl) + ' mg/dL' : '—'}, en rango ${s.tir_pct != null ? fmt(s.tir_pct) + ' %' : '—'}${e.note ? '<small>' + esc(e.note) + '</small>' : ''}` ];
+    }
+    if (!e.gym) return [ '🗓️', '<b>Día anotado</b>' ];
+    return [ '🏋️', '<b>Día de gym</b> (musculación y cardio)' ];
+  }
+  function fillLog(sel, n) {
+    const box = $(sel);
+    if (!entries.length) { box.innerHTML = '<p class="empty">Todavía no hay registros.</p>'; return; }
+    box.innerHTML = entries.slice(0, n).map(e => {
+      const [ic, html] = describe(e);
+      return `<div class="row" data-id="${e.id}"><div class="ic ${e.type}" aria-hidden="true">${ic}</div><div>${html}<small>${new Date(e.ts).toLocaleString('es-ES', { weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div><div style="display:flex;gap:2px"><button class="x ed" type="button" aria-label="Editar registro">✎</button><button class="x" type="button" aria-label="Borrar registro">×</button></div></div>`;
+    }).join('');
+  }
+  /* Registro agrupado por días (pestaña Glucosa) */
+  let logDays = 7;          // cuántos días se muestran
+  const dayOpen = {};       // recuerda qué días has abierto o cerrado
+  const rowHtml = e => {
+    const [ic, html] = describe(e);
+    return `<div class="row" data-id="${e.id}"><div class="ic ${e.type}" aria-hidden="true">${ic}</div><div>${html}<small>${clock(e.ts)}</small></div><div style="display:flex;gap:2px"><button class="x ed" type="button" aria-label="Editar registro">✎</button><button class="x" type="button" aria-label="Borrar registro">×</button></div></div>`;
+  };
+  const dayLabel = d => {
+    const t = new Date(d + 'T12:00:00').getTime();
+    if (d === todayKey()) return 'Hoy · ' + new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    if (d === dayStr(Date.now() - DAY)) return 'Ayer · ' + new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    return new Date(t).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+  };
+  function groupedLog(box) {
+    if (!entries.length) { box.innerHTML = '<p class="empty">Todavía no hay registros.</p>'; return; }
+    const byDay = new Map();
+    entries.forEach(e => { const d = dayStr(e.ts); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(e); });
+    const days = [...byDay.keys()];
+    const rs = readings();
+    const html = days.slice(0, logDays).map(d => {
+      const list = byDay.get(d);
+      const meals = list.filter(e => e.type === 'meal' && (e.kind || 'comida') === 'comida').length;
+      const fiasp = list.reduce((a, e) => a + ((e.type === 'meal' || e.type === 'reading') && e.dose > 0 ? e.dose : 0), 0);
+      const g = rs.filter(r => dayStr(r.ts) === d).map(r => r.mgdl);
+      const gym = list.some(e => e.gym);
+      const low = g.length > 0 && Math.min(...g) < 70;
+      const info = [
+        meals ? `${meals} comida${meals === 1 ? '' : 's'}` : '',
+        fiasp > 0 ? `${fmt(Math.round(fiasp * 10) / 10)} U` : '',
+        g.length ? `${Math.min(...g)}–${Math.max(...g)} mg/dL` : ''
+      ].filter(Boolean).join(' · ');
+      const open = dayOpen[d] ?? (d === todayKey());
+      return `<details class="day" data-day="${d}" ${open ? 'open' : ''}><summary><span class="dl">${dayLabel(d)}${gym ? '<span class="tag">gym</span>' : ''}${low ? '<span class="tag" style="background:rgba(224,138,154,.2);color:#A8394F">⚠️ bajada</span>' : ''}</span><span class="hint">${info}</span></summary><div class="log">${list.map(rowHtml).join('')}</div></details>`;
+    }).join('');
+    const more = days.length > logDays ? `<button class="btn ghost block" type="button" id="moreDays">Ver días anteriores (${days.length - logDays} más)</button>` : '';
+    box.innerHTML = html + more;
+  }
+  $('#entryLog').addEventListener('toggle', ev => { const d = ev.target; if (d.dataset && d.dataset.day) dayOpen[d.dataset.day] = d.open; }, true);
+  $('#entryLog').addEventListener('click', ev => { if (ev.target.closest('#moreDays')) { logDays += 7; renderEntries(); } });
+  function renderEntries() {
+  fillLog('#entryLogHoy', 6); groupedLog($('#entryLog'));
+  const info = $('#recentInfo'), last = entries[0];
+  if (info) info.textContent = last ? 'Último: ' + whenLabel(last.ts) : 'Sin registros';
+}
+  ['#entryLogHoy', '#entryLog'].forEach(sel => $(sel).addEventListener('click', async ev => {
+    const btn = ev.target.closest('.x'); if (!btn) return;
+    const e = entries.find(x => x.id === btn.closest('.row').dataset.id);
+    if (e && btn.classList.contains('ed')) { openEdit(e); return; }
+    if (e && confirm('¿Borrar este registro?')) { try { await removeEntry(e); toast('Registro borrado'); } catch (err) { toast(err.message, 'err'); } }
+  }));
+
+  function renderHist() {
+    const meals = entries.filter(e => e.type === 'meal').slice(0, 12);
+    const box = $('#histBox');
+    if (!meals.length) { box.innerHTML = '<p class="empty">Todavía no has guardado comidas.</p>'; return; }
+    box.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hidratos</th><th>Glucemia</th><th>Fiasp</th></tr></thead><tbody>` +
+      meals.map(h => `<tr><td>${new Date(h.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}${h.hasPhoto ? ' 📷' : ''}</td><td>${fmt(h.carbs)} g</td><td>${h.bg ? fmt(h.bg) + ' mg/dL' : '—'}</td><td>${fmt(h.dose)} U</td></tr>`).join('') + '</tbody></table>';
+  }
+  $('#pdfBtn').addEventListener('click', e => e.preventDefault());
+    /* ---------- PDF de últimas comidas ---------- */
+  const loadJsPdf = () => window.jspdf ? Promise.resolve(window.jspdf) : new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = () => ok(window.jspdf);
+    s.onerror = () => ko(new Error('No se pudo cargar el generador de PDF. Comprueba tu conexión'));
+    document.head.appendChild(s);
+  });
+  const imgSize = src => new Promise(ok => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.onerror = () => ok(null); i.src = src; });
+  async function fetchPhotos(meals) {
+    const ids = meals.filter(m => m.hasPhoto).map(m => m.id);
+    if (!ids.length || !isCloud()) return {};
+    try { return (await api('/api/data?what=photos&ids=' + ids.join(','))).photos || {}; } catch { return {}; }
+  }
+  $('#pdfBtn').addEventListener('click', async () => {
+    const btn = $('#pdfBtn');
+    const meals = entries.filter(e => e.type === 'meal').slice(0, 12);
+    if (!meals.length) { toast('Todavía no hay comidas', 'err'); return; }
+    btn.disabled = true; btn.textContent = 'Generando…';
+    try {
+      const [{ jsPDF }, photos] = await Promise.all([loadJsPdf(), fetchPhotos(meals)]);
+      const sizes = {};
+      await Promise.all(Object.entries(photos).map(async ([id, src]) => { sizes[id] = await imgSize(src); }));
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const M = 14, X = { foto: M, fecha: M + 36, hc: M + 82, bg: M + 114, fi: M + 152 };
+      let y = 22;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(31, 48, 64);
+      doc.text('Últimas comidas', M, y);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(100);
+      doc.text('GlucoPlan · generado el ' + new Date().toLocaleString('es-ES', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }), M, y + 6);
+      y += 16;
+      const head = () => {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(100);
+        [['Foto', X.foto], ['Fecha', X.fecha], ['Hidratos', X.hc], ['Glucemia', X.bg], ['Fiasp', X.fi]].forEach(([t, x]) => doc.text(t, x, y));
+        doc.setDrawColor(190); doc.line(M, y + 2.5, 210 - M, y + 2.5);
+        y += 5;
+      };
+      head();
+      meals.forEach(m => {
+        const photo = photos[m.id], h = photo ? 24 : 10;
+        if (y + h > 282) { doc.addPage(); y = 22; head(); }
+        if (photo && sizes[m.id]) {
+          const [w0, h0] = sizes[m.id], k = Math.min(32 / w0, 20 / h0);
+          try { doc.addImage(photo, 'JPEG', M, y + (h - h0 * k) / 2, w0 * k, h0 * k); } catch {}
+        }
+        const ty = y + h / 2 + 1.5;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30);
+        doc.text(new Date(m.ts).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }), X.fecha, ty);
+        doc.text(fmt(m.carbs || 0) + ' g', X.hc, ty);
+        doc.text(m.bg ? fmt(m.bg) + ' mg/dL' : '-', X.bg, ty);
+        doc.text(fmt(m.dose || 0) + ' U', X.fi, ty);
+        doc.setDrawColor(225); doc.line(M, y + h, 210 - M, y + h);
+        y += h;
+      });
+      doc.setFontSize(8); doc.setTextColor(120);
+      doc.text('Registro personal. No sustituye la indicación de tu endocrino.', M, Math.min(y + 8, 290));
+      doc.save('glucoplan-ultimas-comidas.pdf');
+    } catch (err) { toast(err.message, 'err'); }
+    btn.disabled = false; btn.textContent = 'Descargar PDF';
+  });
+
+    /* Ficha única de Hoy: solo glucosa, café o snack, corrección (Comida lleva a su pestaña) */
+  let whenTouched = false, ctxTouched = false, insAuto = false, mode = 'glucosa';
+  const SNACK_G = { 'Café con leche': 6, 'Merienda': 12, 'Sobre azúcar': 12 };
+  const SUBS = {
+    glucosa: 'Apunta tu glucosa. La lectura de 2 horas después de comer es la que más enseña al coach.',
+    snack: 'Un café con leche, una merienda o un sobre de azúcar. Los hidratos se rellenan solos y la insulina es opcional.',
+    correccion: 'Una dosis para bajar una glucosa alta, sin comer.'
+  };
+  const readTs = () => (whenTouched ? new Date($('#r-when').value).getTime() : Date.now());
+
+  // Propone el tipo de lectura: si hace 1 h 15 min a 3 h 30 min que anotaste una comida, es «2 h después»; si no, según la hora
+  function ctxFor(ts) {
+    const m = entries.filter(e => e.type === 'meal' && (e.kind || 'comida') === 'comida' && e.carbs >= 10 && ts - e.ts >= 75 * 6e4 && ts - e.ts <= 210 * 6e4)
+      .sort((a, b) => b.ts - a.ts)[0];
+    if (m) {
+      const mh = new Date(m.ts).getHours();
+      return mh >= 22 || mh < 5 ? 'otro' : mh < 12 ? 'post2h_desayuno' : mh < 17 ? 'post2h' : 'post2h_cena';
+    }
+    const h = new Date(ts).getHours();
+    return h >= 5 && h < 11 ? 'ayunas' : h >= 11 && h < 17 ? 'pre_comida' : h >= 17 && h < 22 ? 'pre_cena' : 'otro';
+  }
+  function autoCtx() {
+    if (ctxTouched) return;
+    const ts = readTs();
+    if (isFinite(ts)) $('#r-ctx').value = ctxFor(ts);
+  }
+  const setNow = () => { if (!whenTouched) $('#r-when').value = toLocalInput(Date.now()); autoCtx(); };
+  $('#r-when').addEventListener('input', () => { whenTouched = true; autoCtx(); });
+  $('#r-now').addEventListener('click', () => { whenTouched = false; setNow(); });
+  $('#r-ctx').addEventListener('change', () => { ctxTouched = true; });
+  $('#r-ins').addEventListener('input', () => { insAuto = false; $('#r-ins-hint').textContent = ''; });
+
+  function setMode(m) {
+    if (m === 'comida') { showTab('comida'); return; }
+    mode = m;
+    $$('#rMode .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.m === m)));
+    const glu = m === 'glucosa', snack = m === 'snack', corr = m === 'correccion';
+    $('#qNotes').hidden = !snack; $('#f-carbs').hidden = !snack;
+    $('#f-ins').hidden = glu; $('#f-ctx').hidden = !glu;
+    $('#r-sub').textContent = SUBS[m];
+    const ins = $('#r-ins'), hint = $('#r-ins-hint');
+    if (glu || insAuto) { ins.value = ''; insAuto = false; }
+    hint.textContent = '';
+    if (!snack) { $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false')); $('#r-carbs').value = ''; }
+    if (corr && !(numOrNull(ins.value) > 0)) {
+      if (corrSuggested > 0) { ins.value = corrSuggested; insAuto = true; hint.textContent = `Sugerida por la app: ${fmt(corrSuggested)} U. Cámbiala por lo que te pongas de verdad.`; }
+      else hint.textContent = 'Ahora mismo la app no sugiere corrección: escribe lo que te pongas.';
+    }
+  }
+  $$('#rMode .chip').forEach(c => c.addEventListener('click', () => setMode(c.dataset.m)));
+
+  $$('#qNotes .chip').forEach(c => c.addEventListener('click', () => {
+    const on = c.getAttribute('aria-pressed') !== 'true';
+    $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    const n = $('#r-note'), cur = n.value.trim(), labels = Object.keys(SNACK_G);
+    if (on) {
+      c.setAttribute('aria-pressed', 'true');
+      n.value = !cur || labels.includes(cur) ? c.textContent : cur + ', ' + c.textContent;
+      $('#r-carbs').value = SNACK_G[c.textContent.trim()];
+    } else { if (cur === c.textContent) n.value = ''; $('#r-carbs').value = ''; }
+  }));
+
+  $('#saveReading').addEventListener('click', async () => {
+    const btn = $('#saveReading');
+    if (btn.disabled) return;
+    const mgdl = numOrNull($('#r-val').value), units = numOrNull($('#r-ins').value), carbs = numOrNull($('#r-carbs').value);
+    if (mgdl != null && !(mgdl >= 20 && mgdl <= 600)) { toast('Escribe una glucosa entre 20 y 600 mg/dL', 'err'); return; }
+    if (units != null && !(units >= 0 && units <= 100)) { toast('Revisa las unidades de insulina', 'err'); return; }
+    if (carbs != null && !(carbs >= 0 && carbs <= 100)) { toast('Revisa los hidratos (0 a 100 g)', 'err'); return; }
+    if (mode === 'glucosa' && mgdl == null) { toast('Escribe la glucosa', 'err'); return; }
+    if (mode === 'correccion' && (mgdl == null || !(units > 0))) { toast('Escribe la glucosa y la insulina que te pones', 'err'); return; }
+    if (mode === 'snack' && !(carbs > 0) && !(units > 0)) { toast('Elige un café o snack, o escribe los hidratos', 'err'); return; }
+    const ts = readTs();
+    if (!isFinite(ts)) { toast('Elige la fecha y la hora', 'err'); return; }
+    if (ts > Date.now() + 5 * 6e4) { toast('La hora no puede ser futura', 'err'); return; }
+    const note = $('#r-note').value.trim(), gym = gymToday();
+    btn.disabled = true;
+    try {
+      if (mode === 'snack') {
+        await addEntry({ type:'meal', kind:'cafe', carbs: carbs || 0, bg: mgdl, dose: units > 0 ? units : 0, suggested: null, absorb:'rapida', note, gym, ts });
+      } else if (mode === 'correccion') {
+        await addEntry({ type:'reading', mgdl, context: ctxFor(ts), dose: units, kind:'correccion', note, gym, ts });
+      } else {
+        await addEntry({ type:'reading', mgdl, context: $('#r-ctx').value, note, gym, ts });
+      }
+      ['#r-val', '#r-ins', '#r-note', '#r-carbs'].forEach(id => { $(id).value = ''; });
+      $$('#qNotes .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+      whenTouched = false; ctxTouched = false; insAuto = false; setNow();
+      rValTouched = false; $('#r-val').dataset.auto = ''; autoFillReading();
+      setMode(mode);
+      toast(mgdl != null && mgdl < 70 ? 'Guardado. Glucosa baja: trátala según tu pauta' : 'Guardado' + (units > 0 ? ': ' + fmt(units) + ' U' : ''), mgdl != null && mgdl < 70 ? 'err' : 'ok');
+    } catch (err) { toast(err.message, 'err'); }
+    btn.disabled = false;
+  });
+  $('#r-val').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveReading').click(); });
+  setMode('glucosa');
+
+
+  /* ---------- Gráfica ---------- */
+  function drawChart(el, days, anim, dayStart) {
+    const dayMode = dayStart != null;
+    const to = dayMode ? (() => { const e = new Date(dayStart); e.setDate(e.getDate() + 1); return e.getTime(); })() : Date.now();
+    const from = dayMode ? dayStart : to - days * DAY;
+    const rs = readings().filter(r => r.ts >= from && r.ts <= to).sort((a, b) => a.ts - b.ts);
+    if (!rs.length) { el.innerHTML = '<p class="empty">Sin lecturas en este periodo. Anota una glucosa y aparecerá aquí.</p>'; return; }
+    const W = 680, H = 260, pl = 34, pr = 10, pt = 14, pb = 38;
+    const vals = rs.map(r => r.mgdl);
+    const lo = Math.min(50, Math.min(...vals) - 10), hi = Math.max(220, Math.max(...vals) + 15);
+    const x = t => pl + (t - from) / (to - from) * (W - pl - pr);
+    const y = v => pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb);
+
+    // Bandas de días de gym
+    const gymDays = [...new Set(entries.filter(e => e.type === 'day' && e.gym && e.ts >= from - DAY).map(e => dayStr(e.ts)))];
+    const bands = gymDays.map(d => {
+      const s = new Date(d + 'T00:00:00').getTime(), e = s + DAY;
+      const x1 = Math.max(pl, x(s)), x2 = Math.min(W - pr, x(e));
+      return x2 > x1 ? `<rect x="${x1}" y="${pt}" width="${x2 - x1}" height="${H - pt - pb}" fill="rgba(157,149,224,.13)" rx="6"/>` : '';
+    }).join('');
+
+    // Ejes
+    let ticks = '';
+    const stepMs = dayMode ? 3 * 36e5 : days <= 1.5 ? 6 * 36e5 : days <= 8 ? DAY : 7 * DAY;
+    const t0 = new Date(from);
+    if (stepMs < DAY) t0.setMinutes(0, 0, 0); else t0.setHours(0, 0, 0, 0);
+    for (let t = t0.getTime(); t <= to; t += stepMs) {
+      if (t < from) continue;
+      const lab = stepMs < DAY ? pad(new Date(t).getHours()) + ':00' : days <= 8 ? new Date(t).toLocaleDateString('es-ES', { weekday:'short' }) : new Date(t).toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+      ticks += `<text class="axis" x="${x(t)}" y="${H - 8}" text-anchor="middle">${lab}</text>`;
+    }
+    const grid = [70, 180].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(40,70,95,.18)" stroke-dasharray="4 5"/><text class="axis" x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join('');
+
+    // Trazo en segmentos (corta si hay huecos grandes)
+    const segs = []; let cur = [];
+    rs.forEach((r, i) => { if (i && r.ts - rs[i - 1].ts > 9 * 36e5) { segs.push(cur); cur = []; } cur.push(r); });
+    segs.push(cur);
+    const smooth = P => {
+      if (P.length < 2) return '';
+      let d = `M${P[0][0]},${P[0][1]}`;
+      for (let i = 0; i < P.length - 1; i++) {
+        const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2, k = 0.16;
+        d += ` C${p1[0] + (p2[0] - p0[0]) * k},${p1[1] + (p2[1] - p0[1]) * k} ${p2[0] - (p3[0] - p1[0]) * k},${p2[1] - (p3[1] - p1[1]) * k} ${p2[0]},${p2[1]}`;
+      }
+      return d;
+    };
+    const paths = segs.map(sg => {
+      const P = sg.map(r => [x(r.ts), y(r.mgdl)]);
+      const d = smooth(P); if (!d) return '';
+      const area = `${d} L${P[P.length - 1][0]},${y(lo)} L${P[0][0]},${y(lo)}Z`;
+      return `<path d="${area}" fill="url(#ga-${el.id})"/><path d="${d}" fill="none" stroke="url(#gl-${el.id})" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" ${anim ? 'class="draw" pathLength="1"' : ''}/>`;
+    }).join('');
+
+    // Puntos y marcadores
+    const hits = rs.map(r => ({ ts: r.ts, px: x(r.ts), py: y(r.mgdl), html: `<b style="color:${gText(r.mgdl)}">${fmt(r.mgdl)} mg/dL</b><br>${r.sensor ? 'sensor' : (CTX[r.context] || '')} · ${whenLabel(r.ts)}` }));
+    let marks = '';
+    entries.filter(e => (e.type === 'basal' || e.type === 'meal' || (e.type === 'reading' && e.dose > 0)) && e.ts >= from && e.ts <= to).forEach(e => {
+      const px = x(e.ts), py = H - pb - 8;
+      if (e.type === 'basal') { marks += `<rect x="${px - 5}" y="${py - 5}" width="10" height="10" fill="#9D95E0" transform="rotate(45 ${px} ${py})"/>`; hits.push({ ts: e.ts, px, py, html: `<b style="color:#6A62B8">Toujeo ${fmt(e.units)} U</b><br>${whenLabel(e.ts)}` }); }
+      else {
+        const lab = e.type === 'meal' && e.carbs > 0 ? `Comida ${fmt(e.carbs)} g · ${fmt(e.dose)} U` : `Insulina ${fmt(e.dose)} U`;
+        marks += `<circle cx="${px}" cy="${py}" r="5" fill="#E0B473"/>`;
+        hits.push({ ts: e.ts, px, py, html: `<b style="color:#A8741A">${lab}</b><br>${whenLabel(e.ts)}` });
+      }
+    });
+    const dots = rs.map(r => `<circle class="pt" cx="${x(r.ts)}" cy="${y(r.mgdl)}" r="${rs.length > 60 ? 2.5 : 4.5}" fill="${gColor(r.mgdl)}" stroke="#fff" stroke-width="2"/>`).join('');
+
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfica de glucosa">
+      <defs>
+        <linearGradient id="gl-${el.id}" x1="0" x2="1"><stop offset="0" stop-color="#6FCFBF"/><stop offset="1" stop-color="#7BB8DE"/></linearGradient>
+        <linearGradient id="ga-${el.id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#6FCFBF" stop-opacity=".28"/><stop offset="1" stop-color="#6FCFBF" stop-opacity="0"/></linearGradient>
+      </defs>
+      <rect x="${pl}" y="${y(180)}" width="${W - pl - pr}" height="${y(70) - y(180)}" fill="rgba(127,203,154,.17)" rx="6"/>
+      ${bands}${grid}${ticks}${paths}${dots}${marks}
+      <circle id="hl" r="9" fill="none" stroke="#4A6A86" stroke-width="2" opacity="0"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="transparent" id="hit"/>
+    </svg><div class="tip" hidden></div>`;
+    const svg = $('svg', el), tip = $('.tip', el), hl = $('#hl', el);
+    const move = ev => {
+      const r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) / r.width * W;
+      let best = null, bd = 1e9;
+      hits.forEach(h => { const d = Math.abs(h.px - sx); if (d < bd) { bd = d; best = h; } });
+      if (!best || bd > 40) { tip.hidden = true; hl.setAttribute('opacity', 0); return; }
+      tip.innerHTML = best.html; tip.hidden = false;
+      tip.style.left = Math.min(Math.max(best.px / W * 100, 14), 86) + '%'; tip.style.top = (best.py / H * 100) + '%';
+      hl.setAttribute('cx', best.px); hl.setAttribute('cy', best.py); hl.setAttribute('opacity', 1);
+    };
+    const hit = $('#hit', el);
+    hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+    hit.addEventListener('pointerleave', () => { tip.hidden = true; hl.setAttribute('opacity', 0); });
+  }
+  function renderStats() {
+    const { from, to } = chartRange();
+    const rs = readings().filter(r => r.ts >= from && r.ts <= to);
+    const st = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+    if (!rs.length) { $('#gStats').innerHTML = ''; return; }
+    const v = rs.map(r => r.mgdl);
+    $('#gStats').innerHTML = st(rs.length, 'lecturas') + st(fmt(Math.round(v.reduce((a, b) => a + b, 0) / v.length)), 'media mg/dL') +
+      st(Math.round(rs.filter(r => r.mgdl >= 70 && r.mgdl <= 180).length / rs.length * 100) + ' %', 'en rango') + st(Math.min(...v), 'mínima') + st(Math.max(...v), 'máxima');
+  }
+  function renderCharts(anim) {
+    if (!$('#tab-hoy').hidden) drawChart($('#chartHoy'), 1, anim);
+    if (!$('#tab-glucosa').hidden) { drawChart($('#chartMain'), chartDays || 1, anim, chartDays === 0 ? chartDay : null); renderStats(); renderDayNav(); }
+  }
+  function renderDayNav() {
+    const nav = $('#dayNav'); nav.hidden = chartDays !== 0;
+    if (chartDays !== 0) return;
+    const isToday = chartDay >= startOfDay(Date.now());
+    const d = new Date(chartDay);
+    $('#dayLabel').textContent = isToday
+      ? 'Hoy · ' + d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+      : d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    $('#dayNext').disabled = isToday;
+  }
+  $('#dayPrev').addEventListener('click', () => { const d = new Date(chartDay); d.setDate(d.getDate() - 1); chartDay = d.getTime(); renderCharts(true); });
+  $('#dayNext').addEventListener('click', () => {
+    const d = new Date(chartDay); d.setDate(d.getDate() + 1);
+    if (d.getTime() > startOfDay(Date.now())) return;
+    chartDay = d.getTime(); renderCharts(true);
+  });
+  $$('#rangePills .chip').forEach(c => c.addEventListener('click', () => {
+    chartDays = Number(c.dataset.r);
+    if (chartDays === 0) chartDay = startOfDay(Date.now());
+    $$('#rangePills .chip').forEach(x => x.setAttribute('aria-pressed', x === c));
+    renderCharts(true);
+  }));
+  $('#toGlucosa').addEventListener('click', () => showTab('glucosa'));
+
+  /* ---------- Pestañas ---------- */
+  const TABS = ['hoy', 'comida', 'glucosa', 'coach', 'ajustes'];
+  function showTab(name) {
+    $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
+    $$('.tabpanel').forEach(p => {
+      const on = p.id === 'tab-' + name;
+      p.hidden = !on; p.classList.remove('enter');
+      if (on) { void p.offsetWidth; p.classList.add('enter'); }
+    });
+    if (name === 'coach') renderLearn();
+    renderCharts(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  $$('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+
+  // Brillo que sigue al puntero en las tarjetas
+  document.addEventListener('pointermove', e => {
+    const c = e.target.closest && e.target.closest('.card');
+    if (!c) return;
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+
+  /* ---------- Alimentos ---------- */
+  $('#foodList').innerHTML = FOODS.map(f => `<option value="${f[0]}">`).join('');
+  const itemCarbs = it => (it.grams || 0) * it.cp100 / 100;
+
+  function renderItems() {
+    const box = $('#items');
+    if (!items.length) { box.innerHTML = '<p class="empty">Aún no hay alimentos. Haz una foto o añádelos a mano.</p>'; calc(); return; }
+    box.innerHTML = items.map(it => `
+      <div class="item" data-id="${it.id}">
+        <div class="name">${esc(it.name)}<small class="${it.conf === 'baja' ? 'low' : ''}">${fmt(it.cp100)} g de hidratos por 100 g${it.conf ? ', confianza ' + it.conf : ''}</small>${it.prot != null ? `<small>Proteínas ${fmt((it.grams || 0) * it.prot / 100)} g · grasas ${fmt((it.grams || 0) * it.fat / 100)} g · fibra ${fmt((it.grams || 0) * it.fibre / 100)} g</small>` : ''}</div>
+        <input type="number" inputmode="decimal" min="0" value="${it.grams}" aria-label="Gramos de ${esc(it.name)}">
+        <div class="c">${fmt(itemCarbs(it))} g</div>
+        <button class="x" type="button" aria-label="Quitar ${esc(it.name)}">×</button>
+      </div>`).join('');
+    $$('.item', box).forEach(row => {
+      const it = items.find(i => i.id == row.dataset.id);
+      $('input', row).addEventListener('input', e => { it.grams = parseFloat(e.target.value) || 0; $('.c', row).textContent = fmt(itemCarbs(it)) + ' g'; calc(); });
+      $('.x', row).addEventListener('click', () => { items = items.filter(i => i !== it); renderItems(); });
+    });
+    calc();
+  }
+  $('#addBtn').addEventListener('click', async () => {
+    const btn = $('#addBtn');
+    const name = $('#foodIn').value.trim();
+    const grams = parseFloat($('#gramsIn').value);
+    if (!name) { setStatus('#status', 'err', 'Escribe un alimento o un plato.'); return; }
+    const f = FOODS.find(x => x[0].toLowerCase() === name.toLowerCase());
+    if (f && grams > 0) {
+      items.push({ id: nextId++, name: f[0], grams, cp100: f[1], conf: '' });
+      $('#foodIn').value = ''; $('#gramsIn').value = ''; $('#status').innerHTML = '';
+      renderItems(); return;
+    }
+    if (!isCloud()) { setStatus('#status', 'err', 'Para buscar con IA entra con tu clave. Sin ella, elige un alimento de la lista e indica los gramos.'); return; }
+    btn.disabled = true;
+    setStatus('#status', 'info', `<span class="spin"></span>Buscando «${esc(name)}»…`);
+    try {
+      const d = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'lookup', text: name, grams: grams > 0 ? grams : null }) });
+      if (!Array.isArray(d.items) || !d.items.length) setStatus('#status', 'err', 'No he podido identificar ese alimento. Prueba con otro nombre.');
+      else {
+        d.items.forEach(i => items.push({ id: nextId++, name: String(i.nombre || 'Alimento'), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), prot: Math.max(0, Number(i.proteina_100g) || 0), fat: Math.max(0, Number(i.grasa_100g) || 0), fibre: Math.max(0, Number(i.fibra_100g) || 0), abs: i.absorcion || '', conf: i.confianza || '' }));
+        $('#foodIn').value = ''; $('#gramsIn').value = '';
+        setStatus('#status', 'ok', 'Añadido con IA. Revisa los gramos.' + (d.notas ? '<br>' + esc(d.notas) : ''));
+        renderItems();
+      }
+    } catch (err) { setStatus('#status', 'err', 'No se pudo buscar (' + esc(err.message) + '). Elige uno de la lista e indica los gramos.'); }
+    btn.disabled = false;
+  });
+  let bgTouched = false;     // true si has escrito tú la glucemia en la pestaña Comida
+  $('#extra').addEventListener('input', calc);
+  $('#bg').addEventListener('input', () => { bgTouched = true; $('#bg').dataset.auto = ''; calc(); });
+
+  /* ---------- Fotos ---------- */
+  async function compress(file, max, q) {
+    const bmp = await createImageBitmap(file);
+    const r = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * r); c.height = Math.round(bmp.height * r);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', q);
+  }
+  $('#file').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compress(file, 1024, 0.78);
+      mealPhoto = await compress(file, 360, 0.65);
+      $('#preview').src = dataUrl; $('#preview').hidden = false; $('#dropText').hidden = true;
+      if (!isCloud()) { setStatus('#status', 'err', 'Para analizar la foto con IA, entra con tu clave (Ajustes > Cerrar sesión y vuelve a entrar). Mientras, añade los alimentos a mano.'); return; }
+      setStatus('#status', 'info', '<span class="spin"></span>Analizando el plato…');
+      const data = await api('/api/analyze', { method:'POST', body: JSON.stringify({ type:'food', image: dataUrl.split(',')[1], mediaType:'image/jpeg' }) });
+      if (!Array.isArray(data.items) || !data.items.length) { setStatus('#status', 'err', 'No he reconocido comida en la foto. Prueba con otra o añade los alimentos a mano.'); return; }
+      items = data.items.map(i => ({ id: nextId++, name: String(i.nombre || 'Alimento'), grams: Math.max(0, Number(i.gramos) || 0), cp100: Math.max(0, Number(i.carbs_100g) || 0), prot: Math.max(0, Number(i.proteina_100g) || 0), fat: Math.max(0, Number(i.grasa_100g) || 0), fibre: Math.max(0, Number(i.fibra_100g) || 0), abs: i.absorcion || '', conf: i.confianza || '' }));
+      setStatus('#status', 'ok', 'Estimación lista. Revisa los gramos de cada alimento antes de pinchar.' + (data.notas ? '<br>' + esc(data.notas) : ''));
+      renderItems();
+    } catch (err) { setStatus('#status', 'err', 'No se pudo analizar la foto (' + esc(err.message) + '). Añade los alimentos a mano; el cálculo funciona igual.'); }
+  });
+
+  /* ---------- Cálculo de dosis ---------- */
+  function calcDose() {
+    const s = store.settings;
+    const ad = adaptNow(), icr = ad.icr, isf = ad.isf, target = parseFloat(s.target);
+    const step = parseFloat(s.step) || 0.5;
+    const gym = gymToday();
+    const gymAdj = gym ? Math.min(50, Math.max(-50, parseFloat(s.gymAdj) || 0)) : 0;
+    const ab = autoBg(), bg = ab ? ab.v : NaN;
+    const carbs = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
+    const warns = [];
+    if (!(icr > 0)) return { missing: true, carbs };
+
+    const mealU = carbs / icr;
+    let corrU = 0;
+    let iobUsed = 0, trendNote = null;
+    if (bg > 0 && isf > 0 && target > 0) {
+      corrU = (bg - target) / isf;
+      if (corrU > 0) {
+        const iob = onBoard(Date.now()).iob;
+        if (iob > 0.05) { iobUsed = Math.min(iob, corrU); corrU -= iobUsed; }   // descuenta la insulina que aún actúa
+        const tr = trendNow();
+        if (tr && tr.level <= -2 && corrU > 0) { trendNote = tr; corrU = 0; }  // glucosa bajando: no se suma corrección
+      }
+    }
+    const raw = Math.max(0, mealU + corrU);
+    let dose = Math.round(raw * (1 + gymAdj / 100) / step) * step;
+
+    if (bg > 0 && bg < 70) { dose = 0; warns.push(['danger', 'Glucemia baja. No te pongas insulina para comer ahora: toma unos 15 g de hidratos rápidos, vuelve a medir a los 15 minutos y repite si sigue por debajo de 70.']); }
+    else if (bg >= 70 && bg < 90) warns.push(['', 'Glucemia justa. Valora pinchar después de empezar a comer: Fiasp permite ponerlo hasta 20 minutos tras el inicio de la comida.']);
+    if (bg > 250) warns.push(['danger', 'Glucemia alta. Mide cetonas y sigue la pauta que tengas para corrección.']);
+    const max = parseFloat(s.maxDose);
+    if (max > 0 && dose > max) warns.push(['danger', `La dosis supera tu aviso de ${fmt(max)} U. Revisa gramos y glucemia antes de pinchar.`]);
+    if (items.some(i => i.conf === 'baja')) warns.push(['', 'Hay alimentos con confianza baja en la foto. Pésalos o confirma los gramos.']);
+    const fatG = items.reduce((a, i) => a + (i.grams || 0) * (i.fat || 0) / 100, 0), protG = items.reduce((a, i) => a + (i.grams || 0) * (i.prot || 0) / 100, 0);
+    if (fatG >= 30 || protG >= 40) warns.push(['', `Comida con ${fmt(fatG)} g de grasa y ${fmt(protG)} g de proteína: la glucosa puede subir más tarde. Mide también a las 3 o 4 horas y comenta con tu endocrino cómo ajustarlo.`]);
+    if (carbs > 0 && !(bg > 0)) warns.push(['', 'Sin glucemia no se aplica corrección: solo cubre los hidratos.']);
+    if (trendNote) warns.push(['', `Tu glucosa está bajando (${trendNote.t.toLowerCase()}): no se suma corrección. Valora pinchar después de empezar a comer.`]);
+    if (ad.adjusted) warns.push(['', `Ajuste aprendido de ${ad.slot.name.toLowerCase()}: ratio ${fmt(ad.icr)} g/U y sensibilidad ${fmt(ad.isf)} mg/dL por U, según cómo te han ido tus últimas dosis.`]);
+    if (!(isf > 0) || !(target > 0)) warns.push(['', 'Falta el factor de sensibilidad o la glucemia objetivo en Ajustes: no se calcula la corrección.']);
+    if (gym) {
+      warns.push(['gym', gymAdj
+        ? `Hoy has hecho gym: se aplica tu ajuste de ${gymAdj > 0 ? '+' : ''}${fmt(gymAdj)} %. Mide a las 2 h y de nuevo unas 3 a 6 h después por si hay bajada tardía.`
+        : 'Hoy has hecho gym (musculación y cardio). La musculación suele subirte la glucosa, así que no se reduce la dosis. Mide a las 2 h y de nuevo unas 3 a 6 h después por si hay bajada tardía. Si necesitas un ajuste fijo, coméntalo con tu endocrino y ponlo en Ajustes.']);
+    }
+    return { carbs, mealU, corrU: bg > 0 ? corrU : 0, gymAdj, dose, warns, bg, gym, ad, ab, iobUsed };
+  }
+
+  function renderMacros() {
+    const el = $('#macros'); if (!el) return;
+    if (!items.length) { el.innerHTML = ''; return; }
+    const sum = k => items.reduce((a, i) => a + (i.grams || 0) * (i[k] || 0) / 100, 0);
+    const hc = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
+    const p = sum('prot'), g = sum('fat'), f = sum('fibre');
+    const st = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+    el.innerHTML = `<div class="stats">${st(fmt(hc) + ' g', 'hidratos')}${st(fmt(p) + ' g', 'proteínas')}${st(fmt(g) + ' g', 'grasas')}${st(fmt(f) + ' g', 'fibra')}${st(Math.round(hc * 4 + p * 4 + g * 9) + ' kcal', 'aprox.')}</div>`;
+  }
+
+  let shownDose = 0;
+  let realDoseStr = null;   // dosis que escribe la persona (null = sigue la sugerencia)
+  let absorbStr = null;     // rapida | mixta | lenta (null = automática según los alimentos)
+  const FAST_RE = /zumo|refresco|galletas|cereales|pan blanco|plátano|uvas|patatas fritas|arroz blanco/i;
+  const SLOW_RE = /lentejas|garbanzos|judías|avena|integral|hummus|pizza|aguacate/i;
+  const autoAbsorb = () => {
+    let f = 0, sl = 0;
+    items.forEach(i => {
+      const c = itemCarbs(i), a = i.abs || (FAST_RE.test(i.name) ? 'rapida' : SLOW_RE.test(i.name) ? 'lenta' : '');
+      if (a === 'rapida') f += c; else if (a === 'lenta') sl += c;
+    });
+    const tot = items.reduce((a, i) => a + itemCarbs(i), 0) + (parseFloat($('#extra').value) || 0);
+    return tot > 0 && f / tot >= 0.6 ? 'rapida' : tot > 0 && sl / tot >= 0.5 ? 'lenta' : 'mixta';
+  };
+  let mealKind = 'comida';  // comida | cafe | correccion
+  function calc() {
+    autoFillBg();
+    const r = calcDose();
+    const box = $('#doseBox'); renderMacros(); renderBgHint();
+    if (r.missing) {
+      box.innerHTML = `<p class="sub">Para calcular la dosis, pon tu ratio insulina/hidratos en Ajustes.</p>
+        <button class="btn" type="button" id="goSet">Ir a ajustes</button>
+        <p class="fine">Hidratos del plato: ${fmt(r.carbs)} g</p>`;
+      $('#goSet').addEventListener('click', () => showTab('ajustes'));
+      return;
+    }
+    box.innerHTML = `
+      <p class="sub" style="margin:4px 0 0">Hidratos totales: <strong>${fmt(r.carbs)} g</strong></p>
+      <div class="big"><span id="doseNum">${fmt(r.dose)}</span><small>unidades</small></div>
+      <div class="break">
+        <div><span>Por los hidratos</span><span>${fmt(r.mealU)} U</span></div>
+        <div><span>Corrección por glucemia</span><span>${r.corrU >= 0 ? '+' : ''}${fmt(r.corrU)} U</span></div>
+        ${r.iobUsed > 0.05 ? `<div><span>Insulina activa ya descontada</span><span>−${fmt(r.iobUsed)} U</span></div>` : ''}
+        ${r.ad && r.ad.adjusted ? `<div><span>Ratio de ${r.ad.slot.name.toLowerCase()} (aprendido)</span><span>${fmt(r.ad.icr)} g/U</span></div>` : ''}
+        ${r.gym && r.gymAdj ? `<div><span>Ajuste por gym</span><span>${r.gymAdj > 0 ? '+' : ''}${fmt(r.gymAdj)} %</span></div>` : ''}
+      </div>
+      <div class="warns">${r.warns.map(w => `<div class="warn ${w[0]}">${esc(w[1])}</div>`).join('')}</div>
+      <div class="field" style="margin:12px 0 4px">
+        <label for="realDose">Insulina que me pongo (U)</label>
+        <input id="realDose" type="number" step="${parseFloat(store.settings.step) || 0.5}" min="0" inputmode="decimal" value="${realDoseStr ?? r.dose}">
+        <span class="hint">Pon la dosis real. La app aprende de lo que te pones, no de lo que sugiere.</span>
+      </div>
+
+      <div class="field" style="margin:0 0 12px">
+        <label for="absorb">Absorción de los hidratos</label>
+        <select id="absorb">
+          <option value="rapida" ${(absorbStr || autoAbsorb()) === 'rapida' ? 'selected' : ''}>Rápida (zumo, azúcar, pan blanco, fruta)</option>
+          <option value="mixta" ${(absorbStr || autoAbsorb()) === 'mixta' ? 'selected' : ''}>Mixta (plato normal)</option>
+          <option value="lenta" ${(absorbStr || autoAbsorb()) === 'lenta' ? 'selected' : ''}>Lenta (legumbres, integrales, con grasa)</option>
+        </select>
+        <span class="hint">Se propone según los alimentos; cámbiala si quieres. La corrección de «Hoy» la usa para saber cuántos hidratos te quedan por absorber.</span>
+      </div>
+      <button class="btn block" id="saveMeal" type="button" ${r.carbs <= 0 ? 'disabled' : ''}>Guardar esta toma de insulina</button>
+      <p class="fine">Fiasp: pínchate unos 2 minutos antes de comer, o hasta 20 minutos después de empezar. Redondeado a saltos de ${fmt(parseFloat(store.settings.step))} U.</p>`;
+    animateNum($('#doseNum'), r.dose, { from: shownDose, dec: r.dose % 1 ? 1 : 0, ms: 450 });
+    shownDose = r.dose;
+    $('#realDose').addEventListener('input', e => { realDoseStr = e.target.value; });
+    $('#absorb').addEventListener('change', e => { absorbStr = e.target.value; });
+    const b = $('#saveMeal');
+    if (b) b.addEventListener('click', async () => {
+      const typed = numOrNull($('#realDose').value);
+      const dose = typed == null ? r.dose : typed;
+      if (!(dose >= 0 && dose <= 100)) { toast('Revisa la dosis que te pones', 'err'); return; }
+      try {
+        const entry = { id: uid(), type:'meal', kind: mealKind, carbs: Math.round(r.carbs), bg: r.bg > 0 ? r.bg : null, dose, suggested: r.dose, absorb: absorbStr || autoAbsorb(), gym: gymToday() };
+        if (mealPhoto && isCloud() && mealKind === 'comida' && entry.carbs > 0) {
+          try { await api('/api/data', { method:'POST', body: JSON.stringify({ photo: { id: entry.id, data: mealPhoto } }) }); entry.hasPhoto = true; }
+          catch { toast('No se pudo guardar la foto; se guarda la comida sin ella', 'err'); }
+        }
+        await addEntry(entry);
+        const wasCorr = mealKind === 'correccion';
+        resetPhotoBox();
+        realDoseStr = null; mealKind = 'comida'; absorbStr = null; bgTouched = false; $('#bg').dataset.auto = ''; calc();
+        toast(wasCorr ? 'Corrección guardada. Mide a las 3 o 4 horas' : 'Guardado. Mide tu glucosa a las 2 horas');
+      } catch (err) { setStatus('#status', 'err', 'No se pudo guardar: ' + esc(err.message)); }
+    });
+
+  }
+  
+    /* ---------- Glucosa automática en la pestaña Comida ---------- */
+  function autoFillBg() {
+    const el = $('#bg');
+    if (!el || bgTouched || document.activeElement === el) return;
+    const last = readings()[0];
+    if (last && Date.now() - last.ts <= 20 * 6e4) { el.value = last.mgdl; el.dataset.auto = '1'; }
+    else if (el.dataset.auto === '1') { el.value = ''; el.dataset.auto = ''; }
+  }
+  function autoBg() {
+    const typed = parseFloat($('#bg').value);
+    if (typed > 0 && $('#bg').dataset.auto !== '1') return { v: typed, auto: false };
+    const last = readings()[0];
+    if (last && Date.now() - last.ts <= 20 * 6e4) return { v: last.mgdl, auto: true, ts: last.ts, sensor: !!last.sensor };
+    return null;
+  }
+  function renderBgHint() {
+    const el = $('#bgHint'); if (!el) return;
+    const ab = autoBg();
+    if (!ab) { el.textContent = 'Sin lectura de menos de 20 min: escribe tu glucemia o espera al sensor.'; return; }
+    if (!ab.auto) { el.textContent = 'Usando el valor que has escrito.'; return; }
+    const min = Math.max(0, Math.round((Date.now() - ab.ts) / 6e4)), t = trendNow();
+    el.textContent = `Automática: ${ab.v} mg/dL ${ab.sensor ? 'del sensor' : 'de tu última lectura'}, de hace ${min} min${t ? ' · ' + t.a + ' ' + t.t.toLowerCase() : ''}. Escribe otro valor para cambiarla.`;
+  }
+
+  /* ---------- Aprendizaje automático por franja del día ---------- */
+  // Compara cada dosis con la glucosa 2 h después (comidas) o 3 h y media después (correcciones).
+  // Si hay una glucosa baja en el camino, esa dosis cuenta doble y la franja baja la insulina enseguida.
+  // Cambios limitados a ±25 % (±30 % tras una bajada) sobre los valores de Ajustes.
+  const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+  // Lectura del sensor más cercana a un momento (solo si ya ha pasado)
+  const sensorAt = (ts, tolMin) => {
+    if (ts > Date.now()) return null;
+    let best = null, bd = tolMin * 6e4 + 1;
+    for (const p of sensor) { const d = Math.abs(p.ts - ts); if (d < bd) { bd = d; best = p; } }
+    return best;
+  };
+   const SLOTS = [
+    { id: 'desayuno', name: 'Desayuno', byDay: true, test: h => h >= 5 && h < 12 },
+    { id: 'comida', name: 'Comida', byDay: true, test: h => h >= 12 && h < 17 },
+    { id: 'cena', name: 'Cena', test: h => h >= 17 && h < 22 },
+    { id: 'noche', name: 'Acostarse y madrugada', test: h => h >= 22 || h < 5 }
+  ];
+  const slotOf = ts => SLOTS.find(s => s.test(new Date(ts).getHours())) || SLOTS[3];
+  // Viernes, sábado y domingo (menos actividad) se aprenden aparte en desayuno y comida
+  const dayType = ts => ([5, 6, 0].includes(new Date(ts).getDay()) ? 'fin' : 'lab');
+  const GROUPS = [];
+  SLOTS.forEach(s => {
+    if (s.byDay) [['lab', 'lun-jue'], ['fin', 'vie-dom']].forEach(([dt, lbl]) => GROUPS.push({ key: s.id + '_' + dt, id: s.id, name: `${s.name} (${lbl})` }));
+    else GROUPS.push({ key: s.id, id: s.id, name: s.name });
+  });
+  const groupKeyOf = ts => { const s = slotOf(ts); return s.byDay ? s.id + '_' + dayType(ts) : s.id; };
+  let adaptMemo = { key: null, val: null };
+  function adaptModel() {
+    const st = store.settings, now = Date.now();
+    const key = [entries.length, entries.reduce((a, e) => a + e.ts % 997 + (e.dose || 0) * 7 + (e.carbs || 0), 0), sensor.length,
+      sensor.length ? sensor[sensor.length - 1].ts : 0, st.icr, st.isf, st.target, st.adaptOn, st.adaptFrom, Math.floor(now / 6e4)].join('|');
+    if (adaptMemo.key === key) return adaptMemo.val;
+
+    const icr = parseFloat(st.icr), isf = parseFloat(st.isf), target = parseFloat(st.target);
+    const on = st.adaptOn !== '0';
+    const slots = {};
+    GROUPS.forEach(g => { slots[g.key] = { id: g.key, name: g.name, mealsN: 0, corrN: 0, ratios: [], isfs: [], fastIcr: 1, fastIsf: 1, lastHypo: null, icrMul: 1, isfMul: 1, icr, isf }; });
+    const M = { on, ready: icr > 0 && isf > 0 && target > 0, slots, icr, isf, target, lows14: 0, diag: null };
+    if (!M.ready) { adaptMemo = { key, val: M }; return M; }
+
+    const from = Math.max(now - 60 * DAY, Number(st.adaptFrom) || 0);
+    const all = readings().slice().sort((a, b) => a.ts - b.ts);
+    M.lows14 = all.filter(r => r.mgdl < 70 && r.ts >= now - 14 * DAY).length;
+    const gymDays = new Set(entries.filter(e => e.gym).map(e => dayStr(e.ts)));
+    const bol = entries.filter(e => e.ts >= from && e.dose > 0 && (e.type === 'meal' || e.type === 'reading'))
+      .map(e => e.type === 'reading' ? { ...e, kind: e.kind || 'correccion', carbs: 0, bg: e.mgdl } : e)
+      .sort((a, b) => a.ts - b.ts);
+    const near = (ts, tol) => {
+      let b = null, bd = tol * 6e4 + 1;
+      for (const r of all) { const d = Math.abs(r.ts - ts); if (d < bd) { bd = d; b = r; } }
+      return b;
+    };
+
+    M.diag = { dosis: bol.length, lecturas: all.length, skip: {} };
+    const skip = why => { M.diag.skip[why] = (M.diag.skip[why] || 0) + 1; };
+    const used = new Set();   // dosis extra ya sumadas a una comida anterior
+    bol.forEach((m, i) => {
+      if (used.has(m)) return;
+      if (gymDays.has(dayStr(m.ts))) return skip('día de gym');   // los días de gym tienen su propio ajuste
+      const kind = m.kind || 'comida', next = bol[i + 1], S = slots[groupKeyOf(m.ts)];
+      const isMeal = kind !== 'correccion' && m.carbs >= 10;
+      const isCorr = kind === 'correccion' && m.bg >= 130;
+      if (!isMeal && !isCorr) return skip(kind === 'correccion' ? 'corrección con glucosa menor de 130' : 'toma de menos de 10 g');
+      const t = m.ts + (isMeal ? 120 : 210) * 6e4;
+      if (t > now) return skip('aún no ha pasado el tiempo de evaluación');
+      if (isCorr && next && next.ts < t - 15 * 6e4) return skip('otra insulina de por medio');
+      const ref = near(t, 20);
+      if (!ref) return skip('sin lectura a la hora de evaluar');
+
+      // Dosis extra tomadas después de la comida (corrección, café con leche...): se suman a la comida en vez de descartarla
+      let carbs = m.carbs || 0, dose = m.dose, corrX = 0;
+      if (isMeal) {
+        bol.forEach(x => {
+          if (x === m || x.ts <= m.ts || x.ts >= t - 15 * 6e4 || used.has(x)) return;
+          const eff = x.dose * (1 - iobFrac((t - x.ts) / 6e4));          // parte de la insulina que ya ha actuado
+          carbs += (x.carbs || 0) * Math.min(1, (t - x.ts) / 6e4 / (ABS_MIN[x.absorb] || ABS_MIN.mixta));
+          const need = !(x.carbs > 0) && x.bg > 0 ? Math.max(0, (x.bg - target) / isf) : 0;   // lo que una corrección necesitaba por glucosa alta
+          corrX += Math.min(eff, need); dose += Math.max(0, eff - need);
+          used.add(x);
+        });
+      }
+      const nxt = isMeal ? bol.find(x => x.ts > m.ts && !used.has(x)) : next;
+      const end = Math.min(m.ts + 300 * 6e4, now, nxt ? nxt.ts : Infinity);
+      const win = all.filter(r => r.ts > m.ts + 20 * 6e4 && r.ts <= end);
+      if (!win.length) return skip('sin lecturas del sensor');
+      const low = win.reduce((a, r) => (r.mgdl < a.mgdl ? r : a));
+      const hypo = low.mgdl < 70, G = hypo ? low.mgdl : ref.mgdl, w = hypo ? 2 : 1;
+      if (hypo && now - low.ts <= 7 * DAY) {
+        const f = 1 + (low.mgdl < 54 ? 0.15 : 0.10);
+        if (isMeal) S.fastIcr = Math.max(S.fastIcr, f); else S.fastIsf = Math.max(S.fastIsf, f);
+        if (!S.lastHypo || low.mgdl < S.lastHypo.mgdl) S.lastHypo = { mgdl: low.mgdl, ts: low.ts };
+      }
+      if (isMeal) {
+        const corr = (m.bg > 0 ? Math.max(0, (m.bg - target) / isf) : 0) + corrX;
+        const ideal = Math.max(0, dose - corr) + (G - (target + 20)) / isf;
+        const ratio = clampN(carbs / Math.max(ideal, 0.3), icr * 0.4, icr * 2.5);
+        for (let k = 0; k < w; k++) S.ratios.push(ratio);
+        S.mealsN++;
+      } else {
+        const drop = m.bg - G;
+        if (drop > 0) { for (let k = 0; k < w; k++) S.isfs.push(drop / m.dose); S.corrN++; }
+        else skip('la glucosa no bajó tras la corrección');
+      }
+    });
+
+    const lows = M.lows14 > 0;
+    GROUPS.forEach(g => {
+      const S = slots[g.key];
+      let im = 1, sm = 1;
+      if (S.mealsN >= 3) { const k = S.ratios.length; im = 1 + (median(S.ratios) / icr - 1) * k / (k + 4); }
+      if (S.corrN >= 2) { const k = S.isfs.length; sm = 1 + (median(S.isfs) / isf - 1) * k / (k + 3); }
+      if (im < 1 && lows) im = 1;                             // no se sube la insulina si ha habido bajas
+      if (sm < 1 && lows) sm = 1;
+      im = Math.max(im, S.fastIcr); sm = Math.max(sm, S.fastIsf);
+      S.icrMul = on ? clampN(im, 0.75, 1.3) : 1;
+      S.isfMul = on ? clampN(sm, 0.75, 1.3) : 1;
+      S.icr = Math.round(icr * S.icrMul * 10) / 10;
+      S.isf = Math.round(isf * S.isfMul);
+    });
+    adaptMemo = { key, val: M };
+    return M;
+  }
+  function adaptNow() {
+    const M = adaptModel(), S = M.slots[groupKeyOf(Date.now())];
+    return { slot: { name: S.name }, icr: S.icr, isf: S.isf, icrMul: S.icrMul, isfMul: S.isfMul, adjusted: M.ready && M.on && (S.icrMul !== 1 || S.isfMul !== 1), S };
+  }
+
+  function renderLearn() {
+    const box = $('#learnCard'); if (!box) return;
+    let h = `<div class="eyebrow">Aprendizaje automático</div><h2>Ajuste por franja del día</h2>`;
+    if (isCloud() && sensorInfo.state === 'idle') { box.innerHTML = h + '<p class="sub"><span class="spin"></span>Cargando las lecturas del sensor…</p>'; return; }
+    const M = adaptModel();
+    if (!M.ready) { box.innerHTML = h + '<p class="sub">Pon tu ratio insulina/hidratos, tu factor de sensibilidad y tu glucemia objetivo en Ajustes para empezar a aprender.</p>'; return; }
+    h += `<p class="sub">Compara cada dosis con cómo acabas 2 a 5 horas después (sensor o lecturas). Ajusta el ratio y la sensibilidad de cada franja, con un máximo de ±25 % sobre los valores de tu endocrino, y reacciona enseguida a una glucosa baja. ${M.on ? 'Ajuste automático activado.' : '<b>Ajuste automático desactivado:</b> se usan solo tus valores de Ajustes.'}</p>`;
+    const pctTxt = mul => { const p = Math.round((1 / mul - 1) * 100); return (p > 0 ? '+' : '') + p + ' %'; };
+    h += `<div style="overflow-x:auto"><table><thead><tr><th>Franja</th><th>Ratio (g por U)</th><th>Sensibilidad (mg/dL por U)</th><th>Estado</th></tr></thead><tbody>` +
+       GROUPS.map(sl => {
+        const S = M.slots[sl.key];
+        let state = 'Sin cambios';
+        if (!M.on) state = 'Solo tus valores';
+        else if (S.fastIcr > 1 || S.fastIsf > 1) state = `⚠️ Bajada reciente (${S.lastHypo ? S.lastHypo.mgdl : '?'} mg/dL): menos insulina`;
+        else if (S.icrMul > 1) state = `Menos insulina en comidas (${pctTxt(S.icrMul)})`;
+        else if (S.icrMul < 1) state = `Más insulina en comidas (${pctTxt(S.icrMul)})`;
+        else if (S.mealsN < 3) state = `Faltan datos (${S.mealsN} de 3 comidas)`;
+        return `<tr><td><b>${sl.name}</b>${sl.key === groupKeyOf(Date.now()) ? '<span class="tag">ahora</span>' : ''}</td><td>${fmt(M.icr)} → <b>${fmt(S.icr)}</b><small style="display:block;color:var(--muted)">${S.mealsN} comidas válidas</small></td><td>${fmt(M.isf)} → <b>${fmt(S.isf)}</b><small style="display:block;color:var(--muted)">${S.corrN} correcciones válidas</small></td><td>${state}</td></tr>`;
+      }).join('') + `</tbody></table></div>`;
+    h += `<div class="actions" style="margin-top:12px"><button class="btn small violet" type="button" data-act="toggle">${M.on ? 'Desactivar' : 'Activar'} ajuste automático</button><button class="btn small ghost" type="button" data-act="reset">Reiniciar aprendizaje</button></div>`;
+    if (M.diag) {
+      const sk = Object.entries(M.diag.skip).map(([k, n]) => `${k}: ${n}`).join(' · ');
+      const rst = Number(store.settings.adaptFrom) > 0 ? ` Aprendizaje reiniciado el ${new Date(Number(store.settings.adaptFrom)).toLocaleDateString('es-ES')}: solo cuentan las dosis posteriores.` : '';
+      h += `<p class="hint" style="margin-top:10px"><b>Diagnóstico:</b> ${M.diag.dosis} dosis analizadas con ${M.diag.lecturas} lecturas disponibles.${sk ? ' Descartadas → ' + sk + '.' : ''}${rst}</p>`;
+    }
+    h += `<p class="fine">Cada comida o corrección solo cuenta si hay una lectura a la hora de evaluarla. Si después de la comida te pones otra insulina (por ejemplo una corrección), se suma a la comida. Los días de gym no se usan. Son ajustes estadísticos con pocos datos: revísalos con tu endocrino, sobre todo si se alejan de tus valores.</p>`;
+    box.innerHTML = h;
+  }
+  $('#learnCard').addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-act]'); if (!b) return;
+    if (b.dataset.act === 'toggle') store.settings.adaptOn = store.settings.adaptOn === '0' ? '1' : '0';
+    else if (b.dataset.act === 'reset') {
+      if (!confirm('¿Reiniciar el aprendizaje? Se vuelve a usar tu ratio y tu sensibilidad de Ajustes hasta que haya datos nuevos.')) return;
+      store.settings.adaptFrom = String(Date.now());
+    }
+    save();
+    if (isCloud()) { try { await pushSettings(); } catch (err) { toast('Guardado aquí, pero no sincronizado: ' + err.message, 'err'); } }
+    calc(); renderCorr(); renderLearn();
+  });
+
+  /* ---------- Informe para el endocrino ---------- */
+  let reportDays = 14;
+  const pctile = (a, p) => {
+    if (!a.length) return null;
+    const s = [...a].sort((x, y) => x - y), i = (s.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+    return s[lo] + (s[hi] - s[lo]) * (i - lo);
+  };
+  function buildReport(days) {
+    const now = Date.now(), from = now - days * DAY, s = store.settings;
+    const r1 = n => fmt(Math.round(n * 10) / 10);
+    const dfmt = t => new Date(t).toLocaleDateString('es-ES');
+    const rs = readings().filter(r => r.ts >= from).sort((a, b) => a.ts - b.ts);
+    let head = `<h1>Informe de glucosa</h1><p class="hint">GlucoPlan · del ${dfmt(from)} al ${dfmt(now)} (${days} días)`;
+    if (rs.length < 10) return head + '</p><p class="empty">Hay muy pocas lecturas en este periodo para hacer un informe.</p>';
+    const sens = sensor.filter(p => p.ts >= from);
+    if (sens.length) {
+      const span = Math.max(0.1, Math.min(days, (now - sens[0].ts) / DAY));
+      head += ` · sensor con datos el ${Math.min(100, Math.round(sens.length / (span * 96) * 100))} % del tiempo en ${r1(span)} días`;
+    }
+    let h = head + ` · ${rs.length} lecturas</p>`;
+
+    const E = entries.filter(e => e.ts >= from).slice().sort((a, b) => a.ts - b.ts);
+    const v = rs.map(r => r.mgdl), n = v.length;
+    const mean = v.reduce((a, b) => a + b, 0) / n;
+    const sd = Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
+    const share = f => v.filter(f).length / n * 100;
+    const tir = share(x => x >= 70 && x <= 180), tbr = share(x => x < 70), tbr54 = share(x => x < 54);
+    const tar = share(x => x > 180), tar250 = share(x => x > 250);
+    const cv = sd / mean * 100, gmi = 3.31 + 0.02392 * mean;
+    const ok = c => (c ? '✅' : '⚠️');
+
+    const rows = [
+      ['Glucosa media', r1(mean) + ' mg/dL', '', ''],
+      ['GMI (HbA1c estimada)', r1(gmi) + ' %', 'Orientativo', ''],
+      ['Variabilidad (CV)', r1(cv) + ' %', '≤ 36 %', ok(cv <= 36)],
+      ['Tiempo en rango 70 a 180', r1(tir) + ' %', '> 70 %', ok(tir > 70)],
+      ['Tiempo por debajo de 70', r1(tbr) + ' %', '< 4 %', ok(tbr < 4)],
+      ['Tiempo por debajo de 54', r1(tbr54) + ' %', '< 1 %', ok(tbr54 < 1)],
+      ['Tiempo por encima de 180', r1(tar) + ' %', '< 25 %', ok(tar < 25)],
+      ['Tiempo por encima de 250', r1(tar250) + ' %', '< 5 %', ok(tar250 < 5)]
+    ];
+    h += `<h2>Resumen</h2><table><thead><tr><th>Indicador</th><th>Tu dato</th><th>Objetivo habitual</th><th></th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td>${r[0]}</td><td><b>${r[1]}</b></td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('') +
+      `</tbody></table><p class="fine">Objetivos habituales del consenso internacional sobre sensores continuos. Tu endocrino puede indicarte otros.</p>`;
+
+    // Glucosas bajas
+    const eps = []; let cur = null;
+    rs.forEach(r => {
+      if (r.mgdl < 70) {
+        if (!cur || r.ts - cur.end > 45 * 6e4) { cur = { start: r.ts, end: r.ts, min: r.mgdl }; eps.push(cur); }
+        else { cur.end = r.ts; cur.min = Math.min(cur.min, r.mgdl); }
+      }
+    });
+    h += `<h2>Glucosas bajas (&lt; 70)</h2>`;
+    h += eps.length
+      ? `<p>${eps.length} episodio${eps.length === 1 ? '' : 's'} en el periodo.</p><table><thead><tr><th>Cuándo</th><th>Mínima</th></tr></thead><tbody>` +
+        eps.slice(-8).reverse().map(e => `<tr><td>${new Date(e.start).toLocaleString('es-ES', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td>${e.min} mg/dL</td></tr>`).join('') + '</tbody></table>'
+      : '<p>Sin episodios por debajo de 70 en este periodo.</p>';
+
+    // Perfil por horas (AGP)
+    const byH = Array.from({ length: 24 }, () => []);
+    rs.forEach(r => byH[new Date(r.ts).getHours()].push(r.mgdl));
+    const hrs = byH.map((a, i) => (a.length >= 3 ? { i, p: [.1, .25, .5, .75, .9].map(q => pctile(a, q)) } : null)).filter(Boolean);
+    if (hrs.length >= 4) {
+      const W = 680, H = 230, pl = 34, pr = 8, pt = 10, pb = 26, lo = 40, hi = Math.min(400, Math.max(260, Math.round(pctile(v, .98) + 10)));
+      const gx = i => pl + (i + 0.5) / 24 * (W - pl - pr);
+      const gy = val => pt + (1 - (Math.min(hi, Math.max(lo, val)) - lo) / (hi - lo)) * (H - pt - pb);
+      const band = (a, b, fill) => `<polygon fill="${fill}" points="${hrs.map(o => gx(o.i) + ',' + gy(o.p[a])).join(' ')} ${[...hrs].reverse().map(o => gx(o.i) + ',' + gy(o.p[b])).join(' ')}"/>`;
+      const grid = [70, 180].map(t => `<line x1="${pl}" x2="${W - pr}" y1="${gy(t)}" y2="${gy(t)}" stroke="#999" stroke-dasharray="4 4"/><text x="${pl - 4}" y="${gy(t) + 4}" font-size="10" text-anchor="end" fill="#555">${t}</text>`).join('');
+      const xl = [0, 3, 6, 9, 12, 15, 18, 21].map(i => `<text x="${gx(i)}" y="${H - 8}" font-size="10" text-anchor="middle" fill="#555">${pad(i)}:00</text>`).join('');
+      h += `<h2>Perfil por horas del día</h2>
+        <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Perfil de glucosa por horas">
+          <rect x="${pl}" y="${gy(180)}" width="${W - pl - pr}" height="${gy(70) - gy(180)}" fill="rgba(127,203,154,.18)"/>
+          ${band(0, 4, 'rgba(111,159,207,.18)')}${band(1, 3, 'rgba(111,159,207,.35)')}
+          <polyline fill="none" stroke="#2E6E9E" stroke-width="2.5" points="${hrs.map(o => gx(o.i) + ',' + gy(o.p[2])).join(' ')}"/>
+          ${grid}${xl}
+        </svg><p class="fine">Línea: mediana. Banda oscura: del 25 al 75 % de las lecturas. Banda clara: del 10 al 90 %.</p>`;
+    }
+
+    // Comidas por franjas
+    const man2h = m => E.find(x => x.type === 'reading' && /^post2h/.test(x.context || '') && x.ts - m.ts >= 75 * 6e4 && x.ts - m.ts <= 210 * 6e4);
+    const post = m => man2h(m) || sensorAt(m.ts + 120 * 6e4, 15);
+    const meals = E.filter(e => e.type === 'meal' && (e.kind || 'comida') === 'comida' && e.carbs >= 10);
+    const slots = [['Desayuno (antes de las 12 h)', t => t < 12], ['Comida (12 a 17 h)', t => t >= 12 && t < 17], ['Cena y tarde (desde las 17 h)', t => t >= 17]];
+    const avg = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+    const slotInfo = slots.map(([name, f]) => {
+      const ms = meals.filter(m => f(new Date(m.ts).getHours()));
+      const p2 = ms.map(post).filter(Boolean).map(x => x.mgdl);
+      const sumD = ms.reduce((a, m) => a + (m.dose || 0), 0), sumC = ms.reduce((a, m) => a + m.carbs, 0);
+      return { name, n: ms.length, carbs: avg(ms.map(m => m.carbs)), dose: avg(ms.map(m => m.dose || 0)), ratio: sumD > 0 ? sumC / sumD : null,
+        p2n: p2.length, p2med: pctile(p2, .5), p2high: p2.length ? p2.filter(x => x > 180).length / p2.length * 100 : null };
+    });
+    h += `<h2>Comidas</h2>`;
+    h += meals.length
+      ? `<table><thead><tr><th>Franja</th><th>Comidas</th><th>Hidratos</th><th>Fiasp</th><th>g por unidad</th><th>Glucosa a las 2 h</th></tr></thead><tbody>` +
+        slotInfo.map(o => `<tr><td>${o.name}</td><td>${o.n}</td><td>${o.carbs != null ? r1(o.carbs) + ' g' : '—'}</td><td>${o.n ? r1(o.dose) + ' U' : '—'}</td><td>${o.ratio != null ? r1(o.ratio) : '—'}</td><td>${o.p2n ? r1(o.p2med) + ' mg/dL<small style="display:block;color:#666">' + Math.round(o.p2high) + ' % por encima de 180 (' + o.p2n + ' datos)</small>' : '—'}</td></tr>`).join('') +
+        `</tbody></table><p class="fine">Solo comidas guardadas con 10 g de hidratos o más. «g por unidad» sale de la dosis que realmente te pusiste.</p>`
+      : '<p>No hay comidas guardadas con hidratos en este periodo.</p>';
+
+    // Insulina
+    const dosed = E.filter(e => (e.type === 'meal' || e.type === 'reading') && e.dose > 0);
+    const totalF = dosed.reduce((a, e) => a + e.dose, 0);
+    const basals = E.filter(e => e.type === 'basal');
+    h += `<h2>Insulina registrada</h2><ul class="plain">
+      <li>Fiasp: ${r1(totalF)} U en ${dosed.length} dosis (${r1(totalF / days)} U al día de media; solo es fiable si anotas todas las dosis). Correcciones: ${dosed.filter(e => e.kind === 'correccion').length}.</li>
+      <li>Toujeo: ${basals.length ? basals.length + ' registros, media de ' + r1(avg(basals.map(b => b.units))) + ' U' : 'sin registros en este periodo'}.</li></ul>`;
+
+    // Gym
+    const gymDays = new Set(E.filter(e => e.gym).map(e => dayStr(e.ts)));
+    if (gymDays.size >= 3) {
+      const g = rs.filter(r => gymDays.has(dayStr(r.ts))), ng = rs.filter(r => !gymDays.has(dayStr(r.ts)));
+      if (g.length >= 20 && ng.length >= 20) {
+        const st = a => `media ${r1(avg(a.map(r => r.mgdl)))} mg/dL, ${Math.round(a.filter(r => r.mgdl >= 70 && r.mgdl <= 180).length / a.length * 100)} % en rango`;
+        h += `<h2>Días de gym</h2><ul class="plain"><li>Con gym (${gymDays.size} días): ${st(g)}.</li><li>Sin gym: ${st(ng)}.</li></ul>`;
+      }
+    }
+
+    // Ajustes y aprendizaje
+    h += `<h2>Ajustes usados en la app</h2><p>Ratio: ${s.icr || '—'} g por unidad · Sensibilidad: ${s.isf || '—'} mg/dL por unidad · Objetivo: ${s.target || '—'} mg/dL · Salto de pluma: ${s.step || '—'} U · Toujeo habitual: ${s.basal || '—'} U.</p>`;
+    const M = adaptModel();
+    if (M.ready && M.on) {
+      const ch = GROUPS.filter(g => M.slots[g.key].icrMul !== 1 || M.slots[g.key].isfMul !== 1);
+      if (ch.length) h += `<p class="fine">Ajustes aprendidos por la app (revisar con el endocrino): ` + ch.map(g => `${g.name.toLowerCase()}: ratio ${M.slots[g.key].icr} g/U, sensibilidad ${M.slots[g.key].isf} mg/dL por U`).join(' · ') + '.</p>';
+    }
+
+    // Observaciones
+    const obs = [];
+    if (tbr >= 4) obs.push(`Tiempo por debajo de 70: ${r1(tbr)} % (lo habitual es menos del 4 %).`);
+    if (tbr54 >= 1) obs.push(`Tiempo por debajo de 54: ${r1(tbr54)} % (lo habitual es menos del 1 %).`);
+    const nocturnas = eps.filter(e => new Date(e.start).getHours() < 6).length;
+    if (nocturnas) obs.push(`${nocturnas} episodio${nocturnas === 1 ? '' : 's'} de glucosa baja de madrugada (antes de las 6 h).`);
+    if (tar >= 25) obs.push(`Tiempo por encima de 180: ${r1(tar)} % (lo habitual es menos del 25 %).`);
+    if (cv > 36) obs.push(`Variabilidad alta: CV de ${r1(cv)} % (lo habitual es hasta el 36 %).`);
+    if (hrs.length >= 4) {
+      const mx = hrs.reduce((a, b) => (b.p[2] > a.p[2] ? b : a)), mn = hrs.reduce((a, b) => (b.p[2] < a.p[2] ? b : a));
+      obs.push(`La mediana más alta del día está hacia las ${pad(mx.i)}:00 (${r1(mx.p[2])} mg/dL) y la más baja hacia las ${pad(mn.i)}:00 (${r1(mn.p[2])} mg/dL).`);
+    }
+    slotInfo.forEach(o => {
+      if (o.p2n >= 3 && o.p2med > 180) obs.push(`${o.name}: a las 2 h la mediana es ${r1(o.p2med)} mg/dL (por encima de 180).`);
+      if (o.p2n >= 3 && o.p2med < 90) obs.push(`${o.name}: a las 2 h la mediana es ${r1(o.p2med)} mg/dL (cerca de la zona baja).`);
+    });
+    h += `<h2>Para comentar en consulta</h2>` + (obs.length ? `<ul class="plain">${obs.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p>Sin observaciones destacables en este periodo.</p>');
+    h += `<p class="fine" style="margin-top:18px">Informe generado por GlucoPlan con datos del sensor y registros manuales. Es descriptivo y no sustituye la valoración de tu equipo médico.</p>`;
+    return h;
+  }
+  $('#reportBtn').addEventListener('click', () => {
+    $('#reportBody').innerHTML = buildReport(reportDays);
+    $('#reportBox').hidden = false; $('#reportBox').scrollTop = 0;
+  });
+  $('#rClose').addEventListener('click', () => { $('#reportBox').hidden = true; });
+  $('#rPrint').addEventListener('click', () => window.print());
+  $$('#rRange .chip').forEach(c => c.addEventListener('click', () => {
+    reportDays = Number(c.dataset.d);
+    $$('#rRange .chip').forEach(x => x.setAttribute('aria-pressed', x === c));
+    $('#reportBody').innerHTML = buildReport(reportDays);
+  }));
+
+  /* ---------- Coach ---------- */
+  $('#coachBtn').addEventListener('click', async () => {
+    if (!isCloud()) { setStatus('#coachStatus', 'err', 'El coach necesita la sincronización. Cierra sesión en Ajustes y entra con tu clave.'); return; }
+    setStatus('#coachStatus', 'info', '<span class="spin"></span>Analizando tus datos…');
+    $('#coachOut').innerHTML = '';
+    try {
+      const d = await api('/api/coach', { method:'POST', body: JSON.stringify({ settings: { icr: store.settings.icr, isf: store.settings.isf, target: store.settings.target } }) });
+      setStatus('#coachStatus', '', '');
+      renderCoach(d);
+    } catch (err) { setStatus('#coachStatus', 'err', esc(err.message)); }
+  });
+  function renderCoach(d) {
+    const s = d.stats || {};
+    const stat = (v, l) => `<div class="stat"><b>${v ?? '—'}</b><span>${l}</span></div>`;
+    const mark = e => e === 'ok' ? '✅' : e === 'revisar' ? '⚠️' : '⬜';
+    const pc = d.preparacion, ob = d.objetivos, rt = d.ratios, se = d.sensibilidad;
+    let h = '';
+
+    if (pc) {
+      const full = pc.nivel === 'completo';
+      h += `<div class="card"><h3>${full ? 'Hay datos suficientes para la evaluación completa' : 'Evaluación preliminar: aún faltan datos'}</h3>
+        <p class="sub" style="margin-bottom:8px">${full ? 'Esto es lo que has registrado en los últimos 28 días.' : 'El coach te dirá lo que los datos sostienen y qué te falta anotar para la evaluación completa.'}</p>
+        <div class="bar" role="progressbar" aria-valuenow="${pc.porcentaje}" aria-valuemin="0" aria-valuemax="100" aria-label="Datos disponibles"><i style="width:${pc.porcentaje}%"></i></div>
+        <ul class="plain">${pc.items.map(i => `<li>${i.ok ? '✅' : '⬜'} ${esc(i.texto)}: <b>${fmt(i.tengo)}</b> de ${fmt(i.necesito)}</li>`).join('')}</ul></div>`;
+    }
+
+    h += `<div class="card"><h2>Evaluación de 28 días</h2>`;
+    if (d.alerta) h += `<div class="status err" style="margin-bottom:10px">${esc(d.alerta)}</div>`;
+    if (d.resumen) h += `<p style="margin-top:10px">${esc(d.resumen)}</p>`;
+    const bajas = s.episodios_bajos != null ? stat(s.episodios_bajos, 'episodios bajo 70') : stat(s.bajas_menos_70, 'lecturas bajo 70');
+    h += `<div class="stats">${stat(s.lecturas, 'lecturas')}${stat(s.comidas, 'comidas guardadas')}${stat(s.media_lecturas != null ? s.media_lecturas + ' mg/dL' : null, 'media de lecturas')}${bajas}${stat(s.dias_gym, 'días de gym')}${stat(s.tras_comida && s.tras_comida.subida_media != null ? (s.tras_comida.subida_media > 0 ? '+' : '') + s.tras_comida.subida_media : null, 'cambio medio tras comer')}</div></div>`;
+
+    if (ob && ob.filas && ob.filas.length) {
+      h += `<div class="card"><h3>Tus objetivos (según tu endocrino)</h3><div style="overflow-x:auto"><table><thead><tr><th></th><th>Indicador</th><th>Tu dato</th><th>Objetivo</th></tr></thead><tbody>` +
+        ob.filas.map(f => `<tr><td>${mark(f.estado)}</td><td>${esc(f.indicador)}${f.nota ? `<small style="display:block;color:var(--muted)">${esc(f.nota)}</small>` : ''}</td><td>${esc(f.valor)}</td><td>${esc(f.objetivo)}</td></tr>`).join('') +
+        `</tbody></table></div></div>`;
+    }
+
+    if (rt && rt.franjas) {
+      const lab = { alta: '⚠️ Sube después', baja: '⚠️ Baja después', objetivo: '✅ En objetivo', pocos_datos: '⬜ Faltan datos' };
+      h += `<div class="card"><h3>Ratio por comida</h3>
+        <p class="sub" style="margin-bottom:8px">Solo cuentan comidas de 10 g de hidratos o más, con glucosa previa entre 70 y 180, una lectura a las 2 h (tuya o del sensor) y sin otra insulina en medio. Mínimo 3 por comida.</p>
+        <div style="overflow-x:auto"><table><thead><tr><th>Comida</th><th>Válidas</th><th>Ratio que usas</th><th>Glucosa a las 2 h</th><th>Resultado</th></tr></thead><tbody>` +
+        rt.franjas.map(f => `<tr><td><b>${esc(f.franja)}</b><small style="display:block;color:var(--muted)">${esc(f.horas)}</small></td><td>${f.validas} de ${f.comidas}</td><td>${f.ui_r != null ? fmt(f.ui_r) + ' UI/r<small style="display:block;color:var(--muted)">' + fmt(f.g_ui) + ' g/UI</small>' : '—'}</td><td>${f.post_mediana != null ? fmt(f.post_mediana) + ' mg/dL<small style="display:block;color:var(--muted)">' + f.post_alta_pct + ' % >180 · ' + f.post_baja_pct + ' % <70</small>' : '—'}</td><td>${lab[f.estado] || ''}</td></tr>`).join('') +
+        `</tbody></table></div>` +
+        rt.franjas.filter(f => f.estado !== 'pocos_datos').map(f => `<div class="sug ${f.estado === 'objetivo' ? '' : f.estado === 'baja' ? 'alta' : 'media'}"><b>${esc(f.franja)}</b><small>${esc(f.lectura)}</small></div>`).join('') + `</div>`;
+    }
+
+    if (se) {
+      h += `<div class="card"><h3>Sensibilidad y dosis total</h3><div class="stats">` +
+        stat(se.observada_mgdl_por_UI != null ? se.observada_mgdl_por_UI : null, 'mg/dL que te bajó 1 U (observado)') +
+        stat(se.configurada_mgdl_por_UI != null ? se.configurada_mgdl_por_UI : null, 'tu factor en Ajustes') +
+        stat(se.fsi_regla_1800 != null ? se.fsi_regla_1800 : null, 'regla del 1800') +
+        stat(se.g_por_UI_regla_500 != null ? se.g_por_UI_regla_500 : null, 'g/UI por regla del 500') +
+        stat(se.dti_estimada != null ? se.dti_estimada + ' U' : null, 'dosis total diaria estimada') + `</div>
+        <p class="hint">Correcciones válidas: ${se.correcciones_validas}. ${se.dti_fiable ? '' : 'La dosis total estimada todavía no es fiable: anota todas tus dosis varios días. '}${esc(se.nota || '')}</p></div>`;
+    }
+
+    const g = s.gym_antes_despues, t = s.toujeo, gd = s.gym_dias;
+    if (g || t || gd) {
+      h += `<div class="card"><h3>Gym y Toujeo</h3><ul class="plain">`;
+      if (g && g.n) h += `<li>Gym: en ${g.suben} de ${g.n} sesiones con lectura antes y después, la glucosa subió. Cambio medio: ${g.cambio_medio > 0 ? '+' : ''}${g.cambio_medio} mg/dL.</li>`;
+      if (gd) h += `<li>Días de gym (${gd.dias_gym}): media ${gd.media_gym} mg/dL, ${gd.tir_gym} % en rango, ${gd.bajas_gym} episodio${gd.bajas_gym === 1 ? '' : 's'} bajo 70. Días sin gym: media ${gd.media_sin} mg/dL, ${gd.tir_sin} % en rango, ${gd.bajas_sin} episodio${gd.bajas_sin === 1 ? '' : 's'}.</li>`;
+      if (t) h += t.registros ? `<li>Toujeo: ${t.registros} registros, media de ${t.dosis_media} U, hora habitual ${t.hora_media}, variación entre días de ${t.variacion_horaria_min} min.</li>` : `<li>Toujeo: registra la hora de cada puesta para ver tu regularidad.</li>`;
+      if (s.ayunas && s.ayunas.n) h += `<li>Antes de desayunar (${s.ayunas.n} lecturas): mediana de ${s.ayunas.mediana} mg/dL.</li>`;
+      if (s.madrugada && s.madrugada.n) h += `<li>De madrugada (${s.madrugada.n} lecturas): mediana de ${s.madrugada.mediana} mg/dL.</li>`;
+      h += `</ul></div>`;
+    }
+    if (d.senales && d.senales.length) h += `<div class="card"><h3>Señales detectadas</h3><ul class="plain">${d.senales.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    if (d.patrones && d.patrones.length) h += `<div class="card"><h3>Patrones</h3>${d.patrones.map(p => `<div class="sug"><b>${esc(p.titulo)}</b><small>${esc(p.detalle)}</small></div>`).join('')}</div>`;
+    if (d.sugerencias && d.sugerencias.length) h += `<div class="card"><h3>Sugerencias</h3>${d.sugerencias.map(x => `<div class="sug ${x.prioridad}"><b>${esc(x.texto)}</b><small>Prioridad ${x.prioridad}${x.requiere_endocrino ? '. Coméntalo con tu endocrino antes de cambiar nada.' : '.'}</small></div>`).join('')}</div>`;
+    if (d.preguntas_endocrino && d.preguntas_endocrino.length) h += `<div class="card"><h3>Para tu próxima consulta</h3><ul class="plain">${d.preguntas_endocrino.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    if (d.aviso_ia) h += `<div class="status info">La IA no pudo redactar la interpretación (${esc(d.aviso_ia)}), pero las tablas anteriores son correctas.</div>`;
+    $('#coachOut').innerHTML = h;
+    $('#coachOut').classList.remove('tabpanel', 'enter'); $('#coachOut').classList.add('tabpanel');
+    void $('#coachOut').offsetWidth; $('#coachOut').classList.add('enter');
+  }
+
+  /* ---------- Ajustes ---------- */
+  const map = { icr:'#s-icr', isf:'#s-isf', target:'#s-target', step:'#s-step', maxDose:'#s-max', gymAdj:'#s-gym', basal:'#s-basal' };
+  const SYNCED = [...Object.keys(map), 'adaptOn', 'adaptFrom'];
+  const fillSettings = () => Object.entries(map).forEach(([k, sel]) => { $(sel).value = store.settings[k] ?? ''; });
+  async function pushSettings() {
+    const s = {}; SYNCED.forEach(k => { s[k] = String(store.settings[k] ?? ''); });
+    await api('/api/data', { method:'POST', body: JSON.stringify({ settings: s }) });
+  }
+  async function pullSettings() {
+    const d = await api('/api/data?what=settings');
+    if (d.settings) {
+      SYNCED.forEach(k => { if (d.settings[k] !== undefined && d.settings[k] !== '') store.settings[k] = d.settings[k]; });
+      save(); fillSettings(); renderToujeo(); calc();
+    } else { await pushSettings(); }
+  }
+  $('#saveSet').addEventListener('click', async () => {
+    Object.entries(map).forEach(([k, sel]) => { store.settings[k] = $(sel).value.trim(); });
+    if (!store.settings.basal) store.settings.basal = '28';
+    save(); renderToujeo(); calc(); renderLearn();
+    if (isCloud()) {
+      try { await pushSettings(); setStatus('#setStatus', 'ok', 'Ajustes guardados y sincronizados.'); toast('Ajustes sincronizados'); }
+      catch (err) { setStatus('#setStatus', 'err', 'Guardados en este dispositivo, pero no se pudieron sincronizar: ' + esc(err.message)); }
+    } else setStatus('#setStatus', 'ok', 'Ajustes guardados en este dispositivo.');
+  });
+  $('#logoutBtn').addEventListener('click', () => {
+    try { localStorage.removeItem(KEY + ':key'); localStorage.removeItem(KEY + ':local'); } catch {}
+    entries = []; sensor = []; sensorInfo = { state: 'idle' }; renderSync(); renderAll(); openLogin();
+  });
+
+  /* ---------- Acceso ---------- */
+  function openLogin() { $('#login').hidden = false; $('#pw').focus(); }
+  $('#loginBtn').addEventListener('click', async () => {
+    const pw = $('#pw').value;
+    if (!pw) { setStatus('#loginStatus', 'err', 'Escribe tu clave.'); return; }
+    try { localStorage.setItem(KEY + ':key', pw); localStorage.removeItem(KEY + ':local'); } catch {}
+    setStatus('#loginStatus', 'info', '<span class="spin"></span>Comprobando…');
+    try {
+      await pullSettings();
+      $('#login').hidden = true; $('#pw').value = ''; setStatus('#loginStatus', '', '');
+      renderSync(); await loadEntries(); syncSensor();
+      toast('Sincronizado con tu base de datos');
+    } catch (err) {
+      try { localStorage.removeItem(KEY + ':key'); } catch {}
+      setStatus('#loginStatus', 'err', esc(err.message) + '. Revisa la clave.');
+    }
+  });
+  $('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('#loginBtn').click(); });
+  $('#localBtn').addEventListener('click', async () => {
+    try { localStorage.setItem(KEY + ':local', '1'); } catch {}
+    $('#login').hidden = true; renderSync(); await loadEntries();
+  });
+
+  /* ---------- Inicio y refresco automático ---------- */
+  fillSettings(); renderSync(); renderItems(); renderAll(); setNow();
+  const hashTab = location.hash.slice(1);
+  showTab(TABS.includes(hashTab) ? hashTab : 'hoy');
+  (async () => {
+    if (isCloud()) {
+      try { await pullSettings(); await loadEntries(); syncSensor(); }
+      catch (err) { toast(err.message, 'err'); openLogin(); }
+    } else if (isLocalMode()) await loadEntries();
+    else openLogin();
+  })();
+  // Cada minuto se actualizan los tiempos y el sensor; cada 2 minutos y al volver a la pestaña se traen los datos de otros dispositivos.
+  setInterval(() => { renderToujeo(); renderCorr(); renderHero(); renderCharts(false); renderSensorLine(); setNow(); if (!document.hidden) syncSensor(); }, 60000);
+  setInterval(() => { if (isCloud() && !document.hidden) loadEntries(true); }, 120000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && isCloud()) { loadEntries(true); syncSensor(); } });
+})();
+</script>
+</body>
+</html>
